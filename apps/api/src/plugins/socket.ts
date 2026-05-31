@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { Server } from 'socket.io';
 import { verifyAccessToken } from '../lib/jwt';
 import { logger } from '../lib/logger';
+import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
 
 export default fp(async (app: FastifyInstance) => {
   const io = new Server(app.server, {
@@ -32,13 +33,15 @@ export default fp(async (app: FastifyInstance) => {
     // Join personal room for targeted signals
     void socket.join(`explorer:${explorerId}`);
 
-    // Opt-in to presence broadcasting
+    // Opt-in to presence broadcasting — coords fuzzed ≥500m before broadcast
     socket.on('presence:enable', (data: { lat: number; lng: number }) => {
       void socket.join('presence');
+      const seed = generateSessionSeed();
+      const fuzzed = fuzzCoordinates(data.lat, data.lng, 500, seed);
       socket.to('presence').emit('explorer:nearby', {
         explorerId,
-        lat: data.lat,
-        lng: data.lng,
+        lat: fuzzed.lat,
+        lng: fuzzed.lng,
       });
     });
 

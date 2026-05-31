@@ -1,9 +1,11 @@
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { useMarkSignalsSeen } from '@/hooks/useSignals';
 
 const RANK_COLORS: Record<string, string> = {
   NEWCOMER: Colors.starGhost,
@@ -15,6 +17,10 @@ const RANK_COLORS: Record<string, string> = {
 
 export default function IdentityScreen() {
   const { explorer, logout } = useAuthStore();
+  const { mutate: markSeen } = useMarkSignalsSeen();
+
+  // Mark signals as seen when explorer opens this screen
+  useEffect(() => { markSeen(); }, []);
 
   if (!explorer) return null;
 

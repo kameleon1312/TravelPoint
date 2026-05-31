@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
   withSpring,
 } from 'react-native-reanimated';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import MapboxGL from '@rnmapbox/maps';
@@ -17,6 +17,7 @@ import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import { useNearbySpots } from '@/hooks/useSpots';
 import { useAuthStore } from '@/stores/auth';
+import { socketManager } from '@/lib/socket';
 import type { SpotForViewer } from '@travelpoint/types';
 
 const MAPBOX_TOKEN = process.env['EXPO_PUBLIC_MAPBOX_TOKEN'] ?? '';
@@ -26,11 +27,17 @@ MapboxGL.setAccessToken(MAPBOX_TOKEN);
 const COSMIC_DARK_JSON = JSON.stringify(require('../../assets/map-styles/cosmic-dark.json'));
 
 const ACCESS_PIN_COLORS: Record<string, string> = {
-  PUBLIC: Colors.aurora,
-  TRUSTED: Colors.signal,
+  PUBLIC:      Colors.aurora,
+  TRUSTED:     Colors.signal,
   SECRET_DROP: Colors.ember,
   CIRCLE_ONLY: Colors.violet,
 };
+
+interface NearbyExplorer {
+  explorerId: string;
+  lat: number;
+  lng: number;
+}
 
 function PresenceToggle({ active, onToggle }: { active: boolean; onToggle: () => void }) {
   const scale = useSharedValue(1);
@@ -73,6 +80,7 @@ export default function AtlasScreen() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [presenceActive, setPresenceActive] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
+  const [nearbyExplorers, setNearbyExplorers] = useState<NearbyExplorer[]>([]);
   const cameraRef = useRef<MapboxGL.Camera>(null);
 
   const { data: spots } = useNearbySpots(
@@ -80,9 +88,34 @@ export default function AtlasScreen() {
     coords?.lng ?? null,
   );
 
+  // Subscribe to nearby explorer presence events
+  useEffect(() => {
+    const handler = (data: unknown) => {
+      const e = data as NearbyExplorer;
+      if (!e.explorerId || e.explorerId === explorer?.id) return;
+      setNearbyExplorers((prev) => {
+        const filtered = prev.filter((p) => p.explorerId !== e.explorerId);
+        return [...filtered, e].slice(-20); // max 20 nearby
+      });
+    };
+    socketManager.on('explorer:nearby', handler);
+    return () => socketManager.off('explorer:nearby', handler);
+  }, [explorer?.id]);
+
   useEffect(() => {
     void requestLocation();
   }, []);
+
+  // When presence is toggled, emit to socket
+  useEffect(() => {
+    if (!coords) return;
+    if (presenceActive) {
+      socketManager.emit('presence:enable', { lat: coords.lat, lng: coords.lng });
+    } else {
+      socketManager.emit('presence:disable');
+      setNearbyExplorers([]);
+    }
+  }, [presenceActive, coords]);
 
   async function requestLocation() {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -125,6 +158,17 @@ export default function AtlasScreen() {
     })),
   };
 
+  // Nearby explorers as fuzzed presence pins
+  const presenceGeoJson: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: nearbyExplorers.map((e) => ({
+      type: 'Feature',
+      id: e.explorerId,
+      geometry: { type: 'Point', coordinates: [e.lng, e.lat] },
+      properties: { explorerId: e.explorerId },
+    })),
+  };
+
   return (
     <View style={styles.root}>
       <MapboxGL.MapView
@@ -145,6 +189,7 @@ export default function AtlasScreen() {
 
         {locationGranted && <MapboxGL.UserLocation visible animated />}
 
+        {/* Spot pins */}
         {spots && spots.length > 0 && (
           <MapboxGL.ShapeSource
             id="spots"
@@ -168,7 +213,7 @@ export default function AtlasScreen() {
               }}
             />
             <MapboxGL.CircleLayer
-              id="spot-public"
+              id="spot-unlocked"
               filter={['==', ['get', 'locked'], false]}
               style={{
                 circleRadius: 10,
@@ -180,12 +225,46 @@ export default function AtlasScreen() {
             />
           </MapboxGL.ShapeSource>
         )}
+
+        {/* Live presence pins — other explorers (fuzzed coords from server) */}
+        {presenceActive && nearbyExplorers.length > 0 && (
+          <MapboxGL.ShapeSource id="presence" shape={presenceGeoJson}>
+            <MapboxGL.CircleLayer
+              id="presence-pulse"
+              style={{
+                circleRadius: 14,
+                circleColor: Colors.aurora,
+                circleOpacity: 0.15,
+                circleStrokeWidth: 0,
+              }}
+            />
+            <MapboxGL.CircleLayer
+              id="presence-dot"
+              style={{
+                circleRadius: 6,
+                circleColor: Colors.aurora,
+                circleStrokeWidth: 2,
+                circleStrokeColor: Colors.abyss,
+                circleOpacity: 0.9,
+              }}
+            />
+          </MapboxGL.ShapeSource>
+        )}
       </MapboxGL.MapView>
 
       {/* Top bar */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
         <Text style={styles.logo}>TravelPoint</Text>
-        <PresenceToggle active={presenceActive} onToggle={togglePresence} />
+        <View style={styles.topRight}>
+          {presenceActive && nearbyExplorers.length > 0 && (
+            <View style={styles.nearbyBadge}>
+              <Text style={styles.nearbyText}>
+                {nearbyExplorers.length} {pl.presence.nearby}
+              </Text>
+            </View>
+          )}
+          <PresenceToggle active={presenceActive} onToggle={togglePresence} />
+        </View>
       </SafeAreaView>
 
       {/* Bottom CTA */}
@@ -216,11 +295,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   logo: {
     fontFamily: 'ClashDisplay-Bold',
     fontSize: FontSize.h4,
     color: Colors.starlight,
     ...Shadow.card,
+  },
+  nearbyBadge: {
+    backgroundColor: Colors.aurora + '20',
+    borderRadius: 999,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.aurora + '50',
+  },
+  nearbyText: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: FontSize.micro,
+    color: Colors.aurora,
   },
   presenceIndicator: {
     flexDirection: 'row',
@@ -237,11 +330,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.aurora + '60',
     backgroundColor: Colors.aurora + '12',
   },
-  presenceDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
+  presenceDot: { width: 6, height: 6, borderRadius: 3 },
   presenceText: {
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.micro,

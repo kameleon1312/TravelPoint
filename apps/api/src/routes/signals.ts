@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { requireAuth } from '../middleware/requireAuth';
+import type { SignalType } from '@travelpoint/types';
 
 export async function signalRoutes(app: FastifyInstance) {
   // GET /api/signals — unseen signals for current explorer
@@ -20,4 +22,18 @@ export async function signalRoutes(app: FastifyInstance) {
     });
     return reply.status(204).send();
   });
+}
+
+// Helper used by other routes to push a signal and notify via socket
+export async function pushSignal(
+  app: FastifyInstance,
+  explorerId: string,
+  type: SignalType,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const signal = await app.prisma.signal.create({
+    data: { explorerId, type, payload: payload as Prisma.InputJsonValue },
+  });
+  // Notify the explorer's personal socket room in real-time
+  app.io.to(`explorer:${explorerId}`).emit('signal:new', signal);
 }

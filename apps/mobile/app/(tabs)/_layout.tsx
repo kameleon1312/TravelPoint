@@ -3,11 +3,12 @@ import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Colors, Spacing } from '@travelpoint/theme';
 import { pl } from '@/i18n/pl';
+import { useUnseenSignalsCount } from '@/hooks/useSignals';
 
 const TAB_ICONS: Record<string, string> = {
-  index: '◉',
+  index:    '◉',
   discover: '◈',
-  circles: '◑',
+  circles:  '◑',
   journeys: '◎',
   identity: '◐',
 };
@@ -23,12 +24,16 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 }
 
 export default function TabsLayout() {
+  const { data: unseenCount = 0 } = useUnseenSignalsCount();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarBackground: () => <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />,
+        tabBarBackground: () => (
+          <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
+        ),
         tabBarActiveTintColor: Colors.aurora,
         tabBarInactiveTintColor: Colors.starGhost,
         tabBarLabelStyle: styles.tabLabel,
@@ -67,6 +72,9 @@ export default function TabsLayout() {
         options={{
           title: pl.nav.identity,
           tabBarIcon: ({ focused }) => <TabIcon name="identity" focused={focused} />,
+          // Show badge when there are unseen signals
+          tabBarBadge: unseenCount > 0 ? (unseenCount > 9 ? '9+' : unseenCount) : undefined,
+          tabBarBadgeStyle: styles.badge,
         }}
       />
     </Tabs>
@@ -92,5 +100,14 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: 'GeneralSans-Regular',
     fontSize: 10,
+  },
+  badge: {
+    backgroundColor: Colors.ember,
+    color: Colors.starlight,
+    fontSize: 10,
+    fontFamily: 'SpaceMono-Regular',
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
   },
 });
