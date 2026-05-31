@@ -36,6 +36,12 @@
 }
 
 @layer components {
+  /* Full-screen height that responds to all zoom types (browser, DevTools scale, OS).
+     Falls back to 100svh on SSR before JS sets --vh. */
+  .hero-screen {
+    min-height: calc(var(--vh, 1svh) * 100);
+  }
+
   .starfield {
     position: absolute;
     inset: -50%;

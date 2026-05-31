@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { ViewportHeight } from '@/components/layout/ViewportHeight';
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#0A0E18',
+  themeColor: '#0C1014',
 };
 
 export const metadata: Metadata = {
@@ -43,7 +44,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl" className="dark">
-      <body>{children}</body>
+      <body>
+        <ViewportHeight />
+        {children}
+      </body>
     </html>
   );
 }

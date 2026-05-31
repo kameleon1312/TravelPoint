@@ -27,7 +27,7 @@ export function Hero({ onJoinClick }: HeroProps) {
   };
 
   return (
-    <section className="relative flex flex-col items-center justify-center overflow-hidden bg-void min-h-[100svh]">
+    <section className="relative flex flex-col items-center justify-center overflow-hidden bg-void hero-screen">
 
       {/* Starfield */}
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
