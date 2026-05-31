@@ -4,7 +4,12 @@ const isDev = process.env.NODE_ENV === 'development';
 const nextConfig = {
   transpilePackages: ['@travelpoint/theme', '@travelpoint/types', '@travelpoint/validation', '@travelpoint/api-client'],
   images: {
-    domains: ['cdn.travelpoint.io'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.travelpoint.io',
+      },
+    ],
   },
   headers: async () => [
     {
