@@ -1,9 +1,9 @@
 export const Gradients = {
-  aurora: ['#1FA899', '#3DD6C4', '#5B8DEF'],
-  cosmic: ['#05060A', '#0E1A33', '#13294B'],
-  signal: ['#5B8DEF', '#3DD6C4'],
-  ember: ['#FF7A59', '#9B6DFF'],
-  sheen: ['rgba(234,241,255,0.12)', 'rgba(234,241,255,0.00)'],
+  aurora:  ['#3A8C6A', '#5CB88C', '#1E9AB0'],   // seagrass → ocean
+  cosmic:  ['#070A0C', '#0F1E2A', '#133040'],    // ocean depth
+  signal:  ['#1E9AB0', '#5CB88C'],               // ocean teal → seagrass
+  ember:   ['#C86840', '#7A6D9E'],               // terracotta → dusk
+  sheen:   ['rgba(237,232,223,0.12)', 'rgba(237,232,223,0.00)'],
 } as const;
 
 export type GradientToken = keyof typeof Gradients;

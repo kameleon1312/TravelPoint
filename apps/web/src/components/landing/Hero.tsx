@@ -43,7 +43,7 @@ export function Hero({ onJoinClick }: HeroProps) {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 90% 80% at 50% 50%, transparent 10%, rgba(5,6,10,0.55) 50%, #05060A 80%)',
+          background: 'radial-gradient(ellipse 90% 80% at 50% 50%, transparent 10%, rgba(7,10,12,0.55) 50%, #070A0C 80%)',
         }}
         aria-hidden="true"
       />

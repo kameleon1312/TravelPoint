@@ -1,40 +1,44 @@
 export const Colors = {
-  // Deep space surfaces
-  void: '#05060A',
-  abyss: '#0A0E18',
-  graphite: '#11161F',
-  graphiteSoft: '#1A212E',
-  steel: '#232C3B',
+  // ─── Deep surfaces (ocean floor meets dark stone) ───
+  void:         '#070A0C',   // deepest — ocean abyss
+  abyss:        '#0C1014',   // main background — deep water
+  graphite:     '#131A1F',   // cards — wet dark rock
+  graphiteSoft: '#1B2328',   // hover / nested surface
+  steel:        '#253035',   // borders, dividers
 
-  // Midnight blues (brand base)
-  midnight: '#0E1A33',
-  deepBlue: '#13294B',
-  cosmicBlue: '#1B3A6B',
+  // ─── Ocean depth tones ───
+  midnight:     '#0F1E2A',
+  deepBlue:     '#133040',
+  cosmicBlue:   '#1A4055',
 
-  // Aurora accents (signal / discovery)
-  aurora: '#3DD6C4',
-  auroraDeep: '#1FA899',
-  signal: '#5B8DEF',
-  signalGlow: '#7FA8FF',
-  ember: '#FF7A59',
-  violet: '#9B6DFF',
+  // ─── Accents ───
+  aurora:       '#5CB88C',   // seagrass green — primary accent
+  auroraDeep:   '#3A8C6A',   // darker seagrass
+  signal:       '#1E9AB0',   // deep teal ocean — links / navigation
+  signalGlow:   '#3DBDD4',   // brighter teal for glow
+  ember:        '#C86840',   // terracotta canyon — rare warm accent
+  violet:       '#7A6D9E',   // dusk lavender — circles / trusted
 
-  // Starlight (text & highlights)
-  starlight: '#EAF1FF',
-  star: '#C6D2E8',
-  starFaint: '#8A97B0',
-  starGhost: '#5A6478',
+  // ─── Terra accents ───
+  sand:         '#C8A456',   // dry sand, golden hour
+  moss:         '#4A8A6A',   // deep forest moss
 
-  // Glass (glassmorphism)
-  glass: 'rgba(234,241,255,0.04)',
-  glassBorder: 'rgba(234,241,255,0.10)',
-  glassStrong: 'rgba(234,241,255,0.08)',
+  // ─── Text (warm cream tones — paper, not cold screen) ───
+  starlight:    '#EDE8DF',   // primary text — warm cream
+  star:         '#C4B9AC',   // secondary text
+  starFaint:    '#8A827A',   // tertiary text
+  starGhost:    '#5A5550',   // placeholder / disabled
 
-  // Status
-  success: '#3DD6A0',
-  warning: '#F2B660',
-  danger: '#FF5C6C',
-  info: '#5B8DEF',
+  // ─── Glass (warmer organic tint) ───
+  glass:        'rgba(237,232,223,0.05)',
+  glassBorder:  'rgba(237,232,223,0.10)',
+  glassStrong:  'rgba(237,232,223,0.09)',
+
+  // ─── Status ───
+  success:      '#5CB88C',
+  warning:      '#C8A456',
+  danger:       '#C85040',
+  info:         '#1E9AB0',
 } as const;
 
 export type ColorToken = keyof typeof Colors;

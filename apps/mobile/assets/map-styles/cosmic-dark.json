@@ -1,7 +1,7 @@
 {
   "version": 8,
-  "name": "TravelPoint Cosmic Dark",
-  "metadata": { "description": "Placeholder — replace with real Mapbox style JSON from Mapbox Studio" },
+  "name": "TravelPoint Terra Mare",
+  "metadata": { "description": "Placeholder — replace with real Mapbox style JSON from Mapbox Studio. Target: dark nautical/terrain style with ocean depth blues and dark stone land." },
   "sources": {
     "composite": {
       "url": "mapbox://mapbox.mapbox-streets-v8,mapbox.mapbox-terrain-v2",
@@ -14,8 +14,8 @@
     {
       "id": "background",
       "type": "background",
-      "paint": { "background-color": "#0A0E18" }
+      "paint": { "background-color": "#0C1014" }
     }
   ],
-  "comment": "Replace this file with a full Mapbox Studio style JSON exported from your cosmic-dark style. Mapbox token: see EXPO_PUBLIC_MAPBOX_TOKEN in .env"
+  "comment": "Target style: dark ocean/terrain. Land=#131A1F (wet stone), Water=#0F1E2A (ocean depth), Roads=#253035 (dark slate), Labels=#8A827A (warm grey). Mapbox token: see EXPO_PUBLIC_MAPBOX_TOKEN in .env"
 }
