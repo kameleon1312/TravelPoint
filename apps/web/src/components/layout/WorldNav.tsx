@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface WorldNavProps {
   onJoinClick?: () => void;
@@ -29,8 +30,18 @@ export function WorldNav({ onJoinClick }: WorldNavProps) {
         }`}
       >
         {/* Logo */}
-        <Link href="/" className="font-display text-lg font-bold text-starlight tracking-tight">
-          TravelPoint
+        <Link href="/" className="flex items-center gap-2.5 group" aria-label="TravelPoint — strona główna">
+          <Image
+            src="/logo.png"
+            alt="TravelPoint"
+            width={36}
+            height={36}
+            className="rounded-lg transition-transform duration-200 group-hover:scale-105"
+            priority
+          />
+          <span className="font-display text-base font-bold text-starlight tracking-tight">
+            TravelPoint
+          </span>
         </Link>
 
         {/* Links */}

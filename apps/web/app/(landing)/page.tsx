@@ -31,15 +31,6 @@ export default function LandingPage() {
 
   return (
     <>
-      {/* Skip link for a11y */}
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-[100]
-                   px-4 py-2 bg-aurora text-void rounded-lg font-sans text-sm font-bold"
-      >
-        Przejdź do treści
-      </a>
-
       <WorldNav onJoinClick={scrollToJoin} />
 
       <main id="main">

@@ -3,6 +3,8 @@ import { CreateSpotSchema, SpotQuerySchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { resolveSpotForViewer } from '../services/hiddenLayer';
 import { generateSessionSeed } from '@travelpoint/geo';
+import { latLngToCell } from 'h3-js';
+import { addTrustPoints, TrustPoints } from '../services/trustScore';
 
 export async function spotsRoutes(app: FastifyInstance) {
   // GET /api/spots?lat=&lng=&radiusKm=
@@ -89,12 +91,13 @@ export async function spotsRoutes(app: FastifyInstance) {
     }
     const { lat, lng, ...rest } = parsed.data;
 
-    // h3Index placeholder — in production use h3-js
-    const h3Index = `${Math.floor(lat * 10)}_${Math.floor(lng * 10)}`;
+    const h3Index = latLngToCell(lat, lng, 8);
 
     const spot = await app.prisma.spot.create({
       data: { ...rest, lat, lng, h3Index, ownerId: req.explorerId },
     });
+
+    void addTrustPoints(app.prisma, req.explorerId, TrustPoints.SPOT_CREATED);
 
     return reply.status(201).send({ ...spot, locked: false });
   });

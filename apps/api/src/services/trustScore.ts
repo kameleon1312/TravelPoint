@@ -1,4 +1,6 @@
+import type { PrismaClient } from '@prisma/client';
 import type { Rank } from '@travelpoint/types';
+export type { PrismaClient };
 
 const RANK_THRESHOLDS: Record<Rank, number> = {
   NEWCOMER: 0,
@@ -24,3 +26,23 @@ export const TrustPoints = {
   JOURNEY_PUBLISHED: 8,
   WEEK_ACTIVE: 2,
 } as const;
+
+export async function addTrustPoints(
+  prisma: PrismaClient,
+  explorerId: string,
+  points: number,
+): Promise<void> {
+  const explorer = await prisma.explorer.findUnique({
+    where: { id: explorerId },
+    select: { trustScore: true },
+  });
+  if (!explorer) return;
+
+  const newScore = explorer.trustScore + points;
+  const newRank = computeRank(newScore);
+
+  await prisma.explorer.update({
+    where: { id: explorerId },
+    data: { trustScore: newScore, rank: newRank },
+  });
+}

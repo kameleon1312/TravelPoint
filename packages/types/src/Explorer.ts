@@ -10,6 +10,7 @@ export interface Explorer {
   archetype: Archetype;
   bio?: string;
   obsessions: string[];
+  territories: string[];
   trustScore: number;
   rank: Rank;
   tier: Tier;

@@ -9,9 +9,13 @@ import { Colors, FontSize, FontWeight, Gradients, Spacing, BorderRadius } from '
 import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import { useState } from 'react';
+import { tokenStorage } from '@/lib/secureStorage';
+import { useAuthStore } from '@/stores/auth';
+import type { Explorer } from '@travelpoint/types';
 
 export default function JoinScreen() {
   const [serverError, setServerError] = useState('');
+  const { setExplorer } = useAuthStore();
   const {
     control,
     handleSubmit,
@@ -34,6 +38,9 @@ export default function JoinScreen() {
         setServerError(err.message ?? 'Błąd rejestracji');
         return;
       }
+      const body = await res.json() as { accessToken: string; refreshToken: string; explorer: Explorer };
+      await tokenStorage.setTokens(body.accessToken, body.refreshToken);
+      setExplorer(body.explorer);
       router.replace('/(onboarding)/step-1-archetype');
     } catch {
       setServerError('Brak połączenia z siecią');

@@ -1,5 +1,5 @@
-import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export async function auditAccess(
   prisma: PrismaClient,
@@ -8,6 +8,10 @@ export async function auditAccess(
   metadata?: Record<string, unknown>,
 ) {
   await prisma.auditLog.create({
-    data: { explorerId, action, metadata: metadata ?? null },
+    data: {
+      explorerId,
+      action,
+      ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
+    },
   });
 }

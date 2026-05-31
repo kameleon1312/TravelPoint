@@ -26,7 +26,7 @@ export function PhoneShowcase() {
   useEffect(() => {
     if (paused) return;
     const id = setInterval(
-      () => setScene((s) => SCENES[(SCENES.indexOf(s) + 1) % SCENES.length]),
+      () => setScene((s) => SCENES[(SCENES.indexOf(s) + 1) % SCENES.length] ?? 'atlas'),
       4000,
     );
     return () => clearInterval(id);
@@ -67,11 +67,12 @@ export function PhoneShowcase() {
 
       {/* Phone frame */}
       <motion.div
-        style={reduce ? {} : { rotateX: springX, rotateY: springY }}
+        style={reduce
+          ? { aspectRatio: '9/19.5' }
+          : { rotateX: springX, rotateY: springY, aspectRatio: '9/19.5' }}
         animate={reduce ? {} : { y: [0, -10, 0] }}
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         className="relative rounded-[44px] border border-white/10 bg-graphite shadow-2xl overflow-hidden"
-        style={{ aspectRatio: '9/19.5' }}
       >
         {/* Notch */}
         <div className="absolute left-1/2 top-2 h-5 w-24 -translate-x-1/2 rounded-full bg-void z-20" />

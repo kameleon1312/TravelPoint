@@ -6,85 +6,189 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
-  withDelay,
+  withSpring,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
-import { Colors, FontSize, FontWeight, Spacing, Shadow } from '@travelpoint/theme';
+import * as Location from 'expo-location';
+import MapboxGL from '@rnmapbox/maps';
+import { Colors, FontSize, Spacing, Shadow } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
+import { useNearbySpots } from '@/hooks/useSpots';
+import { useAuthStore } from '@/stores/auth';
+import type { SpotForViewer } from '@travelpoint/types';
 
-// Placeholder spot pins for the map (real impl uses @rnmapbox/maps + cosmic-dark style)
-const DEMO_PINS = [
-  { id: '1', x: '25%', y: '35%', type: 'public', color: Colors.aurora },
-  { id: '2', x: '60%', y: '50%', type: 'locked', color: Colors.starGhost },
-  { id: '3', x: '45%', y: '65%', type: 'secret', color: Colors.ember },
-  { id: '4', x: '75%', y: '30%', type: 'public', color: Colors.signal },
-];
+const MAPBOX_TOKEN = process.env['EXPO_PUBLIC_MAPBOX_TOKEN'] ?? '';
+MapboxGL.setAccessToken(MAPBOX_TOKEN);
 
-function PulsingPin({ color, delay = 0 }: { color: string; delay?: number }) {
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const COSMIC_DARK_JSON = JSON.stringify(require('../../assets/map-styles/cosmic-dark.json'));
+
+const ACCESS_PIN_COLORS: Record<string, string> = {
+  PUBLIC: Colors.aurora,
+  TRUSTED: Colors.signal,
+  SECRET_DROP: Colors.ember,
+  CIRCLE_ONLY: Colors.violet,
+};
+
+function PresenceToggle({ active, onToggle }: { active: boolean; onToggle: () => void }) {
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
+  const dotStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   useEffect(() => {
-    scale.value = withDelay(delay, withRepeat(
-      withSequence(withTiming(1.8, { duration: 600 }), withTiming(1, { duration: 800 })),
-      -1,
-    ));
-    opacity.value = withDelay(delay, withRepeat(
-      withSequence(withTiming(0, { duration: 600 }), withTiming(1, { duration: 800 })),
-      -1,
-    ));
-  }, []);
-
-  const ringStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+    if (active) {
+      scale.value = withRepeat(
+        withSequence(withTiming(1.5, { duration: 800 }), withTiming(1, { duration: 800 })),
+        -1,
+      );
+    } else {
+      scale.value = withSpring(1);
+    }
+  }, [active]);
 
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <Pressable
+      style={[styles.presenceIndicator, active && styles.presenceIndicatorActive]}
+      onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityLabel={active ? pl.presence.presenceActive : pl.presence.presenceOff}
+    >
       <Animated.View
-        style={[styles.pinRing, ringStyle, { borderColor: color }]}
+        style={[
+          styles.presenceDot,
+          { backgroundColor: active ? Colors.aurora : Colors.starGhost },
+          dotStyle,
+        ]}
       />
-      <View style={[styles.pin, { backgroundColor: color }]} />
-    </View>
+      <Text style={[styles.presenceText, active && { color: Colors.aurora }]}>
+        {active ? pl.presence.presenceActive : pl.presence.presenceOff}
+      </Text>
+    </Pressable>
   );
 }
 
 export default function AtlasScreen() {
+  const { explorer } = useAuthStore();
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [presenceActive, setPresenceActive] = useState(false);
+  const [locationGranted, setLocationGranted] = useState(false);
+  const cameraRef = useRef<MapboxGL.Camera>(null);
+
+  const { data: spots } = useNearbySpots(
+    coords?.lat ?? null,
+    coords?.lng ?? null,
+  );
+
+  useEffect(() => {
+    void requestLocation();
+  }, []);
+
+  async function requestLocation() {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return;
+    setLocationGranted(true);
+
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    const { latitude: lat, longitude: lng } = loc.coords;
+    setCoords({ lat, lng });
+
+    cameraRef.current?.setCamera({
+      centerCoordinate: [lng, lat],
+      zoomLevel: 13,
+      animationDuration: 1200,
+    });
+  }
+
+  function togglePresence() {
+    if (!locationGranted) {
+      void requestLocation();
+      return;
+    }
+    setPresenceActive((v) => !v);
+  }
+
+  const spotsGeoJson: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: (spots ?? []).map((spot: SpotForViewer) => ({
+      type: 'Feature',
+      id: spot.id,
+      geometry: { type: 'Point', coordinates: [spot.lng, spot.lat] },
+      properties: {
+        id: spot.id,
+        locked: 'locked' in spot ? spot.locked : false,
+        accessLevel: 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC',
+        color: ACCESS_PIN_COLORS[
+          'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC'
+        ] ?? Colors.aurora,
+      },
+    })),
+  };
+
   return (
     <View style={styles.root}>
-      {/* Map placeholder — developer wstawia @rnmapbox/maps z cosmic-dark.json */}
-      <View style={styles.map}>
-        {/* Grid overlay (represents map tiles) */}
-        <View style={StyleSheet.absoluteFill}>
-          <View style={styles.mapGrid} />
-        </View>
+      <MapboxGL.MapView
+        style={StyleSheet.absoluteFill}
+        styleJSON={COSMIC_DARK_JSON}
+        logoEnabled={false}
+        attributionEnabled={false}
+        compassEnabled={false}
+        scaleBarEnabled={false}
+      >
+        <MapboxGL.Camera
+          ref={cameraRef}
+          defaultSettings={{
+            centerCoordinate: [21.0122, 52.2297],
+            zoomLevel: 4,
+          }}
+        />
 
-        {/* Signal pins */}
-        {DEMO_PINS.map((pin, i) => (
-          <Pressable
-            key={pin.id}
-            style={[styles.pinContainer, { left: pin.x, top: pin.y }]}
-            onPress={() => router.push(`/spot/${pin.id}`)}
-            accessibilityLabel={`Spot ${pin.type}`}
+        {locationGranted && <MapboxGL.UserLocation visible animated />}
+
+        {spots && spots.length > 0 && (
+          <MapboxGL.ShapeSource
+            id="spots"
+            shape={spotsGeoJson}
+            onPress={(e) => {
+              const feature = e.features[0];
+              if (feature?.properties?.['id']) {
+                router.push(`/spot/${feature.properties['id'] as string}`);
+              }
+            }}
           >
-            <PulsingPin color={pin.color} delay={i * 300} />
-          </Pressable>
-        ))}
+            <MapboxGL.CircleLayer
+              id="spot-locked"
+              filter={['==', ['get', 'locked'], true]}
+              style={{
+                circleRadius: 8,
+                circleColor: Colors.starGhost,
+                circleStrokeWidth: 1.5,
+                circleStrokeColor: Colors.steel,
+                circleOpacity: 0.7,
+              }}
+            />
+            <MapboxGL.CircleLayer
+              id="spot-public"
+              filter={['==', ['get', 'locked'], false]}
+              style={{
+                circleRadius: 10,
+                circleColor: ['get', 'color'],
+                circleStrokeWidth: 2,
+                circleStrokeColor: Colors.abyss,
+                circleBlur: 0.2,
+              }}
+            />
+          </MapboxGL.ShapeSource>
+        )}
+      </MapboxGL.MapView>
 
-        {/* Top bar */}
-        <SafeAreaView edges={['top']} style={styles.topBar}>
-          <Text style={styles.logo}>TravelPoint</Text>
-          <View style={styles.presenceIndicator}>
-            <Animated.View style={[styles.presenceDot]} />
-            <Text style={styles.presenceText}>{pl.presence.presenceOff}</Text>
-          </View>
-        </SafeAreaView>
-      </View>
+      {/* Top bar */}
+      <SafeAreaView edges={['top']} style={styles.topBar}>
+        <Text style={styles.logo}>TravelPoint</Text>
+        <PresenceToggle active={presenceActive} onToggle={togglePresence} />
+      </SafeAreaView>
 
-      {/* Bottom CTA — kciuk-reachable */}
+      {/* Bottom CTA */}
       <SafeAreaView edges={['bottom']} style={styles.bottomBar}>
         <SignalButton
           label={pl.spots.dropSpot}
@@ -101,12 +205,6 @@ export default function AtlasScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.abyss },
-  map: { flex: 1, position: 'relative' },
-  mapGrid: {
-    flex: 1,
-    backgroundColor: Colors.midnight,
-    // TODO(developer): Replace with <MapboxGL.MapView styleURL={cosmicDarkStyle} />
-  },
   topBar: {
     position: 'absolute',
     top: 0,
@@ -122,6 +220,7 @@ const styles = StyleSheet.create({
     fontFamily: 'ClashDisplay-Bold',
     fontSize: FontSize.h4,
     color: Colors.starlight,
+    ...Shadow.card,
   },
   presenceIndicator: {
     flexDirection: 'row',
@@ -134,42 +233,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.glassBorder,
   },
+  presenceIndicatorActive: {
+    borderColor: Colors.aurora + '60',
+    backgroundColor: Colors.aurora + '12',
+  },
   presenceDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.starGhost,
   },
   presenceText: {
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.micro,
     color: Colors.starFaint,
   },
-  pinContainer: {
-    position: 'absolute',
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    transform: [{ translateX: -22 }, { translateY: -22 }],
-  },
-  pinRing: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-  },
-  pin: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
   bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.steel,
-    backgroundColor: Colors.abyss,
+    paddingBottom: Spacing.md,
   },
 });

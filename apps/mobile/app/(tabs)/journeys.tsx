@@ -42,7 +42,7 @@ export default function JourneysScreen() {
             <GlassCard style={styles.card}>
               <View style={styles.cardTop}>
                 <Text style={styles.title}>{item.title}</Text>
-                {item.isPrivate && <Text style={styles.privateBadge}>🔒</Text>}
+                {item.isPrivate && <Text style={styles.privateBadge}>◑</Text>}
               </View>
               {item.mood && (
                 <Text style={styles.mood}>"{item.mood}"</Text>
@@ -59,7 +59,7 @@ export default function JourneysScreen() {
       <View style={styles.fab}>
         <SignalButton
           label={pl.journeys.newJourney}
-          onPress={() => router.push('/modals/new-spot')}
+          onPress={() => router.push('/modals/new-journey')}
           variant="aurora"
           size="sm"
           haptic="light"

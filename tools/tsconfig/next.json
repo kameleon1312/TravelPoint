@@ -4,6 +4,7 @@
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
+    "allowArbitraryExtensions": true,
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {

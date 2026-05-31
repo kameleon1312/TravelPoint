@@ -13,7 +13,45 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefreshToken(): Promise<string | null> {
+  if (isRefreshing) return refreshPromise;
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const refresh = await tokenStorage.getRefreshToken();
+      if (!refresh) return null;
+
+      const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: refresh }),
+      });
+
+      if (!res.ok) {
+        await tokenStorage.clear();
+        return null;
+      }
+
+      const data = await res.json() as { accessToken: string; refreshToken: string };
+      await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+      return data.accessToken;
+    } catch {
+      await tokenStorage.clear();
+      return null;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+async function request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
   const token = await tokenStorage.getAccessToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -22,6 +60,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+
+  if (res.status === 401 && retry) {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      return request<T>(path, options, false);
+    }
+    // Refresh failed — throw so AuthGate can redirect to login
+    throw new ApiError('UNAUTHORIZED', 'Session expired', 401);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ code: 'UNKNOWN', message: res.statusText })) as { code: string; message: string };

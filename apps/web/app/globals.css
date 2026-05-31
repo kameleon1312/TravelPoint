@@ -30,9 +30,35 @@
   }
 }
 
+@keyframes starfieldDrift {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@layer components {
+  .starfield {
+    position: absolute;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
+    background-image: radial-gradient(circle, rgba(234,241,255,0.4) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: starfieldDrift 60s linear infinite;
+    will-change: transform;
+    pointer-events: none;
+  }
+}
+
 @layer utilities {
   .text-gradient-aurora {
     background: linear-gradient(135deg, #1FA899, #3DD6C4, #5B8DEF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-signal {
+    background: linear-gradient(135deg, #5B8DEF, #3DD6C4);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

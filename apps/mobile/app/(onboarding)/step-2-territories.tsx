@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { useOnboardingStore } from '@/stores/onboarding';
 
 const CONTINENTS = [
   { id: 'EU', label: 'Europa', icon: '🌍' },
@@ -17,11 +18,17 @@ const CONTINENTS = [
 
 export default function TerritoriesStep() {
   const [selected, setSelected] = useState<string[]>([]);
+  const { setTerritories } = useOnboardingStore();
 
   function toggle(id: string) {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+  }
+
+  function handleNext() {
+    setTerritories(selected);
+    router.push('/(onboarding)/step-3-obsession');
   }
 
   return (
@@ -59,16 +66,13 @@ export default function TerritoriesStep() {
           <View style={styles.actions}>
             <SignalButton
               label="Dalej"
-              onPress={() => router.push('/(onboarding)/step-3-obsession')}
+              onPress={handleNext}
               variant="signal"
               size="lg"
               fullWidth
               haptic="light"
             />
-            <Text
-              style={styles.skip}
-              onPress={() => router.push('/(onboarding)/step-3-obsession')}
-            >
+            <Text style={styles.skip} onPress={handleNext}>
               Pomiń
             </Text>
           </View>

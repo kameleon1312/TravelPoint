@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { CreateJourneySchema, UpdateJourneySchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
+import { addTrustPoints, TrustPoints } from '../services/trustScore';
 
 export async function journeyRoutes(app: FastifyInstance) {
   // GET /api/journeys/me — own journeys
@@ -43,6 +44,10 @@ export async function journeyRoutes(app: FastifyInstance) {
     await app.prisma.auditLog.create({
       data: { explorerId: req.explorerId, action: 'JOURNEY_CREATED', metadata: { journeyId: journey.id } },
     });
+
+    if (!parsed.data.isPrivate) {
+      void addTrustPoints(app.prisma, req.explorerId, TrustPoints.JOURNEY_PUBLISHED);
+    }
 
     return reply.status(201).send(journey);
   });

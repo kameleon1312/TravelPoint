@@ -34,7 +34,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const passwordHash = await hashPassword(password);
-    await app.prisma.explorer.create({
+    const explorer = await app.prisma.explorer.create({
       data: {
         email,
         handle,
@@ -48,8 +48,29 @@ export async function authRoutes(app: FastifyInstance) {
       },
     });
 
+    if (inviteCode && invitedById) {
+      await app.prisma.inviteCode.update({
+        where: { code: inviteCode },
+        data: { usedById: explorer.id },
+      });
+    }
+
+    const accessToken = signAccessToken(explorer.id);
+    const refreshToken = signRefreshToken(explorer.id);
+    await app.prisma.refreshToken.create({
+      data: {
+        explorerId: explorer.id,
+        tokenHash: hashToken(refreshToken),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
     logger.info({ handle }, 'Explorer registered');
-    return reply.status(201).send({ message: 'Account created. Check your email to verify.' });
+    return reply.status(201).send({
+      accessToken,
+      refreshToken,
+      explorer: { id: explorer.id, handle: explorer.handle, rank: explorer.rank },
+    });
   });
 
   // POST /api/auth/login

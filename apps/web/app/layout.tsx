@@ -1,5 +1,12 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#0A0E18',
+};
 
 export const metadata: Metadata = {
   title: {
@@ -9,17 +16,23 @@ export const metadata: Metadata = {
   description:
     'Sieć dla ludzi z obsesją odkrywania świata. Hidden spots, secret drops, travel circles.',
   keywords: ['travel', 'hidden spots', 'urban explorer', 'backpacker', 'vanlife', 'secret places'],
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'pl_PL',
     siteName: 'TravelPoint',
     title: 'TravelPoint — A Network for the Obsessed',
     description: 'Sieć dla ludzi z obsesją odkrywania świata.',
+    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'TravelPoint' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'TravelPoint',
     description: 'Sieć dla ludzi z obsesją odkrywania świata.',
+    images: ['/logo.png'],
   },
   robots: { index: true, follow: true },
 };

@@ -6,6 +6,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { useMyCircles } from '@/hooks/useCircles';
 import { pl } from '@/i18n/pl';
+import { useAuthStore } from '@/stores/auth';
 
 const ROLE_COLORS: Record<string, string> = {
   FOUNDER: Colors.ember,
@@ -15,6 +16,7 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function CirclesScreen() {
   const { data: circles, isLoading, error } = useMyCircles();
+  const { explorer } = useAuthStore();
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -63,7 +65,7 @@ export default function CirclesScreen() {
               )}
               <View style={styles.meta}>
                 {item.isInviteOnly && (
-                  <Text style={styles.metaTag}>🔒 Invite only</Text>
+                  <Text style={styles.metaTag}>◑ Invite only</Text>
                 )}
               </View>
             </GlassCard>
@@ -77,7 +79,7 @@ export default function CirclesScreen() {
       <View style={styles.fab}>
         <SignalButton
           label={pl.circles.joinCircle}
-          onPress={() => {}}
+          onPress={() => router.push('/circle/browse')}
           variant="signal"
           size="sm"
           haptic="light"

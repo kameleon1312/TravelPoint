@@ -20,6 +20,7 @@ model Explorer {
   archetype     Archetype @default(WANDERER)
   bio           String?  @db.VarChar(500)
   obsessions    String[]
+  territories   String[]
 
   // Trust & rank
   trustScore    Int      @default(0)

@@ -3,8 +3,10 @@
   "compilerOptions": {
     "jsx": "react-native",
     "lib": ["esnext"],
+    "types": ["node"],
     "allowJs": true,
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./src/*"]
     }

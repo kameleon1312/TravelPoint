@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 const GlobScene = dynamic(() => import('../3d/GlobScene').then((m) => m.GlobScene), {
   ssr: false,
-  loading: () => <div className="w-full h-full bg-abyss" />,
+  loading: () => <div className="w-full h-full bg-void" />,
 });
 
 interface HeroProps {
@@ -16,32 +16,35 @@ export function Hero({ onJoinClick }: HeroProps) {
 
   const containerVariants = {
     hidden: {},
-    show: { transition: { staggerChildren: 0.12, delayChildren: 0.3 } },
+    show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 24, filter: 'blur(8px)' },
+    hidden: { opacity: 0, y: 16, filter: 'blur(6px)' },
     show: reduce
       ? { opacity: 1, y: 0, filter: 'blur(0px)' }
-      : { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] } },
+      : { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
   };
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-void">
-      {/* Starfield background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="starfield" aria-hidden="true" />
+    <section className="relative flex flex-col items-center justify-center overflow-hidden bg-void min-h-[100svh]">
+
+      {/* Starfield */}
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="starfield" />
       </div>
 
-      {/* 3D Globe */}
-      <div className="absolute inset-0 opacity-60" aria-hidden="true">
+      {/* Globe */}
+      <div className="absolute inset-0 opacity-75 md:opacity-60" aria-hidden="true">
         <GlobScene />
       </div>
 
-      {/* Radial gradient overlay */}
+      {/* Vignette */}
       <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 20%, #05060A 80%)' }}
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 90% 80% at 50% 50%, transparent 10%, rgba(5,6,10,0.55) 50%, #05060A 80%)',
+        }}
         aria-hidden="true"
       />
 
@@ -50,73 +53,58 @@ export function Hero({ onJoinClick }: HeroProps) {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="relative z-10 flex flex-col items-center text-center px-4 max-w-5xl mx-auto"
+        className="relative z-10 flex flex-col items-center text-center px-5 max-w-2xl mx-auto w-full pt-16 md:pt-0"
       >
-        <motion.p variants={itemVariants} className="eyebrow mb-6">
+        <motion.p variants={itemVariants} className="eyebrow mb-3 md:mb-5 text-[10px] md:text-xs">
           A Network for the Obsessed
         </motion.p>
 
         <motion.h1
           variants={itemVariants}
-          className="font-display font-bold leading-none tracking-tight text-starlight mb-6"
-          style={{ fontSize: 'clamp(2.5rem, 8vw, 4rem)', letterSpacing: '-0.03em' }}
+          className="font-display font-bold leading-[1.05] tracking-tight text-starlight
+                     mb-4 md:mb-6
+                     text-[1.9rem] sm:text-[2.4rem] md:text-[3.2rem] lg:text-[4rem]"
         >
-          Twój świat jest{' '}
-          <span className="text-gradient-aurora">większy</span>
+          Świat ukrywa
           <br />
-          niż myślisz.
+          <span className="text-gradient-aurora">to, co najlepsze.</span>
         </motion.h1>
 
         <motion.p
           variants={itemVariants}
-          className="font-sans text-base md:text-lg text-star max-w-xl mb-10 leading-relaxed"
+          className="font-sans text-[0.82rem] md:text-[0.95rem] text-star/80
+                     max-w-[280px] sm:max-w-[360px] md:max-w-md
+                     mb-6 md:mb-10 leading-relaxed"
         >
-          Sieć urban explorerów, backpackerów i vanliferów. Odkrywaj ukryte miejsca,
-          buduj swoją tożsamość podróżnika, dołącz do tajnej sieci.
+          Miejsca, o&nbsp;których mówią sobie tylko ci, którzy je znaleźli.
+          Backpackerzy, vanliferzy, eksploratorzy z&nbsp;obsesją.
+          Tu nie planujesz wycieczki&nbsp;— wyruszasz na odkrycie.
         </motion.p>
 
-        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4">
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-col sm:flex-row gap-3"
+        >
           <button
             onClick={onJoinClick}
-            className="px-8 py-4 rounded-xl font-sans font-semibold text-sm text-starlight bg-ember-gradient glow-ember
-                       transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]"
+            className="px-9 py-3.5 md:px-11 md:py-4 rounded-xl
+                       font-sans font-semibold text-sm text-starlight
+                       bg-ember-gradient glow-ember
+                       transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]
+                       whitespace-nowrap"
           >
             Request Access
           </button>
           <a
             href="#world"
-            className="px-8 py-4 rounded-xl font-sans font-semibold text-sm text-starlight glass
-                       transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]"
+            className="px-9 py-3.5 md:px-11 md:py-4 rounded-xl
+                       font-sans font-semibold text-sm text-starlight glass
+                       transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]
+                       whitespace-nowrap"
           >
             Explore the World
           </a>
         </motion.div>
-
-        {/* Stats */}
-        <motion.div
-          variants={itemVariants}
-          className="mt-16 flex flex-wrap justify-center gap-8 text-center"
-        >
-          {[
-            { value: '2,400+', label: 'hidden spots' },
-            { value: '340', label: 'active explorers' },
-            { value: '58', label: 'countries' },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <p className="font-display text-2xl font-bold text-gradient-aurora">{stat.value}</p>
-              <p className="font-mono text-xs text-starFaint uppercase tracking-widest mt-1">{stat.label}</p>
-            </div>
-          ))}
-        </motion.div>
-      </motion.div>
-
-      {/* Scroll hint */}
-      <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        animate={reduce ? {} : { y: [0, 8, 0] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <div className="w-px h-12 bg-gradient-to-b from-transparent to-aurora mx-auto" />
       </motion.div>
     </section>
   );

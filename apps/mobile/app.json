@@ -32,9 +32,14 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
+      "expo-location",
+      [
+        "@rnmapbox/maps",
+        { "RNMapboxMapsDownloadToken": "" }
+      ],
       [
         "expo-notifications",
-        { "icon": "./assets/images/notification-icon.png", "color": "#3DD6C4" }
+        { "icon": "./assets/images/icon.png", "color": "#3DD6C4" }
       ]
     ],
     "experiments": {

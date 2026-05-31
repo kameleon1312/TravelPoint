@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { useAuthStore } from '@/stores/auth';
+import { useOnboardingStore } from '@/stores/onboarding';
 import { api } from '@/lib/api';
 
 const OBSESSIONS = [
@@ -18,6 +19,7 @@ export default function ObsessionStep() {
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const { rehydrate } = useAuthStore();
+  const { archetype, territories, reset } = useOnboardingStore();
 
   function toggle(obs: string) {
     setSelected((prev) =>
@@ -32,10 +34,16 @@ export default function ObsessionStep() {
   async function finish() {
     setLoading(true);
     try {
-      await api.patch('/api/explorers/me', { obsessions: selected });
+      await api.patch('/api/explorers/me', {
+        ...(archetype ? { archetype } : {}),
+        ...(territories.length > 0 ? { territories } : {}),
+        obsessions: selected,
+      });
+      reset();
       await rehydrate();
       router.replace('/(tabs)');
     } catch {
+      reset();
       router.replace('/(tabs)');
     } finally {
       setLoading(false);

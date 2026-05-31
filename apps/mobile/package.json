@@ -13,11 +13,13 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",
+    "@rnmapbox/maps": "^10.3.1",
     "@tanstack/react-query": "^5.45.1",
     "@travelpoint/api-client": "workspace:*",
     "@travelpoint/geo": "workspace:*",
     "@travelpoint/theme": "workspace:*",
     "@travelpoint/types": "workspace:*",
+    "@travelpoint/utils": "workspace:*",
     "@travelpoint/validation": "workspace:*",
     "expo": "~51.0.14",
     "expo-blur": "~13.0.2",
@@ -26,6 +28,7 @@
     "expo-image": "~1.12.12",
     "expo-linear-gradient": "~13.0.2",
     "expo-local-authentication": "~14.0.1",
+    "expo-location": "^56.0.15",
     "expo-notifications": "~0.28.9",
     "expo-router": "~3.5.16",
     "expo-secure-store": "~13.0.2",
@@ -44,7 +47,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
-    "@types/react": "~18.2.79",
-    "typescript": "^5.4.0"
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "typescript": "^6.0.0"
   }
 }

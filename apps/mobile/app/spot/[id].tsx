@@ -10,8 +10,8 @@ import { SignalButton } from '@/components/ui/SignalButton';
 import { useSpot } from '@/hooks/useSpots';
 
 const CATEGORY_ICONS: Record<string, string> = {
-  ABANDONED: '🏚️', CAFE: '☕', BEACH: '🏖️',
-  ROUTE: '🛣️', UNDERGROUND: '🕳️', VIEWPOINT: '🌅', CAMP: '⛺',
+  ABANDONED: '◈', CAFE: '◎', BEACH: '◎',
+  ROUTE: '◉', UNDERGROUND: '◈', VIEWPOINT: '◎', CAMP: '◉',
 };
 
 const ACCESS_LABELS: Record<string, string> = {
@@ -33,7 +33,7 @@ function LockedOverlay({ requiredAccess }: { requiredAccess: string }) {
 
   return (
     <GlassCard style={styles.lockedCard}>
-      <Animated.Text style={[styles.lockIcon, style]}>🔒</Animated.Text>
+      <Animated.Text style={[styles.lockIcon, style]}>◈</Animated.Text>
       <Text style={styles.lockTitle}>Zablokowane</Text>
       <Text style={styles.lockDesc}>{ACCESS_LABELS[requiredAccess] ?? requiredAccess}</Text>
       <Text style={styles.lockHint}>

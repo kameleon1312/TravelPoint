@@ -20,7 +20,7 @@ export async function explorerRoutes(app: FastifyInstance) {
   // PATCH /api/explorers/me
   app.patch('/api/explorers/me', { preHandler: [requireAuth] }, async (req, reply) => {
     const body = req.body as Record<string, unknown>;
-    const allowed = ['displayName', 'bio', 'obsessions', 'archetype'];
+    const allowed = ['displayName', 'bio', 'obsessions', 'archetype', 'territories'];
     const data = Object.fromEntries(
       Object.entries(body).filter(([k]) => allowed.includes(k)),
     );

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Colors, FontSize, Spacing, BorderRadius, Gradients } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import type { Archetype } from '@travelpoint/types';
+import { useOnboardingStore } from '@/stores/onboarding';
 
 const ARCHETYPES: Array<{ value: Archetype; label: string; desc: string; icon: string }> = [
   { value: 'WANDERER', label: 'Wanderer', desc: 'Żyjesz bez planu. Mapy to tylko sugestie.', icon: '◎' },
@@ -17,10 +18,11 @@ const ARCHETYPES: Array<{ value: Archetype; label: string; desc: string; icon: s
 
 export default function ArchetypeStep() {
   const [selected, setSelected] = useState<Archetype | null>(null);
+  const { setArchetype } = useOnboardingStore();
 
   function handleNext() {
     if (!selected) return;
-    // TODO: save to onboarding store
+    setArchetype(selected);
     router.push('/(onboarding)/step-2-territories');
   }
 
