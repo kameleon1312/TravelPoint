@@ -1,0 +1,130 @@
+import type { FastifyInstance } from 'fastify';
+import { CreateCircleSchema } from '@travelpoint/validation';
+import { requireAuth } from '../middleware/requireAuth';
+import { computeRank } from '../services/trustScore';
+import crypto from 'crypto';
+
+export async function circleRoutes(app: FastifyInstance) {
+  // GET /api/circles — list public circles
+  app.get('/api/circles', { preHandler: [requireAuth] }, async (req, reply) => {
+    const circles = await app.prisma.circle.findMany({
+      include: { _count: { select: { members: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return reply.send(circles);
+  });
+
+  // GET /api/circles/mine — circles I'm member of
+  app.get('/api/circles/mine', { preHandler: [requireAuth] }, async (req, reply) => {
+    const memberships = await app.prisma.circleMember.findMany({
+      where: { explorerId: req.explorerId },
+      include: {
+        circle: { include: { _count: { select: { members: true } } } },
+      },
+    });
+    return reply.send(memberships.map((m) => ({ ...m.circle, role: m.role })));
+  });
+
+  // GET /api/circles/:slug
+  app.get('/api/circles/:slug', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const circle = await app.prisma.circle.findUnique({
+      where: { slug },
+      include: {
+        members: {
+          include: { explorer: { select: { id: true, handle: true, rank: true, displayName: true } } },
+        },
+        _count: { select: { members: true } },
+      },
+    });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+    return reply.send(circle);
+  });
+
+  // POST /api/circles — create (EXPEDITION tier required)
+  app.post('/api/circles', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = CreateCircleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
+
+    const explorer = await app.prisma.explorer.findUnique({ where: { id: req.explorerId } });
+    if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (explorer.tier !== 'EXPEDITION') {
+      return reply.status(403).send({ code: 'TIER_REQUIRED', message: 'EXPEDITION tier required to create circles' });
+    }
+
+    const existing = await app.prisma.circle.findUnique({ where: { slug: parsed.data.slug } });
+    if (existing) return reply.status(409).send({ code: 'CONFLICT', message: 'Slug already taken' });
+
+    const circle = await app.prisma.circle.create({
+      data: {
+        ...parsed.data,
+        members: {
+          create: { explorerId: req.explorerId, role: 'FOUNDER' },
+        },
+      },
+    });
+    return reply.status(201).send(circle);
+  });
+
+  // POST /api/circles/:slug/join
+  app.post('/api/circles/:slug/join', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const { inviteCode } = req.body as { inviteCode?: string };
+
+    const circle = await app.prisma.circle.findUnique({ where: { slug } });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    if (circle.isInviteOnly && !inviteCode) {
+      return reply.status(403).send({ code: 'INVITE_REQUIRED', message: 'This circle requires an invite code' });
+    }
+
+    const alreadyMember = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
+    });
+    if (alreadyMember) return reply.status(409).send({ code: 'ALREADY_MEMBER' });
+
+    await app.prisma.circleMember.create({
+      data: { circleId: circle.id, explorerId: req.explorerId, role: 'MEMBER' },
+    });
+    return reply.status(201).send({ message: 'Joined circle' });
+  });
+
+  // DELETE /api/circles/:slug/leave
+  app.delete('/api/circles/:slug/leave', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const circle = await app.prisma.circle.findUnique({ where: { slug } });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    await app.prisma.circleMember.deleteMany({
+      where: { circleId: circle.id, explorerId: req.explorerId },
+    });
+    return reply.status(204).send();
+  });
+
+  // POST /api/circles/:slug/invite — GUIDE+ generates invite code
+  app.post('/api/circles/:slug/invite', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const circle = await app.prisma.circle.findUnique({ where: { slug } });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const membership = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
+    });
+    if (!membership || !['GUIDE', 'FOUNDER'].includes(membership.role)) {
+      return reply.status(403).send({ code: 'FORBIDDEN', message: 'GUIDE or FOUNDER role required' });
+    }
+
+    const code = crypto.randomBytes(12).toString('hex');
+    await app.prisma.inviteCode.create({
+      data: {
+        code,
+        createdById: req.explorerId,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+    return reply.status(201).send({ code });
+  });
+}

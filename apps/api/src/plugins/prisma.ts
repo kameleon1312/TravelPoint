@@ -1,18 +1,20 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { createPool, createPrismaClient } from '../lib/db';
 
-const prisma = new PrismaClient();
+const pool = createPool();
+const prisma = createPrismaClient(pool);
 
 export default fp(async (app: FastifyInstance) => {
   app.decorate('prisma', prisma);
   app.addHook('onClose', async () => {
     await prisma.$disconnect();
+    await pool.end();
   });
 });
 
 declare module 'fastify' {
   interface FastifyInstance {
-    prisma: PrismaClient;
+    prisma: ReturnType<typeof createPrismaClient>;
   }
 }

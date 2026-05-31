@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -205,10 +206,56 @@ model AuditLog {
   @@index([spotId])
 }
 
-enum Archetype { WANDERER URBEXER NOMAD HUNTER PILGRIM }
-enum Rank      { NEWCOMER EXPLORER TRUSTED INSIDER LEGEND }
-enum Tier      { FREE PRO EXPEDITION }
-enum SpotCategory { ABANDONED CAFE BEACH ROUTE UNDERGROUND VIEWPOINT CAMP }
-enum AccessLevel  { PUBLIC TRUSTED CIRCLE_ONLY SECRET_DROP }
-enum CircleRole   { MEMBER GUIDE FOUNDER }
-enum SignalType   { NEARBY_EXPLORER SPOT_UNLOCKED CIRCLE_INVITE SECRET_DROP JOURNEY_LIKE TRANSMISSION }
+enum Archetype {
+  WANDERER
+  URBEXER
+  NOMAD
+  HUNTER
+  PILGRIM
+}
+
+enum Rank {
+  NEWCOMER
+  EXPLORER
+  TRUSTED
+  INSIDER
+  LEGEND
+}
+
+enum Tier {
+  FREE
+  PRO
+  EXPEDITION
+}
+
+enum SpotCategory {
+  ABANDONED
+  CAFE
+  BEACH
+  ROUTE
+  UNDERGROUND
+  VIEWPOINT
+  CAMP
+}
+
+enum AccessLevel {
+  PUBLIC
+  TRUSTED
+  CIRCLE_ONLY
+  SECRET_DROP
+}
+
+enum CircleRole {
+  MEMBER
+  GUIDE
+  FOUNDER
+}
+
+enum SignalType {
+  NEARBY_EXPLORER
+  SPOT_UNLOCKED
+  CIRCLE_INVITE
+  SECRET_DROP
+  JOURNEY_LIKE
+  TRANSMISSION
+}

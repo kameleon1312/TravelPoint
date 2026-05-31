@@ -12,15 +12,17 @@
     "lint": "eslint app src --ext .ts,.tsx"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.6.0",
+    "@tanstack/react-query": "^5.45.1",
     "@travelpoint/api-client": "workspace:*",
+    "@travelpoint/geo": "workspace:*",
     "@travelpoint/theme": "workspace:*",
     "@travelpoint/types": "workspace:*",
     "@travelpoint/validation": "workspace:*",
-    "@travelpoint/geo": "workspace:*",
-    "@tanstack/react-query": "^5.45.1",
     "expo": "~51.0.14",
     "expo-blur": "~13.0.2",
     "expo-font": "~12.0.9",
+    "expo-haptics": "^56.0.3",
     "expo-image": "~1.12.12",
     "expo-linear-gradient": "~13.0.2",
     "expo-local-authentication": "~14.0.1",
@@ -31,15 +33,14 @@
     "expo-status-bar": "~1.12.1",
     "react": "18.2.0",
     "react-hook-form": "^7.52.1",
-    "@hookform/resolvers": "^3.6.0",
     "react-native": "0.74.2",
     "react-native-gesture-handler": "~2.16.2",
     "react-native-reanimated": "~3.10.1",
     "react-native-safe-area-context": "4.10.5",
     "react-native-screens": "3.31.1",
     "socket.io-client": "^4.7.5",
-    "zustand": "^4.5.4",
-    "zod": "^3.23.0"
+    "zod": "^3.23.0",
+    "zustand": "^4.5.4"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

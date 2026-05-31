@@ -1,7 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { createPool, createPrismaClient } from '../src/lib/db';
 import { hashPassword } from '../src/lib/crypto';
 
-const prisma = new PrismaClient();
+const pool = createPool();
+const prisma = createPrismaClient(pool);
 
 async function main() {
   const hash = await hashPassword('Explorer#2026!');
