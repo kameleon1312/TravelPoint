@@ -1,0 +1,77 @@
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=general-sans@400,500,600,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-abyss text-starlight font-sans antialiased;
+    background-color: #0A0E18;
+    color: #EAF1FF;
+  }
+
+  ::selection {
+    background-color: rgba(61, 214, 196, 0.25);
+    color: #EAF1FF;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer utilities {
+  .text-gradient-aurora {
+    background: linear-gradient(135deg, #1FA899, #3DD6C4, #5B8DEF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-ember {
+    background: linear-gradient(135deg, #FF7A59, #9B6DFF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-aurora {
+    box-shadow: 0 0 32px rgba(61, 214, 196, 0.35);
+  }
+
+  .glow-signal {
+    box-shadow: 0 0 24px rgba(91, 141, 239, 0.40);
+  }
+
+  .glow-ember {
+    box-shadow: 0 0 40px rgba(255, 122, 89, 0.45);
+  }
+
+  .glass {
+    background: rgba(234, 241, 255, 0.04);
+    border: 1px solid rgba(234, 241, 255, 0.10);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-strong {
+    background: rgba(234, 241, 255, 0.08);
+    border: 1px solid rgba(234, 241, 255, 0.10);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .eyebrow {
+    @apply font-mono text-xs uppercase tracking-[0.22em] text-starFaint;
+  }
+}

@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Explorer {
+  id            String   @id @default(cuid())
+  email         String   @unique @db.VarChar(255)
+  handle        String   @unique @db.VarChar(24)
+  passwordHash  String
+  emailVerified Boolean  @default(false)
+
+  // Identity
+  displayName   String?  @db.VarChar(60)
+  archetype     Archetype @default(WANDERER)
+  bio           String?  @db.VarChar(500)
+  obsessions    String[]
+
+  // Trust & rank
+  trustScore    Int      @default(0)
+  rank          Rank     @default(NEWCOMER)
+  invitedById   String?
+
+  // Location (privacy-first — all opt-in, publicly fuzzed)
+  homeBaseEnc   String?
+  locationConsent Boolean @default(false)
+  presenceConsent Boolean @default(false)
+
+  // Subscription
+  tier          Tier     @default(FREE)
+  tierExpiresAt DateTime?
+
+  // Privacy / audit
+  consentTerms    DateTime
+  consentPrivacy  DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastSeenAt      DateTime?
+  deletedAt       DateTime?
+
+  // Relations
+  spots           Spot[]
+  journeys        Journey[]
+  memberships     CircleMember[]
+  sentMsgs        Transmission[]  @relation("Sender")
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]
+  signals         Signal[]
+  spotSaves       SpotSave[]
+  photos          Photo[]
+
+  @@index([handle])
+  @@index([deletedAt])
+}
+
+model Spot {
+  id            String      @id @default(cuid())
+  ownerId       String
+  owner         Explorer    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  title         String      @db.VarChar(120)
+  story         String?     @db.VarChar(2000)
+  category      SpotCategory
+  lat           Float
+  lng           Float
+  h3Index       String
+  accessLevel   AccessLevel @default(PUBLIC)
+  circleId      String?
+  dropExpiresAt DateTime?
+
+  photos        Photo[]
+  saves         SpotSave[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  @@index([h3Index])
+  @@index([accessLevel])
+  @@index([ownerId])
+}
+
+model Journey {
+  id           String   @id @default(cuid())
+  explorerId   String
+  explorer     Explorer @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  title        String   @db.VarChar(120)
+  mood         String?  @db.VarChar(60)
+  soundtrack   String?  @db.VarChar(500)
+  routeGeoJson Json?
+  isPrivate    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([explorerId])
+}
+
+model Circle {
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(60)
+  slug          String   @unique @db.VarChar(40)
+  description   String?  @db.VarChar(300)
+  isInviteOnly  Boolean  @default(true)
+  members       CircleMember[]
+  createdAt     DateTime @default(now())
+}
+
+model CircleMember {
+  id         String     @id @default(cuid())
+  circleId   String
+  explorerId String
+  role       CircleRole @default(MEMBER)
+  circle     Circle     @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  explorer   Explorer   @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  joinedAt   DateTime   @default(now())
+
+  @@unique([circleId, explorerId])
+}
+
+model Photo {
+  id         String   @id @default(cuid())
+  spotId     String?
+  spot       Spot?    @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  uploaderId String
+  uploader   Explorer @relation(fields: [uploaderId], references: [id])
+  url        String
+  caption    String?  @db.VarChar(300)
+  createdAt  DateTime @default(now())
+}
+
+model SpotSave {
+  id         String   @id @default(cuid())
+  spotId     String
+  explorerId String
+  spot       Spot     @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  explorer   Explorer @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([spotId, explorerId])
+}
+
+model Transmission {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      Explorer @relation("Sender", fields: [senderId], references: [id])
+  recipientId String?
+  circleId    String?
+  body        String   @db.VarChar(2000)
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+
+  @@index([recipientId])
+  @@index([circleId])
+}
+
+model Signal {
+  id         String     @id @default(cuid())
+  explorerId String
+  explorer   Explorer   @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  type       SignalType
+  payload    Json
+  createdAt  DateTime   @default(now())
+  seenAt     DateTime?
+
+  @@index([explorerId])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  explorerId String
+  explorer   Explorer @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([explorerId])
+}
+
+model InviteCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  createdById String
+  usedById    String?
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  explorerId String?
+  explorer   Explorer? @relation(fields: [explorerId], references: [id])
+  spotId     String?
+  spot       Spot?     @relation(fields: [spotId], references: [id])
+  action     String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([explorerId])
+  @@index([spotId])
+}
+
+enum Archetype { WANDERER URBEXER NOMAD HUNTER PILGRIM }
+enum Rank      { NEWCOMER EXPLORER TRUSTED INSIDER LEGEND }
+enum Tier      { FREE PRO EXPEDITION }
+enum SpotCategory { ABANDONED CAFE BEACH ROUTE UNDERGROUND VIEWPOINT CAMP }
+enum AccessLevel  { PUBLIC TRUSTED CIRCLE_ONLY SECRET_DROP }
+enum CircleRole   { MEMBER GUIDE FOUNDER }
+enum SignalType   { NEARBY_EXPLORER SPOT_UNLOCKED CIRCLE_INVITE SECRET_DROP JOURNEY_LIKE TRANSMISSION }

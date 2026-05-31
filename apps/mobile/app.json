@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "TravelPoint",
+    "slug": "travelpoint",
+    "version": "1.0.0",
+    "scheme": "travelpoint",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0A0E18"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "io.travelpoint.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "TravelPoint uses your location to show nearby explorers and hidden spots. Location is optional and always opt-in.",
+        "NSLocationAlwaysUsageDescription": "TravelPoint can use background location for journey tracking. This is always opt-in."
+      }
+    },
+    "android": {
+      "package": "io.travelpoint.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0E18"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-notifications",
+        { "icon": "./assets/images/notification-icon.png", "color": "#3DD6C4" }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
