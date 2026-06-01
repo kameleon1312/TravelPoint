@@ -33,17 +33,19 @@
       "expo-secure-store",
       "expo-font",
       "expo-location",
-      [
-        "@rnmapbox/maps",
-        { "RNMapboxMapsDownloadToken": "" }
-      ],
-      [
+[
         "expo-notifications",
         { "icon": "./assets/images/icon.png", "color": "#3DD6C4" }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fbd06b46-7ace-4d3e-bc29-6b51fcaf6453"
+      }
+    },
+    "owner": "pawflo"
   }
 }
