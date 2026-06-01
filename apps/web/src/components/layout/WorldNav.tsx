@@ -30,7 +30,17 @@ export function WorldNav({ onJoinClick }: WorldNavProps) {
         }`}
       >
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group" aria-label="TravelPoint — strona główna">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 group"
+          aria-label="TravelPoint — strona główna"
+          onClick={(e) => {
+            if (window.location.pathname === '/') {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+        >
           <Image
             src="/logo.png"
             alt="TravelPoint"

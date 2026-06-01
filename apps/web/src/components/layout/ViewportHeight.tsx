@@ -14,7 +14,11 @@ export function ViewportHeight() {
     }
     set();
     window.addEventListener('resize', set);
-    return () => window.removeEventListener('resize', set);
+    window.visualViewport?.addEventListener('resize', set);
+    return () => {
+      window.removeEventListener('resize', set);
+      window.visualViewport?.removeEventListener('resize', set);
+    };
   }, []);
 
   return null;

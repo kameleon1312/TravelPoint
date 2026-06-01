@@ -36,10 +36,13 @@
 }
 
 @layer components {
-  /* Full-screen height that responds to all zoom types (browser, DevTools scale, OS).
-     Falls back to 100svh on SSR before JS sets --vh. */
+  /* Hero height in CSS px — scales with browser zoom like other sections.
+     vh/svh units always fill the physical viewport regardless of zoom level,
+     so px is required for consistent zoom behavior. */
   .hero-screen {
-    min-height: calc(var(--vh, 1svh) * 100);
+    height: 900px;
+    min-height: 600px;
+    overflow: hidden;
   }
 
   .starfield {

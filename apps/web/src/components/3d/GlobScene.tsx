@@ -9,10 +9,11 @@ function CameraResponsive() {
   const { camera, size } = useThree();
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
-    if (size.width < 480) {
-      cam.position.z = 11;
-    } else if (size.width < 768) {
-      cam.position.z = 9;
+    // Container is now a fixed-px square (max 700px), so use size.width directly
+    if (size.width < 300) {
+      cam.position.z = 10;
+    } else if (size.width < 500) {
+      cam.position.z = 8;
     } else {
       cam.position.z = 6;
     }
@@ -42,69 +43,27 @@ function EarthGlobe() {
   );
 }
 
-// Thin atmosphere glow around the globe
-function Atmosphere() {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame(({ clock }) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = clock.getElapsedTime() * 0.04;
-    }
-  });
-
-  return (
-    <Sphere ref={meshRef} args={[2.28, 48, 48]}>
-      <meshBasicMaterial
-        color={Colors.aurora}
-        transparent
-        opacity={0.06}
-        side={THREE.BackSide}
-        depthWrite={false}
-      />
-    </Sphere>
-  );
-}
-
-// Outer halo — signal blue ring
-function Halo() {
-  return (
-    <Sphere args={[2.38, 32, 32]}>
-      <meshBasicMaterial
-        color={Colors.signal}
-        transparent
-        opacity={0.035}
-        side={THREE.BackSide}
-        depthWrite={false}
-      />
-    </Sphere>
-  );
-}
-
 export function GlobScene() {
   return (
     <Canvas
       camera={{ position: [0, 0, 6], fov: 45 }}
-      dpr={[1, 1.5]}
+      dpr={[1, 2]}
       gl={{ alpha: true, antialias: true }}
-      style={{ background: 'transparent' }}
+      resize={{ debounce: 0, scroll: false }}
+      style={{ background: 'transparent', width: '100%', height: '100%', display: 'block' }}
     >
       <CameraResponsive />
 
       {/* Soft ambient — keeps night side visible */}
-      <ambientLight intensity={0.18} color={Colors.star} />
+      <ambientLight intensity={0.15} color={Colors.star} />
 
       {/* Main sun light — warm white from upper-right */}
-      <directionalLight position={[5, 3, 5]} intensity={2.2} color="#fff8f0" />
+      <directionalLight position={[5, 3, 5]} intensity={2.4} color="#fff8f0" />
 
-      {/* Aurora rim light from left */}
-      <pointLight position={[-6, 2, 3]} color={Colors.aurora} intensity={0.6} />
-
-      {/* Deep space fill from behind */}
-      <pointLight position={[0, -4, -6]} color={Colors.cosmicBlue} intensity={0.4} />
+      {/* Subtle cold fill from behind — deep space */}
+      <directionalLight position={[-4, -2, -5]} intensity={0.2} color="#8ab0d0" />
 
       <EarthGlobe />
-      <Atmosphere />
-      <Halo />
     </Canvas>
   );
 }

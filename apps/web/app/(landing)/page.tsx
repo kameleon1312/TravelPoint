@@ -38,7 +38,7 @@ export default function LandingPage() {
         <Hero onJoinClick={scrollToJoin} />
 
         {/* 2 · PhoneShowcase */}
-        <section className="py-24 px-4 bg-graphite" id="world">
+        <section className="py-24 px-4" id="world">
           <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
             <SectionReveal className="flex-1 text-center lg:text-left">
               <p className="eyebrow mb-4">Epicentrum Podróżnika</p>
@@ -66,7 +66,7 @@ export default function LandingPage() {
 
         {/* 3 · Social proof */}
         <SectionReveal>
-          <div className="py-12 px-4 border-y border-steel/50">
+          <div className="py-12 px-4 border-y border-steel/20">
             <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-center">
               {[
                 { value: '2,400+', label: 'Hidden Spots' },
@@ -84,7 +84,7 @@ export default function LandingPage() {
         </SectionReveal>
 
         {/* 4 · WORLD vs CORE */}
-        <section className="py-32 px-4 bg-void" id="two-worlds">
+        <section className="py-32 px-4 border-t border-steel/20" id="two-worlds">
           <div className="max-w-5xl mx-auto">
             <SectionReveal className="text-center mb-16">
               <p className="eyebrow mb-4">Dwa światy</p>
@@ -130,7 +130,7 @@ export default function LandingPage() {
         <Pillars />
 
         {/* 6 · Tiers */}
-        <section className="py-32 px-4 bg-void" id="tiers">
+        <section className="py-32 px-4 border-t border-steel/20" id="tiers">
           <div className="max-w-5xl mx-auto">
             <SectionReveal className="text-center mb-16">
               <p className="eyebrow mb-4">Wybierz głębokość</p>

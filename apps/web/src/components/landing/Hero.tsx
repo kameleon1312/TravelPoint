@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 const GlobScene = dynamic(() => import('../3d/GlobScene').then((m) => m.GlobScene), {
   ssr: false,
-  loading: () => <div className="w-full h-full bg-void" />,
+  loading: () => <div className="w-full h-full bg-transparent" />,
 });
 
 interface HeroProps {
@@ -27,26 +27,17 @@ export function Hero({ onJoinClick }: HeroProps) {
   };
 
   return (
-    <section className="relative flex flex-col items-center justify-center overflow-hidden bg-void hero-screen">
+    <section className="relative flex flex-col items-center justify-center hero-screen">
 
-      {/* Starfield */}
-      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="starfield" />
+      {/* Globe — fixed CSS-px size so it scales with browser zoom like other elements */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+        <div
+          className="flex-shrink-0"
+          style={{ width: 'min(700px, 128vmin)', height: 'min(700px, 128vmin)' }}
+        >
+          <GlobScene />
+        </div>
       </div>
-
-      {/* Globe */}
-      <div className="absolute inset-0 opacity-75 md:opacity-60" aria-hidden="true">
-        <GlobScene />
-      </div>
-
-      {/* Vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 90% 80% at 50% 50%, transparent 10%, rgba(7,10,12,0.55) 50%, #070A0C 80%)',
-        }}
-        aria-hidden="true"
-      />
 
       {/* Content */}
       <motion.div
