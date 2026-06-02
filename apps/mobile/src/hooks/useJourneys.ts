@@ -24,3 +24,11 @@ export function useCreateJourney() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['journeys'] }),
   });
 }
+
+export function useDeleteJourney() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/api/journeys/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['journeys'] }),
+  });
+}

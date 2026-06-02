@@ -1,8 +1,16 @@
 import { create } from 'zustand';
+import * as Notifications from 'expo-notifications';
 import type { Explorer } from '@travelpoint/types';
 import { tokenStorage } from '../lib/secureStorage';
 import { socketManager } from '../lib/socket';
 import { api, ApiError } from '../lib/api';
+
+async function registerPushToken(): Promise<void> {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== 'granted') return;
+  const { data: token } = await Notifications.getExpoPushTokenAsync();
+  await api.post('/api/explorers/me/push-token', { token }).catch(() => {});
+}
 
 interface AuthState {
   explorer: Explorer | null;
@@ -12,6 +20,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   rehydrate: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 async function connectSocketWithToken(): Promise<void> {
@@ -37,6 +46,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await tokenStorage.setTokens(data.accessToken, data.refreshToken);
     socketManager.connect(data.accessToken);
     set({ explorer: data.explorer, isAuthenticated: true, isLoading: false });
+    // Register push token after successful login (best-effort, no throw)
+    void registerPushToken();
   },
 
   logout: async () => {
@@ -44,6 +55,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (refresh) {
       await api.post('/api/auth/logout', { refreshToken: refresh }).catch(() => {});
     }
+    socketManager.disconnect();
+    await tokenStorage.clear();
+    set({ explorer: null, isAuthenticated: false, isLoading: false });
+  },
+
+  deleteAccount: async () => {
+    await api.delete('/api/explorers/me');
     socketManager.disconnect();
     await tokenStorage.clear();
     set({ explorer: null, isAuthenticated: false, isLoading: false });
@@ -57,6 +75,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const explorer = await api.get<Explorer>('/api/explorers/me');
       await connectSocketWithToken();
       set({ explorer, isAuthenticated: true, isLoading: false });
+      void registerPushToken();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         // Token refresh already attempted in api.ts — if still 401, session expired

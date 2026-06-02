@@ -17,7 +17,7 @@
       "bundleIdentifier": "io.travelpoint.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "TravelPoint uses your location to show nearby explorers and hidden spots. Location is optional and always opt-in.",
-        "NSLocationAlwaysUsageDescription": "TravelPoint can use background location for journey tracking. This is always opt-in."
+        "NSLocationAlwaysUsageDescription": "TravelPoint can use background location for journey tracking. This is always opt-in.",
       }
     },
     "android": {
@@ -27,8 +27,13 @@
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ]
+        "ACCESS_COARSE_LOCATION",
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCOFZOado8hNdIGCjZuEAG5iTJrQlmRFCM"
+        }
+      }
     },
     "plugins": [
       "expo-router",

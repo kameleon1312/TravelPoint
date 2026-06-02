@@ -21,7 +21,6 @@ export async function spotsRoutes(app: FastifyInstance) {
     });
     if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
 
-    // PostGIS ST_DWithin query via raw for geo radius search
     const spots = await app.prisma.$queryRaw<{ id: string }[]>`
       SELECT id FROM "Spot"
       WHERE "deletedAt" IS NULL
@@ -100,6 +99,89 @@ export async function spotsRoutes(app: FastifyInstance) {
     void addTrustPoints(app.prisma, req.explorerId, TrustPoints.SPOT_CREATED);
 
     return reply.status(201).send({ ...spot, locked: false });
+  });
+
+  // POST /api/spots/:id/save
+  app.post('/api/spots/:id/save', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const spot = await app.prisma.spot.findUnique({ where: { id } });
+    if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const existing = await app.prisma.spotSave.findUnique({
+      where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
+    });
+    if (existing) return reply.status(409).send({ code: 'ALREADY_SAVED' });
+
+    await app.prisma.spotSave.create({ data: { spotId: id, explorerId: req.explorerId } });
+    return reply.status(201).send({ saved: true });
+  });
+
+  // DELETE /api/spots/:id/save
+  app.delete('/api/spots/:id/save', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await app.prisma.spotSave.deleteMany({
+      where: { spotId: id, explorerId: req.explorerId },
+    });
+    return reply.status(204).send();
+  });
+
+  // GET /api/spots/:id/photos
+  app.get('/api/spots/:id/photos', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const spot = await app.prisma.spot.findUnique({ where: { id } });
+    if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const photos = await app.prisma.photo.findMany({
+      where: { spotId: id },
+      orderBy: { createdAt: 'asc' },
+      include: { uploader: { select: { id: true, handle: true } } },
+    });
+    return reply.send(photos);
+  });
+
+  // POST /api/spots/:id/photos — accepts { url, caption? }
+  // url can be a data URI (base64) for mobile uploads or a remote https URL
+  app.post('/api/spots/:id/photos', {
+    preHandler: [requireAuth],
+    bodyLimit: 6 * 1024 * 1024,
+  }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { url, caption } = req.body as { url?: string; caption?: string };
+
+    if (!url?.trim()) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'url required' });
+    }
+    if (url.length > 5_000_000) {
+      return reply.status(413).send({ code: 'PAYLOAD_TOO_LARGE', message: 'Image too large (max ~3.5 MB)' });
+    }
+
+    const spot = await app.prisma.spot.findUnique({ where: { id } });
+    if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const photo = await app.prisma.photo.create({
+      data: {
+        spotId: id,
+        uploaderId: req.explorerId,
+        url: url.trim(),
+        caption: caption?.trim() ?? null,
+      },
+    });
+
+    void addTrustPoints(app.prisma, req.explorerId, 5);
+
+    return reply.status(201).send(photo);
+  });
+
+  // DELETE /api/photos/:photoId
+  app.delete('/api/photos/:photoId', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { photoId } = req.params as { photoId: string };
+    const photo = await app.prisma.photo.findUnique({ where: { id: photoId } });
+    if (!photo) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (photo.uploaderId !== req.explorerId) {
+      return reply.status(403).send({ code: 'FORBIDDEN' });
+    }
+    await app.prisma.photo.delete({ where: { id: photoId } });
+    return reply.status(204).send();
   });
 
   // DELETE /api/spots/:id

@@ -1,15 +1,17 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
+import { Colors } from '@travelpoint/theme';
 
 const SCENES = ['atlas', 'unlock', 'presence', 'journey'] as const;
 type Scene = (typeof SCENES)[number];
 
+// 66 hex = 40% opacity
 const SCENE_COLORS: Record<Scene, string> = {
-  atlas: 'rgba(61,214,196,0.4)',
-  unlock: 'rgba(255,122,89,0.4)',
-  presence: 'rgba(91,141,239,0.4)',
-  journey: 'rgba(155,109,255,0.4)',
+  atlas:    Colors.signal  + '66',
+  unlock:   Colors.ember   + '66',
+  presence: Colors.aurora  + '66',
+  journey:  Colors.violet  + '66',
 };
 
 export function PhoneShowcase() {
@@ -57,7 +59,7 @@ export function PhoneShowcase() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Aurora glow — color shifts with scene */}
+      {/* Glow — color shifts with scene */}
       <motion.div
         className="absolute inset-0 -z-10 blur-3xl rounded-full"
         animate={{ backgroundColor: SCENE_COLORS[scene] }}
@@ -124,6 +126,14 @@ function SceneView({ scene }: { scene: Scene }) {
   );
 }
 
+const MAP_PINS = [
+  { x: '30%', y: '35%', color: Colors.aurora,  delay: 0   },
+  { x: '65%', y: '50%', color: Colors.signal,  delay: 0.4 },
+  { x: '45%', y: '68%', color: Colors.ember,   delay: 0.8 },
+  { x: '20%', y: '58%', color: Colors.aurora,  delay: 1.2 },
+  { x: '75%', y: '30%', color: Colors.violet,  delay: 0.6 },
+];
+
 function SceneAtlas() {
   return (
     <div className="relative h-full w-full">
@@ -132,20 +142,14 @@ function SceneAtlas() {
         <div
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage:
-              'linear-gradient(rgba(61,214,196,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(61,214,196,0.15) 1px, transparent 1px)',
+            backgroundImage: `linear-gradient(${Colors.signal}26 1px, transparent 1px), linear-gradient(90deg, ${Colors.signal}26 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
           }}
         />
       </div>
+
       {/* Pulsing signal points */}
-      {[
-        { x: '30%', y: '35%', color: '#3DD6C4', delay: 0 },
-        { x: '65%', y: '50%', color: '#5B8DEF', delay: 0.4 },
-        { x: '45%', y: '68%', color: '#FF7A59', delay: 0.8 },
-        { x: '20%', y: '58%', color: '#3DD6C4', delay: 1.2 },
-        { x: '75%', y: '30%', color: '#9B6DFF', delay: 0.6 },
-      ].map((p, i) => (
+      {MAP_PINS.map((p, i) => (
         <motion.div
           key={i}
           className="absolute"
@@ -153,15 +157,20 @@ function SceneAtlas() {
           animate={{ scale: [1, 1.8, 1], opacity: [1, 0, 1] }}
           transition={{ duration: 2.4, repeat: Infinity, delay: p.delay, ease: 'easeInOut' }}
         >
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color, boxShadow: `0 0 8px ${p.color}` }} />
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: p.color, boxShadow: `0 0 8px ${p.color}` }}
+          />
         </motion.div>
       ))}
+
       {/* Header */}
       <div className="absolute top-8 left-0 right-0 px-4 flex items-center justify-between">
         <span className="font-display text-sm font-bold text-starlight">Atlas</span>
         <span className="font-mono text-xs text-aurora">● LIVE</span>
       </div>
-      {/* Bottom dock placeholder */}
+
+      {/* Bottom dock */}
       <div className="absolute bottom-0 left-0 right-0 h-16 glass border-t border-white/10 flex items-center justify-around px-4">
         {['◉', '◈', '◎', '◐', '◑'].map((icon, i) => (
           <span key={i} className={`text-lg ${i === 0 ? 'text-aurora' : 'text-starGhost'}`}>{icon}</span>
@@ -193,7 +202,10 @@ function SceneUnlock() {
           >
             <motion.div
               className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
-              style={{ background: 'rgba(255,122,89,0.15)', boxShadow: '0 0 32px rgba(255,122,89,0.3)' }}
+              style={{
+                background: Colors.ember + '26',
+                boxShadow: `0 0 32px ${Colors.ember}4D`,
+              }}
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             >
@@ -211,7 +223,10 @@ function SceneUnlock() {
           >
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
-              style={{ background: 'rgba(61,214,196,0.15)', boxShadow: '0 0 32px rgba(61,214,196,0.4)' }}
+              style={{
+                background: Colors.aurora + '26',
+                boxShadow: `0 0 32px ${Colors.aurora}66`,
+              }}
             >
               📍
             </div>
@@ -233,9 +248,9 @@ function SceneUnlock() {
 
 function ScenePresence() {
   const explorers = [
-    { handle: '@kai', rank: 'TRUSTED', dist: '0.3km' },
-    { handle: '@marta', rank: 'INSIDER', dist: '0.8km' },
-    { handle: '@rex', rank: 'EXPLORER', dist: '1.2km' },
+    { handle: '@kai',   rank: 'TRUSTED',  dist: '0.3km' },
+    { handle: '@marta', rank: 'INSIDER',  dist: '0.8km' },
+    { handle: '@rex',   rank: 'EXPLORER', dist: '1.2km' },
   ];
 
   return (
@@ -284,10 +299,22 @@ function SceneJourney() {
       {/* Route draw SVG */}
       <div className="relative h-28 w-full rounded-xl overflow-hidden bg-midnight">
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 80">
+          {/* Glow line */}
           <motion.path
             d="M 10 60 Q 50 20 80 40 Q 110 60 140 30 Q 160 15 190 25"
             fill="none"
-            stroke="#3DD6C4"
+            stroke={Colors.aurora + '40'}
+            strokeWidth="6"
+            strokeLinecap="round"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 2, ease: 'easeInOut' }}
+          />
+          {/* Main route */}
+          <motion.path
+            d="M 10 60 Q 50 20 80 40 Q 110 60 140 30 Q 160 15 190 25"
+            fill="none"
+            stroke={Colors.aurora}
             strokeWidth="2"
             strokeLinecap="round"
             initial={{ pathLength: 0 }}
@@ -301,7 +328,7 @@ function SceneJourney() {
             <motion.circle
               key={i}
               cx={p.cx} cy={p.cy} r="3"
-              fill="#3DD6C4"
+              fill={Colors.aurora}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: (i + 1) * 0.5 }}
@@ -312,7 +339,7 @@ function SceneJourney() {
 
       {/* Timeline items */}
       {[
-        { place: 'Ryga, Łotwa', time: '3d' },
+        { place: 'Ryga, Łotwa',     time: '3d' },
         { place: 'Tallinn, Estonia', time: '5d' },
       ].map((item, i) => (
         <motion.div

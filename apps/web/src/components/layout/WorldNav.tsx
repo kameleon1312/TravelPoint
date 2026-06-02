@@ -61,13 +61,16 @@ export function WorldNav({ onJoinClick }: WorldNavProps) {
             { label: 'Forum', href: '/forum' },
             { label: 'Map', href: '/map' },
           ].map((link) => (
-            <Link
+            <span
               key={link.href}
-              href={link.href}
-              className="font-sans text-sm text-star hover:text-starlight transition-colors duration-200"
+              title="Coming soon"
+              className="font-sans text-sm text-starGhost cursor-not-allowed select-none relative group"
             >
               {link.label}
-            </Link>
+              <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs bg-graphite text-starFaint px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                Coming soon
+              </span>
+            </span>
           ))}
         </div>
 

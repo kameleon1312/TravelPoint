@@ -104,6 +104,27 @@ export async function circleRoutes(app: FastifyInstance) {
     return reply.status(204).send();
   });
 
+  // GET /api/circles/:slug/invite-codes — GUIDE+ lists generated codes
+  app.get('/api/circles/:slug/invite-codes', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const circle = await app.prisma.circle.findUnique({ where: { slug } });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const membership = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
+    });
+    if (!membership || !['GUIDE', 'FOUNDER'].includes(membership.role)) {
+      return reply.status(403).send({ code: 'FORBIDDEN' });
+    }
+
+    const codes = await app.prisma.inviteCode.findMany({
+      where: { createdById: req.explorerId, expiresAt: { gt: new Date() }, usedAt: null },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+    return reply.send(codes);
+  });
+
   // POST /api/circles/:slug/invite — GUIDE+ generates invite code
   app.post('/api/circles/:slug/invite', { preHandler: [requireAuth] }, async (req, reply) => {
     const { slug } = req.params as { slug: string };

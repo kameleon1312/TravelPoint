@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -8,29 +8,46 @@ import Animated, {
   withTiming,
   withSpring,
 } from 'react-native-reanimated';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
-import MapboxGL from '@rnmapbox/maps';
+import MapView, { Marker, Region } from 'react-native-maps';
 import { Colors, FontSize, Spacing, Shadow } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import { useNearbySpots } from '@/hooks/useSpots';
 import { useAuthStore } from '@/stores/auth';
 import { socketManager } from '@/lib/socket';
+import { api } from '@/lib/api';
 import type { SpotForViewer } from '@travelpoint/types';
 
-const MAPBOX_TOKEN = process.env['EXPO_PUBLIC_MAPBOX_TOKEN'] ?? '';
-MapboxGL.setAccessToken(MAPBOX_TOKEN);
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const COSMIC_DARK_JSON = JSON.stringify(require('../../assets/map-styles/cosmic-dark.json'));
+const TERRA_MARE_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#0C1014' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8A827A' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#0C1014' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#253035' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1B2328' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#131A1F' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#253035' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0F1E2A' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#131A1F' }] },
+];
 
 const ACCESS_PIN_COLORS: Record<string, string> = {
   PUBLIC:      Colors.aurora,
   TRUSTED:     Colors.signal,
   SECRET_DROP: Colors.ember,
   CIRCLE_ONLY: Colors.violet,
+};
+
+const DEFAULT_REGION: Region = {
+  latitude: 52.2297,
+  longitude: 21.0122,
+  latitudeDelta: 20,
+  longitudeDelta: 20,
 };
 
 interface NearbyExplorer {
@@ -76,26 +93,26 @@ function PresenceToggle({ active, onToggle }: { active: boolean; onToggle: () =>
 }
 
 export default function AtlasScreen() {
-  const { explorer } = useAuthStore();
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const { explorer, setExplorer } = useAuthStore();
+  const insets = useSafeAreaInsets();
+  const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [presenceActive, setPresenceActive] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
   const [nearbyExplorers, setNearbyExplorers] = useState<NearbyExplorer[]>([]);
-  const cameraRef = useRef<MapboxGL.Camera>(null);
+  const mapRef = useRef<MapView>(null);
 
   const { data: spots } = useNearbySpots(
-    coords?.lat ?? null,
-    coords?.lng ?? null,
+    region.latitude,
+    region.longitude,
   );
 
-  // Subscribe to nearby explorer presence events
   useEffect(() => {
     const handler = (data: unknown) => {
       const e = data as NearbyExplorer;
       if (!e.explorerId || e.explorerId === explorer?.id) return;
       setNearbyExplorers((prev) => {
         const filtered = prev.filter((p) => p.explorerId !== e.explorerId);
-        return [...filtered, e].slice(-20); // max 20 nearby
+        return [...filtered, e].slice(-20);
       });
     };
     socketManager.on('explorer:nearby', handler);
@@ -106,16 +123,15 @@ export default function AtlasScreen() {
     void requestLocation();
   }, []);
 
-  // When presence is toggled, emit to socket
   useEffect(() => {
-    if (!coords) return;
+    if (!locationGranted) return;
     if (presenceActive) {
-      socketManager.emit('presence:enable', { lat: coords.lat, lng: coords.lng });
+      socketManager.emit('presence:enable', { lat: region.latitude, lng: region.longitude });
     } else {
       socketManager.emit('presence:disable');
       setNearbyExplorers([]);
     }
-  }, [presenceActive, coords]);
+  }, [presenceActive, locationGranted]);
 
   async function requestLocation() {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -123,14 +139,20 @@ export default function AtlasScreen() {
     setLocationGranted(true);
 
     const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    const { latitude: lat, longitude: lng } = loc.coords;
-    setCoords({ lat, lng });
+    const { latitude, longitude } = loc.coords;
+    const newRegion: Region = { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+    setRegion(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 1200);
+  }
 
-    cameraRef.current?.setCamera({
-      centerCoordinate: [lng, lat],
-      zoomLevel: 13,
-      animationDuration: 1200,
-    });
+  async function grantPresenceConsent() {
+    try {
+      await api.patch('/api/explorers/me', { presenceConsent: true });
+      setExplorer({ ...explorer!, presenceConsent: true });
+      setPresenceActive(true);
+    } catch {
+      Alert.alert(pl.common.error, 'Nie udało się zapisać zgody na presence.');
+    }
   }
 
   function togglePresence() {
@@ -138,121 +160,62 @@ export default function AtlasScreen() {
       void requestLocation();
       return;
     }
+    // First activation requires explicit RODO consent — location shown as ±500m signal
+    if (!presenceActive && !explorer?.presenceConsent) {
+      Alert.alert(
+        'Presence — bądź widoczny na mapie',
+        'Inni exploratorzy zobaczą Cię jako sygnał na mapie. Twoja lokalizacja jest zawsze przybliżona (±500m). Możesz wyłączyć presence w każdej chwili.',
+        [
+          { text: 'Anuluj', style: 'cancel' },
+          { text: 'Włącz Presence', onPress: () => void grantPresenceConsent() },
+        ],
+      );
+      return;
+    }
     setPresenceActive((v) => !v);
   }
 
-  const spotsGeoJson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: (spots ?? []).map((spot: SpotForViewer) => ({
-      type: 'Feature',
-      id: spot.id,
-      geometry: { type: 'Point', coordinates: [spot.lng, spot.lat] },
-      properties: {
-        id: spot.id,
-        locked: 'locked' in spot ? spot.locked : false,
-        accessLevel: 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC',
-        color: ACCESS_PIN_COLORS[
-          'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC'
-        ] ?? Colors.aurora,
-      },
-    })),
-  };
-
-  // Nearby explorers as fuzzed presence pins
-  const presenceGeoJson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: nearbyExplorers.map((e) => ({
-      type: 'Feature',
-      id: e.explorerId,
-      geometry: { type: 'Point', coordinates: [e.lng, e.lat] },
-      properties: { explorerId: e.explorerId },
-    })),
-  };
-
   return (
     <View style={styles.root}>
-      <MapboxGL.MapView
+      <MapView
+        ref={mapRef}
         style={StyleSheet.absoluteFill}
-        styleJSON={COSMIC_DARK_JSON}
-        logoEnabled={false}
-        attributionEnabled={false}
-        compassEnabled={false}
-        scaleBarEnabled={false}
+        initialRegion={DEFAULT_REGION}
+        showsUserLocation={locationGranted}
+        showsMyLocationButton={false}
+        showsCompass={false}
+        showsScale={false}
+        showsTraffic={false}
+        showsBuildings={false}
+        mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
+        customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
       >
-        <MapboxGL.Camera
-          ref={cameraRef}
-          defaultSettings={{
-            centerCoordinate: [21.0122, 52.2297],
-            zoomLevel: 4,
-          }}
-        />
-
-        {locationGranted && <MapboxGL.UserLocation visible animated />}
-
         {/* Spot pins */}
-        {spots && spots.length > 0 && (
-          <MapboxGL.ShapeSource
-            id="spots"
-            shape={spotsGeoJson}
-            onPress={(e) => {
-              const feature = e.features[0];
-              if (feature?.properties?.['id']) {
-                router.push(`/spot/${feature.properties['id'] as string}`);
-              }
-            }}
-          >
-            <MapboxGL.CircleLayer
-              id="spot-locked"
-              filter={['==', ['get', 'locked'], true]}
-              style={{
-                circleRadius: 8,
-                circleColor: Colors.starGhost,
-                circleStrokeWidth: 1.5,
-                circleStrokeColor: Colors.steel,
-                circleOpacity: 0.7,
-              }}
-            />
-            <MapboxGL.CircleLayer
-              id="spot-unlocked"
-              filter={['==', ['get', 'locked'], false]}
-              style={{
-                circleRadius: 10,
-                circleColor: ['get', 'color'],
-                circleStrokeWidth: 2,
-                circleStrokeColor: Colors.abyss,
-                circleBlur: 0.2,
-              }}
-            />
-          </MapboxGL.ShapeSource>
-        )}
+        {spots?.map((spot: SpotForViewer) => {
+          const isLocked = 'locked' in spot ? spot.locked : false;
+          const accessLevel = 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC';
+          const color = isLocked ? Colors.starGhost : (ACCESS_PIN_COLORS[accessLevel] ?? Colors.aurora);
+          return (
+            <Marker
+              key={spot.id}
+              coordinate={{ latitude: spot.lat, longitude: spot.lng }}
+              onPress={() => router.push(`/spot/${spot.id}`)}
+            >
+              <View style={[styles.spotPin, { backgroundColor: color, opacity: isLocked ? 0.6 : 1 }]} />
+            </Marker>
+          );
+        })}
 
-        {/* Live presence pins — other explorers (fuzzed coords from server) */}
-        {presenceActive && nearbyExplorers.length > 0 && (
-          <MapboxGL.ShapeSource id="presence" shape={presenceGeoJson}>
-            <MapboxGL.CircleLayer
-              id="presence-pulse"
-              style={{
-                circleRadius: 14,
-                circleColor: Colors.aurora,
-                circleOpacity: 0.15,
-                circleStrokeWidth: 0,
-              }}
-            />
-            <MapboxGL.CircleLayer
-              id="presence-dot"
-              style={{
-                circleRadius: 6,
-                circleColor: Colors.aurora,
-                circleStrokeWidth: 2,
-                circleStrokeColor: Colors.abyss,
-                circleOpacity: 0.9,
-              }}
-            />
-          </MapboxGL.ShapeSource>
-        )}
-      </MapboxGL.MapView>
+        {/* Presence pins */}
+        {presenceActive && nearbyExplorers.map((e) => (
+          <Marker key={e.explorerId} coordinate={{ latitude: e.lat, longitude: e.lng }} anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={styles.presenceOuter}>
+              <View style={styles.presenceInner} />
+            </View>
+          </Marker>
+        ))}
+      </MapView>
 
-      {/* Top bar */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
         <Text style={styles.logo}>TravelPoint</Text>
         <View style={styles.topRight}>
@@ -267,8 +230,7 @@ export default function AtlasScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Bottom CTA */}
-      <SafeAreaView edges={['bottom']} style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { bottom: insets.bottom + Spacing.md }]}>
         <SignalButton
           label={pl.spots.dropSpot}
           onPress={() => router.push('/modals/new-spot')}
@@ -277,7 +239,7 @@ export default function AtlasScreen() {
           fullWidth
           haptic="medium"
         />
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -338,11 +300,33 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
+  },
+  spotPin: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: Colors.abyss,
+  },
+  presenceOuter: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.aurora + '25',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presenceInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.aurora,
+    borderWidth: 2,
+    borderColor: Colors.abyss,
   },
 });

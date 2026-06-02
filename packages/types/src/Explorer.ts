@@ -19,6 +19,8 @@ export interface Explorer {
   presenceConsent: boolean;
   emailVerified: boolean;
   invitedById?: string;
+  consentTerms: string;
+  consentPrivacy: string;
   createdAt: string;
   updatedAt: string;
   lastSeenAt?: string;

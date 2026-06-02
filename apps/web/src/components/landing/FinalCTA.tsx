@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
+import { Colors } from '@travelpoint/theme';
 import { InviteRequestSchema } from '@travelpoint/validation';
 
 export function FinalCTA() {
@@ -40,7 +41,7 @@ export function FinalCTA() {
       {/* Glow background */}
       <div
         className="absolute inset-0 -z-10"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(61,214,196,0.06) 0%, transparent 70%)' }}
+        style={{ background: `radial-gradient(ellipse at center, ${Colors.signal}0F 0%, transparent 70%)` }}
         aria-hidden="true"
       />
 

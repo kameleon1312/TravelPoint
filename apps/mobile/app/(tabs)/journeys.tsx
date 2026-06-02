@@ -10,6 +10,7 @@ import { pl } from '@/i18n/pl';
 
 export default function JourneysScreen() {
   const { data: journeys, isLoading } = useMyJourneys();
+  const fabBottom = Spacing.lg;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -52,11 +53,11 @@ export default function JourneysScreen() {
           </Pressable>
         )}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: fabBottom + Spacing.xl }]}
         showsVerticalScrollIndicator={false}
       />
 
-      <View style={styles.fab}>
+      <View style={[styles.fab, { bottom: fabBottom }]}>
         <SignalButton
           label={pl.journeys.newJourney}
           onPress={() => router.push('/modals/new-journey')}
@@ -79,12 +80,12 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, color: Colors.starGhost },
   emptyTitle: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, textAlign: 'center' },
   emptySub: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, textAlign: 'center', lineHeight: 22 },
-  list: { padding: Spacing.xl, paddingBottom: 100 },
+  list: { padding: Spacing.xl },
   card: { gap: Spacing.xs },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   title: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, flex: 1 },
   privateBadge: { fontSize: 14 },
   mood: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, fontStyle: 'italic' },
   date: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost },
-  fab: { position: 'absolute', bottom: Spacing.huge, right: Spacing.xl },
+  fab: { position: 'absolute', right: Spacing.xl },
 });

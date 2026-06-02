@@ -13,7 +13,6 @@ export default fp(async (app: FastifyInstance) => {
     },
   });
 
-  // Auth middleware — verify JWT on connection
   io.use((socket, next) => {
     const token = socket.handshake.auth['token'] as string | undefined;
     if (!token) return next(new Error('UNAUTHORIZED'));
@@ -30,32 +29,58 @@ export default fp(async (app: FastifyInstance) => {
     const explorerId = socket.data['explorerId'] as string;
     logger.info({ explorerId }, 'Socket connected');
 
-    // Join personal room for targeted signals
     void socket.join(`explorer:${explorerId}`);
 
-    // Opt-in to presence broadcasting — coords fuzzed ≥500m before broadcast
+    // ── Presence (opt-in, coords fuzzed ≥500m) ────────────────────────────────
     socket.on('presence:enable', (data: { lat: number; lng: number }) => {
       void socket.join('presence');
       const seed = generateSessionSeed();
       const fuzzed = fuzzCoordinates(data.lat, data.lng, 500, seed);
-      socket.to('presence').emit('explorer:nearby', {
-        explorerId,
-        lat: fuzzed.lat,
-        lng: fuzzed.lng,
-      });
+      socket.to('presence').emit('explorer:nearby', { explorerId, lat: fuzzed.lat, lng: fuzzed.lng });
     });
 
     socket.on('presence:disable', () => {
       void socket.leave('presence');
     });
 
-    // Join a circle room for real-time chat
+    // ── Circle room management ─────────────────────────────────────────────────
     socket.on('circle:join', (circleId: string) => {
       void socket.join(`circle:${circleId}`);
     });
 
     socket.on('circle:leave', (circleId: string) => {
       void socket.leave(`circle:${circleId}`);
+    });
+
+    // ── Circle real-time chat ─────────────────────────────────────────────────
+    // Server-authoritative: validates membership, persists to DB, then broadcasts.
+    socket.on('circle:message', async (data: { circleId: string; body: string }) => {
+      if (!data?.circleId || !data?.body?.trim() || data.body.length > 2000) return;
+
+      try {
+        const membership = await app.prisma.circleMember.findFirst({
+          where: { circleId: data.circleId, explorerId },
+        });
+        if (!membership) {
+          socket.emit('error', { code: 'FORBIDDEN', message: 'Not a circle member' });
+          return;
+        }
+
+        const msg = await app.prisma.transmission.create({
+          data: {
+            senderId: explorerId,
+            circleId: data.circleId,
+            body: data.body.trim(),
+          },
+          include: {
+            sender: { select: { id: true, handle: true, rank: true, displayName: true } },
+          },
+        });
+
+        io.to(`circle:${data.circleId}`).emit('circle:message', msg);
+      } catch (err) {
+        logger.error({ err }, 'circle:message handler error');
+      }
     });
 
     socket.on('disconnect', () => {

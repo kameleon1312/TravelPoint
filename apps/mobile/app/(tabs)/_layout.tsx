@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@travelpoint/theme';
 import { pl } from '@/i18n/pl';
 import { useUnseenSignalsCount } from '@/hooks/useSignals';
@@ -25,15 +25,25 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 
 export default function TabsLayout() {
   const { data: unseenCount = 0 } = useUnseenSignalsCount();
+  const insets = useSafeAreaInsets();
+  // Total tab bar height: 56px visual + system bottom safe area
+  const tabBarHeight = 56 + insets.bottom;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarBackground: () => (
-          <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
-        ),
+        tabBarStyle: {
+          // NOT position: 'absolute' — the tab bar top edge is the hard viewport boundary
+          // for every section. Content stops here, nothing slides under.
+          height: tabBarHeight,
+          paddingBottom: insets.bottom + Spacing.sm,
+          backgroundColor: Colors.graphite,
+          borderTopWidth: 1,
+          borderTopColor: Colors.steel,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
         tabBarActiveTintColor: Colors.aurora,
         tabBarInactiveTintColor: Colors.starGhost,
         tabBarLabelStyle: styles.tabLabel,
@@ -72,7 +82,6 @@ export default function TabsLayout() {
         options={{
           title: pl.nav.identity,
           tabBarIcon: ({ focused }) => <TabIcon name="identity" focused={focused} />,
-          // Show badge when there are unseen signals
           tabBarBadge: unseenCount > 0 ? (unseenCount > 9 ? '9+' : unseenCount) : undefined,
           tabBarBadgeStyle: styles.badge,
         }}
@@ -82,25 +91,9 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    position: 'absolute',
-    borderTopWidth: 0,
-    backgroundColor: 'transparent',
-    elevation: 0,
-    height: 80,
-    paddingBottom: Spacing.lg,
-  },
-  tabIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 22,
-  },
-  tabLabel: {
-    fontFamily: 'GeneralSans-Regular',
-    fontSize: 10,
-  },
+  tabIcon: { alignItems: 'center', justifyContent: 'center' },
+  icon: { fontSize: 22 },
+  tabLabel: { fontFamily: 'GeneralSans-Regular', fontSize: 10 },
   badge: {
     backgroundColor: Colors.ember,
     color: Colors.starlight,

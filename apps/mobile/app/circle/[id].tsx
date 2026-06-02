@@ -1,32 +1,66 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, FlatList } from 'react-native';
+'use client';
+import {
+  View, Text, StyleSheet, ScrollView, Pressable,
+  ActivityIndicator, Alert, Clipboard,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
+} from 'react-native-reanimated';
 import { useEffect } from 'react';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
-import { useCircle, useJoinCircle } from '@/hooks/useCircles';
+import {
+  useCircle, useJoinCircle, useLeaveCircle,
+  useGenerateInviteCode, useInviteCodes,
+} from '@/hooks/useCircles';
 import { useAuthStore } from '@/stores/auth';
-import type { Circle } from '@travelpoint/types';
+import { formatRelative } from '@travelpoint/utils';
 
+// ─── Extended API response type ───────────────────────────────────────────────
+type CircleMemberEntry = {
+  explorer: { id: string; handle: string; rank: string; displayName?: string };
+  role: string;
+};
+
+type CircleDetail = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  isInviteOnly: boolean;
+  members: CircleMemberEntry[];
+  _count?: { members: number };
+  createdAt: string;
+};
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 const ROLE_COLORS: Record<string, string> = {
   FOUNDER: Colors.ember,
-  GUIDE: Colors.aurora,
-  MEMBER: Colors.signal,
+  GUIDE:   Colors.aurora,
+  MEMBER:  Colors.signal,
 };
 
 const ROLE_ICONS: Record<string, string> = {
   FOUNDER: '◉',
-  GUIDE: '◈',
-  MEMBER: '◎',
+  GUIDE:   '◈',
+  MEMBER:  '◎',
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  FOUNDER: 'Założyciel',
+  GUIDE:   'Przewodnik',
+  MEMBER:  'Członek',
+};
+
+// ─── Subcomponents ────────────────────────────────────────────────────────────
 function PulsingDot({ color }: { color: string }) {
   const scale = useSharedValue(1);
   useEffect(() => {
     scale.value = withRepeat(
-      withSequence(withTiming(1.4, { duration: 800 }), withTiming(1, { duration: 800 })),
+      withSequence(withTiming(1.5, { duration: 900 }), withTiming(1, { duration: 900 })),
       -1,
     );
   }, []);
@@ -34,11 +68,60 @@ function PulsingDot({ color }: { color: string }) {
   return <Animated.View style={[styles.dot, { backgroundColor: color }, style]} />;
 }
 
+function MemberRow({ entry }: { entry: CircleMemberEntry }) {
+  const roleColor = ROLE_COLORS[entry.role] ?? Colors.signal;
+  return (
+    <View style={styles.memberRow}>
+      <View style={[styles.memberAvatar, { borderColor: roleColor }]}>
+        <Text style={[styles.memberAvatarLetter, { color: roleColor }]}>
+          {entry.explorer.handle[0]?.toUpperCase() ?? '?'}
+        </Text>
+      </View>
+      <View style={styles.memberInfo}>
+        <Text style={styles.memberHandle}>@{entry.explorer.handle}</Text>
+        {entry.explorer.displayName && (
+          <Text style={styles.memberDisplayName}>{entry.explorer.displayName}</Text>
+        )}
+      </View>
+      <View style={[styles.roleBadge, { borderColor: roleColor + '60' }]}>
+        <Text style={[styles.roleText, { color: roleColor }]}>
+          {ROLE_ICONS[entry.role] ?? '○'} {ROLE_LABELS[entry.role] ?? entry.role}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function InviteCodeCard({ code, expiresAt }: { code: string; expiresAt: string }) {
+  function handleCopy() {
+    Clipboard.setString(code);
+    Alert.alert('Skopiowano', `Kod ${code} skopiowany do schowka.`);
+  }
+  return (
+    <Pressable style={styles.inviteCodeRow} onPress={handleCopy}>
+      <Text style={styles.inviteCodeText}>{code}</Text>
+      <View style={styles.inviteCodeMeta}>
+        <Text style={styles.inviteCodeExpiry}>Wygasa {formatRelative(expiresAt)}</Text>
+        <Text style={styles.inviteCodeCopy}>Kopiuj ⎘</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function CircleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { explorer } = useAuthStore();
+
   const { data: circle, isLoading, error } = useCircle(id ?? '');
-  const { mutateAsync: joinCircle, isPending: isJoining } = useJoinCircle();
+  const { mutateAsync: joinCircle,     isPending: isJoining  } = useJoinCircle();
+  const { mutateAsync: leaveCircle,    isPending: isLeaving  } = useLeaveCircle();
+  const { mutateAsync: generateCode,   isPending: isGenerating } = useGenerateInviteCode();
+
+  const detail = circle as unknown as CircleDetail | undefined;
+  const slug    = detail?.slug ?? id ?? '';
+
+  const { data: inviteCodes } = useInviteCodes(slug);
 
   if (isLoading) {
     return (
@@ -48,31 +131,79 @@ export default function CircleDetailScreen() {
     );
   }
 
-  if (error || !circle) {
+  if (error || !detail) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Circle nie znalezione.</Text>
+        <Text style={styles.errorText}>Nie znaleziono circle.</Text>
         <SignalButton label="Wróć" onPress={() => router.back()} variant="ghost" size="sm" />
       </View>
     );
   }
 
-  const members = (circle as Circle & { members?: Array<{ explorer: { id: string; handle: string; rank: string; displayName?: string }; role: string }> }).members ?? [];
+  const members      = detail.members ?? [];
   const myMembership = members.find((m) => m.explorer.id === explorer?.id);
-  const isMember = !!myMembership;
-  const memberCount = (circle as Circle & { _count?: { members: number } })._count?.members ?? members.length;
+  const isMember     = !!myMembership;
+  const isFounder    = myMembership?.role === 'FOUNDER';
+  const isGuide      = myMembership?.role === 'GUIDE';
+  const canInvite    = isFounder || isGuide;
+  const memberCount  = detail._count?.members ?? members.length;
 
   async function handleJoin() {
     try {
-      await joinCircle({ slug: circle!.slug ?? id! });
-    } catch {
-      // error handled by mutation
+      await joinCircle({ slug });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Nie udało się dołączyć.';
+      Alert.alert('Błąd', msg);
+    }
+  }
+
+  function confirmLeave() {
+    if (isFounder) {
+      Alert.alert(
+        'Nie możesz opuścić circle',
+        'Jesteś założycielem. Przekaż rolę innemu członkowi przed opuszczeniem.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
+    Alert.alert(
+      `Opuścić ${detail.name}?`,
+      'Stracisz dostęp do wspólnej mapy i transmisji tego circle.',
+      [
+        { text: 'Anuluj', style: 'cancel' },
+        {
+          text: 'Opuść', style: 'destructive',
+          onPress: async () => {
+            try {
+              await leaveCircle(slug);
+              router.back();
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : 'Nie udało się opuścić circle.';
+              Alert.alert('Błąd', msg);
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  async function handleGenerateCode() {
+    try {
+      const { code } = await generateCode(slug);
+      Clipboard.setString(code);
+      Alert.alert('Kod wygenerowany', `${code}\n\nSkopiowany do schowka. Ważny przez 7 dni.`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Nie udało się wygenerować kodu.';
+      Alert.alert('Błąd', msg);
     }
   }
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Back */}
         <Pressable style={styles.back} onPress={() => router.back()}>
           <Text style={styles.backText}>← Circles</Text>
@@ -82,144 +213,167 @@ export default function CircleDetailScreen() {
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <PulsingDot color={Colors.violet} />
-            <Text style={styles.name}>{circle.name}</Text>
+            <Text style={styles.name}>{detail.name}</Text>
           </View>
-          {circle.slug && <Text style={styles.slug}>@{circle.slug}</Text>}
+          <Text style={styles.slug}>@{detail.slug}</Text>
 
           <View style={styles.metaRow}>
             <View style={styles.metaChip}>
               <Text style={styles.metaChipText}>◑ {memberCount} członków</Text>
             </View>
-            {(circle as Circle & { isInviteOnly?: boolean }).isInviteOnly && (
+            {detail.isInviteOnly && (
               <View style={[styles.metaChip, styles.inviteChip]}>
-                <Text style={[styles.metaChipText, { color: Colors.ember }]}>🔒 Invite only</Text>
+                <Text style={[styles.metaChipText, { color: Colors.ember }]}>🔒 Tylko zaproszenia</Text>
               </View>
             )}
-            {isMember && myMembership && (
-              <View style={[styles.metaChip, { borderColor: ROLE_COLORS[myMembership.role] ?? Colors.signal }]}>
+            {myMembership && (
+              <View style={[styles.metaChip, { borderColor: (ROLE_COLORS[myMembership.role] ?? Colors.signal) + '60' }]}>
                 <Text style={[styles.metaChipText, { color: ROLE_COLORS[myMembership.role] ?? Colors.signal }]}>
-                  {ROLE_ICONS[myMembership.role] ?? '◎'} {myMembership.role}
+                  {ROLE_ICONS[myMembership.role] ?? '◎'} {ROLE_LABELS[myMembership.role] ?? myMembership.role}
                 </Text>
               </View>
             )}
           </View>
 
-          {circle.description && (
-            <Text style={styles.description}>{circle.description}</Text>
+          {detail.description && (
+            <Text style={styles.description}>{detail.description}</Text>
           )}
         </View>
 
-        {/* Join / Leave button */}
+        {/* Join button (non-member) */}
         {!isMember && (
           <SignalButton
-            label={
-              (circle as Circle & { isInviteOnly?: boolean }).isInviteOnly
-                ? 'Wymaga zaproszenia'
-                : 'Dołącz do circle'
-            }
+            label={detail.isInviteOnly ? 'Wymaga zaproszenia' : 'Dołącz do circle'}
             onPress={handleJoin}
             variant="signal"
             size="lg"
             fullWidth
             loading={isJoining}
-            disabled={(circle as Circle & { isInviteOnly?: boolean }).isInviteOnly}
+            disabled={detail.isInviteOnly}
             haptic="medium"
           />
         )}
 
-        {/* Members */}
+        {/* Member actions */}
+        {isMember && (
+          <View style={styles.memberActions}>
+            <SignalButton
+              label="◐ Circle Chat"
+              onPress={() =>
+                router.push(
+                  `/modals/transmissions?circleId=${detail.id}&circleName=${encodeURIComponent(detail.name)}`,
+                )
+              }
+              variant="ghost"
+              size="md"
+              fullWidth
+              haptic="light"
+            />
+            {!isFounder && (
+              <SignalButton
+                label="Opuść circle"
+                onPress={confirmLeave}
+                variant="ember"
+                size="md"
+                fullWidth
+                loading={isLeaving}
+                haptic="medium"
+              />
+            )}
+          </View>
+        )}
+
+        {/* Members list */}
         {members.length > 0 && (
-          <GlassCard style={styles.membersCard}>
+          <GlassCard style={styles.section}>
             <Text style={styles.sectionLabel}>Członkowie</Text>
             {members.map((m, i) => (
               <View key={m.explorer.id}>
                 {i > 0 && <View style={styles.divider} />}
-                <View style={styles.memberRow}>
-                  <View style={[styles.memberAvatar, { borderColor: ROLE_COLORS[m.role] ?? Colors.steel }]}>
-                    <Text style={[styles.memberAvatarLetter, { color: ROLE_COLORS[m.role] ?? Colors.starFaint }]}>
-                      {m.explorer.handle[0]?.toUpperCase() ?? '?'}
-                    </Text>
-                  </View>
-                  <View style={styles.memberInfo}>
-                    <Text style={styles.memberHandle}>@{m.explorer.handle}</Text>
-                    {m.explorer.displayName && (
-                      <Text style={styles.memberDisplayName}>{m.explorer.displayName}</Text>
-                    )}
-                  </View>
-                  <View style={[styles.roleBadge, { borderColor: ROLE_COLORS[m.role] ?? Colors.steel }]}>
-                    <Text style={[styles.roleText, { color: ROLE_COLORS[m.role] ?? Colors.starFaint }]}>
-                      {ROLE_ICONS[m.role] ?? '○'} {m.role}
-                    </Text>
-                  </View>
-                </View>
+                <MemberRow entry={m} />
               </View>
             ))}
           </GlassCard>
         )}
 
-        {/* Transmissions (circle chat entry point) */}
-        {isMember && (
-          <SignalButton
-            label="Transmissions circle"
-            onPress={() => router.push('/modals/transmissions')}
-            variant="ghost"
-            size="md"
-            fullWidth
-            haptic="light"
-          />
+        {/* Invite codes — GUIDE / FOUNDER */}
+        {canInvite && (
+          <GlassCard style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Kody zaproszenia</Text>
+              <SignalButton
+                label="Generuj"
+                onPress={handleGenerateCode}
+                variant="aurora"
+                size="sm"
+                loading={isGenerating}
+                haptic="light"
+              />
+            </View>
+            {inviteCodes && inviteCodes.length > 0 ? (
+              inviteCodes.map((c) => (
+                <InviteCodeCard key={c.code} code={c.code} expiresAt={c.expiresAt} />
+              ))
+            ) : (
+              <Text style={styles.emptyCodesText}>
+                Brak aktywnych kodów. Wygeneruj nowy aby zaprosić eksploratorów.
+              </Text>
+            )}
+          </GlassCard>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.abyss },
+  root:   { flex: 1, backgroundColor: Colors.abyss },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, backgroundColor: Colors.abyss },
-  scroll: { padding: Spacing.xl, gap: Spacing.xl },
-  back: { alignSelf: 'flex-start' },
+  scroll: { padding: Spacing.xl, gap: Spacing.xl, paddingBottom: Spacing.huge },
+
+  back:     { alignSelf: 'flex-start' },
   backText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
-  header: { gap: Spacing.md },
+
+  header:   { gap: Spacing.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  name: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h2, color: Colors.starlight, letterSpacing: -0.5, flex: 1 },
-  slug: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  metaChip: {
-    borderWidth: 1,
-    borderColor: Colors.steel,
-    borderRadius: BorderRadius.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
-  },
-  inviteChip: { borderColor: Colors.ember + '50' },
-  metaChipText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starFaint },
-  description: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, lineHeight: 22 },
-  membersCard: { gap: Spacing.sm },
+  dot:      { width: 10, height: 10, borderRadius: 5 },
+  name:     { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h2, color: Colors.starlight, letterSpacing: -0.5, flex: 1 },
+  slug:     { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
+
+  metaRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  metaChip:      { borderWidth: 1, borderColor: Colors.steel, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.md, paddingVertical: 4 },
+  inviteChip:    { borderColor: Colors.ember + '50' },
+  metaChipText:  { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starFaint },
+  description:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, lineHeight: 22 },
+
+  memberActions: { gap: Spacing.sm },
+
+  section: { gap: Spacing.sm },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xs },
   sectionLabel: {
-    fontFamily: 'GeneralSans-Semibold',
-    fontSize: FontSize.caption,
-    color: Colors.starFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
+    fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption,
+    color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1,
   },
+
   divider: { height: 1, backgroundColor: Colors.steel, marginVertical: Spacing.sm },
-  memberRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  memberAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.graphite,
-  },
-  memberAvatarLetter: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.bodySm },
-  memberInfo: { flex: 1, gap: 2 },
-  memberHandle: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starlight },
-  memberDisplayName: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
-  roleBadge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
-  roleText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, textTransform: 'uppercase' },
-  errorText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.danger },
+
+  memberRow:           { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  memberAvatar:        { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.graphite },
+  memberAvatarLetter:  { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.bodySm },
+  memberInfo:          { flex: 1, gap: 2 },
+  memberHandle:        { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starlight },
+  memberDisplayName:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
+  roleBadge:           { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+  roleText:            { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, textTransform: 'uppercase' },
+
+  inviteCodeRow:   { paddingVertical: Spacing.md, gap: Spacing.xs },
+  inviteCodeText:  { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.body, color: Colors.aurora, letterSpacing: 2 },
+  inviteCodeMeta:  { flexDirection: 'row', justifyContent: 'space-between' },
+  inviteCodeExpiry:{ fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starGhost },
+  inviteCodeCopy:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.signal },
+
+  emptyCodesText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starGhost, lineHeight: 20 },
+
+  errorText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.ember },
 });

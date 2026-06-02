@@ -72,6 +72,7 @@ export default function RootLayout() {
             <Stack.Screen name="modals/new-spot" options={{ presentation: 'modal' }} />
             <Stack.Screen name="modals/new-journey" options={{ presentation: 'modal' }} />
             <Stack.Screen name="modals/transmissions" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="modals/new-circle" options={{ presentation: 'modal' }} />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>

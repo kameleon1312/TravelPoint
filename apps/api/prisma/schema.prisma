@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Explorer {
@@ -21,6 +22,9 @@ model Explorer {
   bio           String?  @db.VarChar(500)
   obsessions    String[]
   territories   String[]
+
+  // Push notifications
+  pushToken     String?
 
   // Trust & rank
   trustScore    Int      @default(0)
