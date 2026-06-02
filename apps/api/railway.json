@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pnpm install --no-frozen-lockfile && pnpm --filter @travelpoint/api db:generate && pnpm --filter @travelpoint/api build"
+    "buildCommand": "pnpm install --no-frozen-lockfile && pnpm --filter @travelpoint/geo build && pnpm --filter @travelpoint/types build && pnpm --filter @travelpoint/utils build && pnpm --filter @travelpoint/validation build && pnpm --filter @travelpoint/api db:generate && pnpm --filter @travelpoint/api build"
   },
   "deploy": {
     "startCommand": "node dist/server.js",
