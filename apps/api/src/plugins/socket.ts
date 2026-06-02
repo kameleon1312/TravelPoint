@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { verifyAccessToken } from '../lib/jwt';
 import { logger } from '../lib/logger';
 import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
+import { sendPushToMany } from '../services/push';
 
 export default fp(async (app: FastifyInstance) => {
   const io = new Server(app.server, {
@@ -78,6 +79,25 @@ export default fp(async (app: FastifyInstance) => {
         });
 
         io.to(`circle:${data.circleId}`).emit('circle:message', msg);
+
+        // Push to offline circle members
+        const [members, circle] = await Promise.all([
+          app.prisma.circleMember.findMany({
+            where: { circleId: data.circleId, explorerId: { not: explorerId } },
+            select: { explorerId: true },
+          }),
+          app.prisma.circle.findUnique({
+            where: { id: data.circleId }, select: { name: true },
+          }),
+        ]);
+
+        void sendPushToMany(
+          app.prisma,
+          members.map((m) => m.explorerId),
+          `◑ ${circle?.name ?? 'Circle'}`,
+          `@${msg.sender?.handle ?? 'explorer'}: ${data.body.trim().slice(0, 60)}`,
+          { type: 'circle_message', circleId: data.circleId, id: msg.id },
+        );
       } catch (err) {
         logger.error({ err }, 'circle:message handler error');
       }

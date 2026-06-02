@@ -3,6 +3,7 @@ import { RegisterSchema, LoginSchema, RefreshTokenSchema } from '@travelpoint/va
 import { hashPassword, verifyPassword } from '../lib/crypto';
 import { signAccessToken, signRefreshToken, verifyRefreshToken, hashToken } from '../lib/jwt';
 import { logger } from '../lib/logger';
+import { sendWelcomeEmail, sendInviteEmail } from '../services/email';
 import crypto from 'crypto';
 
 const AUTH_RATE_LIMIT = { max: 5, timeWindow: '15 minutes' };
@@ -66,6 +67,10 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     logger.info({ handle }, 'Explorer registered');
+
+    // Welcome email — fire-and-forget, never blocks registration response
+    void sendWelcomeEmail(email, handle);
+
     return reply.status(201).send({
       accessToken,
       refreshToken,
@@ -158,9 +163,8 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.status(204).send();
   });
 
-  // POST /api/auth/invite — INSIDER+ generates invite code
+  // POST /api/auth/invite — INSIDER+ generates invite code, optionally sends to email
   app.post('/api/auth/invite', async (req, reply) => {
-    // requireAuth inline check
     const auth = req.headers['authorization'];
     if (!auth?.startsWith('Bearer ')) return reply.status(401).send({ code: 'UNAUTHORIZED' });
 
@@ -177,15 +181,19 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(403).send({ code: 'FORBIDDEN', message: 'INSIDER rank required to generate invites' });
     }
 
+    const { recipientEmail } = req.body as { recipientEmail?: string };
+
     const code = crypto.randomBytes(16).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await app.prisma.inviteCode.create({
-      data: {
-        code,
-        createdById: explorer.id,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
+      data: { code, createdById: explorer.id, expiresAt },
     });
 
-    return reply.status(201).send({ code, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
+    // Deliver code via email if recipient email was provided
+    if (recipientEmail) {
+      void sendInviteEmail(recipientEmail, explorer.handle, code);
+    }
+
+    return reply.status(201).send({ code, expiresAt });
   });
 }

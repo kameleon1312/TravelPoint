@@ -11,6 +11,7 @@ import { circleRoutes } from './routes/circles';
 import { transmissionRoutes } from './routes/transmissions';
 import { signalRoutes } from './routes/signals';
 import { waitlistRoutes } from './routes/waitlist';
+import { rodoRoutes } from './routes/rodo';
 import { logger } from './lib/logger';
 
 const app = Fastify({ logger: false });
@@ -29,6 +30,7 @@ async function bootstrap() {
   await app.register(transmissionRoutes);
   await app.register(signalRoutes);
   await app.register(waitlistRoutes);
+  await app.register(rodoRoutes);
 
   // Health check
   app.get('/health', async () => ({ status: 'ok', ts: new Date().toISOString() }));

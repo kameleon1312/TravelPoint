@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { WaitlistSchema, InviteRequestSchema } from '@travelpoint/validation';
+import { sendWaitlistConfirmationEmail } from '../services/email';
 
 export async function waitlistRoutes(app: FastifyInstance) {
   // POST /api/waitlist — from landing page FinalCTA
@@ -18,7 +19,6 @@ export async function waitlistRoutes(app: FastifyInstance) {
       return reply.status(200).send({ message: 'Already on the list.' });
     }
 
-    // Store as invite request in AuditLog (no dedicated table needed at MVP)
     await app.prisma.auditLog.create({
       data: {
         action: 'WAITLIST_JOIN',
@@ -26,10 +26,13 @@ export async function waitlistRoutes(app: FastifyInstance) {
       },
     });
 
+    // Send waitlist confirmation email — fire-and-forget
+    void sendWaitlistConfirmationEmail(email);
+
     return reply.status(201).send({ message: 'Request received. We will reach out.' });
   });
 
-  // POST /api/invite-request — alias
+  // POST /api/invite-request — alias used by Next.js web app route
   app.post('/api/invite-request', async (req, reply) => {
     const parsed = InviteRequestSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -43,6 +46,8 @@ export async function waitlistRoutes(app: FastifyInstance) {
         metadata: { email, handle: handle ?? null },
       },
     });
+
+    void sendWaitlistConfirmationEmail(email);
 
     return reply.status(201).send({ message: 'Request received.' });
   });
