@@ -19,16 +19,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm run build:packages
 
       - name: Generate Prisma client
         run: pnpm --filter @travelpoint/api db:generate
@@ -50,16 +51,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm run build:packages
 
       - name: Generate Prisma client
         run: pnpm --filter @travelpoint/api db:generate
@@ -84,16 +86,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm run build:packages
 
       - name: Build Web
         run: pnpm --filter @travelpoint/web build
