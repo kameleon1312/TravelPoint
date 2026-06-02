@@ -16,4 +16,4 @@ cmds = [
 ]
 
 [start]
-cmd = "node apps/api/dist/server.js"
+cmd = "pnpm --filter @travelpoint/api db:generate && node apps/api/dist/server.js"
