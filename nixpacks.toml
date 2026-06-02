@@ -10,6 +10,10 @@ cmds = ["pnpm install --no-frozen-lockfile"]
 
 [phases.build]
 cmds = [
+  "pnpm --filter @travelpoint/geo build",
+  "pnpm --filter @travelpoint/types build",
+  "pnpm --filter @travelpoint/utils build",
+  "pnpm --filter @travelpoint/validation build",
   "pnpm --filter @travelpoint/api db:generate",
   "pnpm --filter @travelpoint/api db:deploy",
   "pnpm --filter @travelpoint/api build"
