@@ -17,7 +17,7 @@
       "bundleIdentifier": "io.travelpoint.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "TravelPoint uses your location to show nearby explorers and hidden spots. Location is optional and always opt-in.",
-        "NSLocationAlwaysUsageDescription": "TravelPoint can use background location for journey tracking. This is always opt-in.",
+        "NSLocationAlwaysUsageDescription": "TravelPoint can use background location for journey tracking. This is always opt-in."
       }
     },
     "android": {
@@ -27,7 +27,7 @@
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
       ],
       "config": {
         "googleMaps": {
@@ -40,9 +40,23 @@
       "expo-secure-store",
       "expo-font",
       "expo-location",
-[
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TravelPoint uses your photo library to add photos to spots.",
+          "cameraPermission": "TravelPoint uses your camera to take photos of spots."
+        }
+      ],
+      [
         "expo-notifications",
-        { "icon": "./assets/images/icon.png", "color": "#3DD6C4" }
+        { "icon": "./assets/images/icon.png", "color": "#5CB88C" }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "pawflo",
+          "project": "travelpoint-mobile"
+        }
       ]
     ],
     "experiments": {
@@ -51,7 +65,8 @@
     "extra": {
       "eas": {
         "projectId": "fbd06b46-7ace-4d3e-bc29-6b51fcaf6453"
-      }
+      },
+      "sentryDsn": "https://69fc58ab49a261c1bd4d4ea0f76d7cc9@o4511354565165056.ingest.de.sentry.io/4511497658040400"
     },
     "owner": "pawflo"
   }

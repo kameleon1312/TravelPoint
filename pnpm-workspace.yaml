@@ -9,3 +9,4 @@ allowBuilds:
   esbuild: true
   prisma: true
   argon2: false
+  '@sentry/cli': set this to true or false

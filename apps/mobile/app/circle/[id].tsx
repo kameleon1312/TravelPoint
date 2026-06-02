@@ -165,6 +165,8 @@ export default function CircleDetailScreen() {
       );
       return;
     }
+    // detail is guaranteed non-null here — early returns above guard against it.
+    if (!detail) return;
     Alert.alert(
       `Opuścić ${detail.name}?`,
       'Stracisz dostęp do wspólnej mapy i transmisji tego circle.',

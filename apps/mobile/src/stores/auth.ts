@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import type { Explorer } from '@travelpoint/types';
 import { tokenStorage } from '../lib/secureStorage';
 import { socketManager } from '../lib/socket';
@@ -8,7 +9,17 @@ import { api, ApiError } from '../lib/api';
 async function registerPushToken(): Promise<void> {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return;
-  const { data: token } = await Notifications.getExpoPushTokenAsync();
+
+  // projectId is required for production Expo Push Notifications.
+  // It comes from app.json → extra.eas.projectId.
+  const projectId =
+    (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)
+      ?.eas?.projectId;
+
+  const { data: token } = await Notifications.getExpoPushTokenAsync(
+    projectId ? { projectId } : undefined,
+  );
+
   await api.post('/api/explorers/me/push-token', { token }).catch(() => {});
 }
 

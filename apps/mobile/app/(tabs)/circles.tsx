@@ -112,9 +112,9 @@ export default function CirclesScreen() {
                           <Text style={styles.metaTagText}>🔒 Invite only</Text>
                         </View>
                       )}
-                      {(item as { _count?: { members: number } })._count?.members !== undefined && (
+                      {(item as unknown as { _count?: { members: number } })._count?.members !== undefined && (
                         <Text style={styles.memberCount}>
-                          {(item as { _count: { members: number } })._count.members} członków
+                          {(item as unknown as { _count: { members: number } })._count.members} członków
                         </Text>
                       )}
                     </View>

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { CreateJourneySchema, UpdateJourneySchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
@@ -52,8 +53,8 @@ export async function journeyRoutes(app: FastifyInstance) {
     return reply.status(201).send(journey);
   });
 
-  // PATCH /api/journeys/:id
-  app.patch('/api/journeys/:id', { preHandler: [requireAuth] }, async (req, reply) => {
+  // PATCH /api/journeys/:id — bodyLimit raised for routeGeoJson (GPS traces can be large)
+  app.patch('/api/journeys/:id', { preHandler: [requireAuth], bodyLimit: 2 * 1024 * 1024 }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = UpdateJourneySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -65,7 +66,18 @@ export async function journeyRoutes(app: FastifyInstance) {
       return reply.status(403).send({ code: 'FORBIDDEN' });
     }
 
-    const journey = await app.prisma.journey.update({ where: { id }, data: parsed.data });
+    // Prisma Json fields require InputJsonValue — routeGeoJson is typed GeoJSON,
+    // so we cast it explicitly while keeping other fields strongly typed.
+    const { routeGeoJson, ...rest } = parsed.data;
+    const journey = await app.prisma.journey.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(routeGeoJson !== undefined
+          ? { routeGeoJson: routeGeoJson as unknown as Prisma.InputJsonValue }
+          : {}),
+      },
+    });
     return reply.send(journey);
   });
 

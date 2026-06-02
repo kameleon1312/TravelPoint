@@ -1,6 +1,7 @@
-import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator } from 'react-native';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
 import { SignalButton } from '@/components/ui/SignalButton';
@@ -8,6 +9,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { useMarkSignalsSeen, useSignals, SIGNAL_LABELS, SIGNAL_ICONS } from '@/hooks/useSignals';
 import { formatRelative } from '@travelpoint/utils';
 import { api } from '@/lib/api';
+import { socketManager } from '@/lib/socket';
 
 const RANK_COLORS: Record<string, string> = {
   NEWCOMER: Colors.starGhost,
@@ -130,13 +132,30 @@ export default function IdentityScreen() {
   const { explorer, logout, setExplorer, deleteAccount } = useAuthStore();
   const { mutate: markSeen } = useMarkSignalsSeen();
   const { data: signals } = useSignals();
-  const [editVisible, setEditVisible] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [editVisible, setEditVisible]           = useState(false);
+  const [isExporting, setIsExporting]           = useState(false);
+  const [isDeleting, setIsDeleting]             = useState(false);
+  const [presenceToggling, setPresenceToggling] = useState(false);
+  const [locationToggling, setLocationToggling] = useState(false);
+  // Real device-level location permission status (checked on mount).
+  const [deviceLocationGranted, setDeviceLocationGranted] = useState(false);
 
   useEffect(() => { markSeen(); }, []);
 
-  if (!explorer) return null;
+  // Check actual device permission on every visit so display stays accurate.
+  useEffect(() => {
+    void Location.getForegroundPermissionsAsync().then(({ status }) => {
+      setDeviceLocationGranted(status === 'granted');
+    });
+  }, []);
+
+  if (!explorer) {
+    return (
+      <SafeAreaView style={styles.loadingRoot} edges={['top']}>
+        <ActivityIndicator color={Colors.aurora} size="large" />
+      </SafeAreaView>
+    );
+  }
 
   const rankColor = RANK_COLORS[explorer.rank] ?? Colors.starGhost;
 
@@ -221,6 +240,47 @@ export default function IdentityScreen() {
       ],
     );
   }
+
+  // ── Consent toggles ──────────────────────────────────────────────────────────
+
+  async function handlePresenceToggle(value: boolean) {
+    setPresenceToggling(true);
+    try {
+      await api.patch('/api/explorers/me', { presenceConsent: value });
+      setExplorer({ ...explorer!, presenceConsent: value });
+      // Immediately disable socket presence broadcast when user revokes consent.
+      if (!value) socketManager.emit('presence:disable');
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zmienić ustawienia presence.');
+    } finally {
+      setPresenceToggling(false);
+    }
+  }
+
+  async function handleLocationToggle(value: boolean) {
+    if (value) {
+      // Turning ON: request device permission first.
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Uprawnienie wymagane',
+          'Zezwól na dostęp do lokalizacji w ustawieniach systemowych, a następnie wróć tu.',
+        );
+        return;
+      }
+      setDeviceLocationGranted(true);
+    }
+    setLocationToggling(true);
+    try {
+      await api.patch('/api/explorers/me', { locationConsent: value });
+      setExplorer({ ...explorer!, locationConsent: value });
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zmienić ustawienia lokalizacji.');
+    } finally {
+      setLocationToggling(false);
+    }
+  }
+
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -318,44 +378,52 @@ export default function IdentityScreen() {
         <GlassCard style={styles.section}>
           <Text style={styles.sectionLabel}>Prywatność i dane</Text>
 
+          {/* Presence toggle */}
           <View style={styles.consentRow}>
             <View style={styles.consentInfo}>
               <Text style={styles.consentTitle}>Presence</Text>
-              <Text style={styles.consentSub}>Widoczność na mapie (±500m)</Text>
-            </View>
-            <View style={[
-              styles.consentBadge,
-              { borderColor: explorer.presenceConsent ? Colors.aurora + '50' : Colors.steel },
-            ]}>
-              <Text style={[
-                styles.consentBadgeText,
-                { color: explorer.presenceConsent ? Colors.aurora : Colors.starGhost },
-              ]}>
-                {explorer.presenceConsent ? '◉ Włączony' : '◌ Wyłączony'}
+              <Text style={styles.consentSub}>
+                {explorer.presenceConsent
+                  ? 'Widoczny na mapie innych exploratorów (±500m)'
+                  : 'Niewidoczny na mapie — lokalizacja nie jest udostępniana'}
               </Text>
             </View>
+            <Switch
+              value={explorer.presenceConsent}
+              onValueChange={(v) => void handlePresenceToggle(v)}
+              disabled={presenceToggling}
+              trackColor={{ false: Colors.steel, true: Colors.aurora + '70' }}
+              thumbColor={explorer.presenceConsent ? Colors.aurora : Colors.starGhost}
+            />
           </View>
 
+          {/* Location toggle */}
           <View style={[styles.consentRow, { borderTopWidth: 1, borderTopColor: Colors.steel, paddingTop: Spacing.md }]}>
             <View style={styles.consentInfo}>
               <Text style={styles.consentTitle}>Lokalizacja</Text>
-              <Text style={styles.consentSub}>GPS do odkrywania spotów</Text>
-            </View>
-            <View style={[
-              styles.consentBadge,
-              { borderColor: explorer.locationConsent ? Colors.signal + '50' : Colors.steel },
-            ]}>
-              <Text style={[
-                styles.consentBadgeText,
-                { color: explorer.locationConsent ? Colors.signal : Colors.starGhost },
-              ]}>
-                {explorer.locationConsent ? '◉ Włączona' : '◌ Wyłączona'}
+              <Text style={styles.consentSub}>
+                {deviceLocationGranted && explorer.locationConsent
+                  ? 'GPS aktywny — odkrywasz spoty w pobliżu'
+                  : !deviceLocationGranted
+                    ? 'Uprawnienie systemowe wymagane — zmień w ustawieniach'
+                    : 'GPS wyłączony — brak dostępu do spotów w pobliżu'}
               </Text>
             </View>
+            <Switch
+              value={deviceLocationGranted && explorer.locationConsent}
+              onValueChange={(v) => void handleLocationToggle(v)}
+              disabled={locationToggling}
+              trackColor={{ false: Colors.steel, true: Colors.signal + '70' }}
+              thumbColor={
+                deviceLocationGranted && explorer.locationConsent
+                  ? Colors.signal
+                  : Colors.starGhost
+              }
+            />
           </View>
 
           <Text style={styles.consentNote}>
-            Zgody udzielone: {new Date(explorer.consentTerms ?? '').toLocaleDateString('pl-PL')}
+            Zgody regulaminowe udzielone: {new Date(explorer.consentTerms ?? '').toLocaleDateString('pl-PL')}
           </Text>
         </GlassCard>
 
@@ -405,7 +473,8 @@ export default function IdentityScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.abyss },
+  root:        { flex: 1, backgroundColor: Colors.abyss },
+  loadingRoot: { flex: 1, backgroundColor: Colors.abyss, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: Spacing.xl, gap: Spacing.xl },
   header: { alignItems: 'center', gap: Spacing.md },
   eyebrow: {
@@ -452,8 +521,6 @@ const styles = StyleSheet.create({
   consentInfo: { flex: 1, gap: 2 },
   consentTitle: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starlight },
   consentSub: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
-  consentBadge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.md, paddingVertical: 3 },
-  consentBadgeText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro },
   consentNote: {
     fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption,
     color: Colors.starGhost, marginTop: Spacing.md,

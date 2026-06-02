@@ -1,6 +1,7 @@
-/** @type {import('next').NextConfig} */
+// @ts-check
 const isDev = process.env.NODE_ENV === 'development';
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
     '@travelpoint/theme',
@@ -12,23 +13,42 @@ const nextConfig = {
   serverExternalPackages: ['mapbox-gl'],
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'cdn.travelpoint.io',
-      },
+      { protocol: 'https', hostname: 'cdn.travelpoint.io' },
+      // Supabase Storage (photo uploads)
+      { protocol: 'https', hostname: '*.supabase.co' },
     ],
   },
   headers: async () => [
     {
       source: '/(.*)',
       headers: [
-        // X-Frame-Options only in production — allows VS Code / browser previews in dev
         ...(!isDev ? [{ key: 'X-Frame-Options', value: 'DENY' }] : []),
         { key: 'X-Content-Type-Options', value: 'nosniff' },
-        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'Referrer-Policy',        value: 'strict-origin-when-cross-origin' },
+        { key: 'Permissions-Policy',     value: 'camera=(), microphone=(), geolocation=(self)' },
+        ...(!isDev ? [{
+          key:   'Strict-Transport-Security',
+          value: 'max-age=31536000; includeSubDomains; preload',
+        }] : []),
       ],
     },
   ],
 };
 
-module.exports = nextConfig;
+// Apply Sentry webpack plugin only when SENTRY_AUTH_TOKEN is present.
+// This way local dev (no Sentry account needed) stays fast and unaffected.
+if (process.env['SENTRY_AUTH_TOKEN']) {
+  const { withSentryConfig } = require('@sentry/nextjs');
+  module.exports = withSentryConfig(nextConfig, {
+    org:       process.env['SENTRY_ORG'],
+    project:   process.env['SENTRY_PROJECT'],
+    authToken: process.env['SENTRY_AUTH_TOKEN'],
+    silent:              true,
+    disableLogger:       true,
+    widenClientFileUpload: true,
+    hideSourceMaps:      true,
+    transpileClientSDK:  true,
+  });
+} else {
+  module.exports = nextConfig;
+}

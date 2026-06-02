@@ -1,16 +1,45 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 .next/
-.expo/
 dist/
 build/
+coverage/
+
+# Expo
+.expo/
+apps/mobile/dist/
+
+# Environment variables — NEVER commit real secrets
 .env
 .env.local
 .env.*.local
+
+# Logs
 *.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
 .DS_Store
-.vscode/
+Thumbs.db
+
+# Editor — allow shared project settings, block personal config
 .idea/
-coverage/
-apps/api/prisma/dev.db
-.turbo/
+.vscode/**
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# TypeScript build info
 *.tsbuildinfo
+
+# Prisma local dev DB
+apps/api/prisma/dev.db
+apps/api/prisma/dev.db-journal
+
+# Turbo cache
+.turbo/
+
+# Sentry
+.sentryclirc

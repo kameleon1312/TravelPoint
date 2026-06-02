@@ -67,10 +67,7 @@ function CircleCard({
           {!item.isInviteOnly && (
             <SignalButton
               label="Dołącz do circle"
-              onPress={(e) => {
-                e?.stopPropagation?.();
-                onJoin(item.slug ?? item.id);
-              }}
+              onPress={() => onJoin(item.slug ?? item.id)}
               variant="signal"
               size="sm"
               fullWidth
