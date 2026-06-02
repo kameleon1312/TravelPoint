@@ -6,6 +6,7 @@
     "dev:web": "pnpm --filter @travelpoint/web dev",
     "dev:api": "pnpm --filter @travelpoint/api dev",
     "dev": "pnpm run --parallel /^dev:.*/",
+    "build:packages": "pnpm --filter @travelpoint/geo --filter @travelpoint/types --filter @travelpoint/utils --filter @travelpoint/validation build",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "type-check": "pnpm -r type-check",

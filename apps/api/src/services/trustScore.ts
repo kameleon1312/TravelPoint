@@ -2,13 +2,13 @@ import type { PrismaClient } from '@prisma/client';
 import type { Rank } from '@travelpoint/types';
 export type { PrismaClient };
 
-const RANK_THRESHOLDS: Record<Rank, number> = {
+const RANK_THRESHOLDS = {
   NEWCOMER: 0,
   EXPLORER: 50,
   TRUSTED: 150,
   INSIDER: 400,
   LEGEND: 1000,
-};
+} satisfies Record<Rank, number>;
 
 export function computeRank(trustScore: number): Rank {
   if (trustScore >= RANK_THRESHOLDS.LEGEND) return 'LEGEND';

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "prebuild": "pnpm -w run build:packages",
     "build": "tsc -p tsconfig.json",
     "start": "prisma generate && node dist/server.js",
     "type-check": "tsc --noEmit",
