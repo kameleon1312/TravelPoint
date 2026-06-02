@@ -93,7 +93,7 @@ export default fp(async (app: FastifyInstance) => {
 
         void sendPushToMany(
           app.prisma,
-          members.map((m) => m.explorerId),
+          members.map((m: { explorerId: string }) => m.explorerId),
           `◑ ${circle?.name ?? 'Circle'}`,
           `@${msg.sender?.handle ?? 'explorer'}: ${data.body.trim().slice(0, 60)}`,
           { type: 'circle_message', circleId: data.circleId, id: msg.id },

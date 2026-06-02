@@ -131,7 +131,7 @@ export async function transmissionRoutes(app: FastifyInstance) {
 
       void sendPushToMany(
         app.prisma,
-        members.map((m) => m.explorerId),
+        members.map((m: { explorerId: string }) => m.explorerId),
         `◑ ${circle?.name ?? 'Circle'}`,
         `@${senderHandle}: ${body.trim().slice(0, 60)}`,
         { type: 'circle_message', circleId, id: msg.id },

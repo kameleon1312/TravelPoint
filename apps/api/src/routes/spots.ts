@@ -60,7 +60,7 @@ export async function spotsRoutes(app: FastifyInstance) {
       take: limit,
     });
 
-    const fuzzed = spots.map((spot) => {
+    const fuzzed = spots.map((spot: typeof spots[0]) => {
       const seed = dailySpotSeed(spot.id);
       const coords = fuzzCoordinates(spot.lat, spot.lng, 500, seed);
       return {
@@ -110,14 +110,14 @@ export async function spotsRoutes(app: FastifyInstance) {
 
     // Exact Haversine filter — drops corners of the bounding box
     const nearby = candidates
-      .filter((s) => haversineKm(lat, lng, s.lat, s.lng) <= radiusKm)
+      .filter((s: typeof candidates[0]) => haversineKm(lat, lng, s.lat, s.lng) <= radiusKm)
       .slice(0, limit);
 
     const sessionSeed = generateSessionSeed();
-    const circleIds   = explorer.memberships.map((m) => m.circleId);
+    const circleIds   = explorer.memberships.map((m: { circleId: string }) => m.circleId);
 
     const resolved = await Promise.all(
-      nearby.map((spot) =>
+      nearby.map((spot: typeof nearby[0]) =>
         resolveSpotForViewer(
           spot,
           { id: explorer.id, rank: explorer.rank, circleIds, tier: explorer.tier },
@@ -147,7 +147,7 @@ export async function spotsRoutes(app: FastifyInstance) {
     const sessionSeed = generateSessionSeed();
     const resolved = await resolveSpotForViewer(
       spot,
-      { id: explorer.id, rank: explorer.rank, circleIds: explorer.memberships.map((m) => m.circleId), tier: explorer.tier },
+      { id: explorer.id, rank: explorer.rank, circleIds: explorer.memberships.map((m: { circleId: string }) => m.circleId), tier: explorer.tier },
       sessionSeed,
       async (eId, sId) => {
         await app.prisma.auditLog.create({ data: { explorerId: eId, spotId: sId, action: 'SPOT_ACCESS' } });

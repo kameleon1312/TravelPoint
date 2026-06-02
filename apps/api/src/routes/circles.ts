@@ -23,7 +23,7 @@ export async function circleRoutes(app: FastifyInstance) {
         circle: { include: { _count: { select: { members: true } } } },
       },
     });
-    return reply.send(memberships.map((m) => ({ ...m.circle, role: m.role })));
+    return reply.send(memberships.map((m: typeof memberships[0]) => ({ ...m.circle, role: m.role })));
   });
 
   // GET /api/circles/:slug

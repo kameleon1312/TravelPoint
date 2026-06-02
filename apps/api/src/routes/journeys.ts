@@ -1,5 +1,4 @@
 import type { FastifyInstance } from 'fastify';
-import { Prisma } from '@prisma/client';
 import { CreateJourneySchema, UpdateJourneySchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
@@ -74,7 +73,7 @@ export async function journeyRoutes(app: FastifyInstance) {
       data: {
         ...rest,
         ...(routeGeoJson !== undefined
-          ? { routeGeoJson: routeGeoJson as unknown as Prisma.InputJsonValue }
+          ? { routeGeoJson: routeGeoJson as unknown }
           : {}),
       },
     });

@@ -95,8 +95,8 @@ export async function sendPushToMany(
   });
 
   const messages: ExpoPushMessage[] = explorers
-    .filter((e): e is { pushToken: string } => !!e.pushToken && e.pushToken.startsWith('ExponentPushToken'))
-    .map((e) => ({
+    .filter((e: { pushToken: string | null }): e is { pushToken: string } => !!e.pushToken && e.pushToken.startsWith('ExponentPushToken'))
+    .map((e: { pushToken: string }) => ({
       to: e.pushToken,
       title,
       body,
