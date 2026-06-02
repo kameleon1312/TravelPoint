@@ -18,7 +18,9 @@
   },
   "engines": {
     "node": ">=20.0.0",
-    "pnpm": ">=8.15.0"
+    "pnpm": ">=11.0.0"
   },
-  "pnpm": {}
+  "pnpm": {
+    "onlyBuiltDependencies": ["@sentry/cli", "@node-rs/argon2", "esbuild", "sharp"]
+  }
 }
