@@ -109,4 +109,48 @@
   .eyebrow {
     @apply font-mono text-xs uppercase tracking-[0.22em] text-starFaint;
   }
+
+  /* ── Journal content typography ─────────────────────────────────────────── */
+  .journal-content p {
+    @apply mb-5 text-star leading-relaxed;
+    font-size: 1.0625rem;
+    line-height: 1.75;
+  }
+
+  .journal-content p:first-child {
+    @apply text-starlight;
+    font-size: 1.125rem;
+  }
+
+  .journal-content blockquote {
+    @apply border-l-2 border-aurora pl-6 py-1 my-8;
+    font-family: 'Clash Display', sans-serif;
+    font-size: 1.0625rem;
+    font-style: italic;
+    color: #C4B9AC;
+    line-height: 1.6;
+  }
+
+  .journal-content em {
+    @apply text-starlight;
+    font-style: italic;
+  }
+
+  .journal-content strong {
+    @apply text-starlight font-semibold;
+  }
+
+  /* Mapbox GL JS — ensure canvas fills container */
+  .mapboxgl-canvas {
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .mapboxgl-map {
+    position: absolute !important;
+    inset: 0 !important;
+  }
 }

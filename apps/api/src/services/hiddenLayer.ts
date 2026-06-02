@@ -53,6 +53,7 @@ export async function resolveSpotForViewer(
   auditFn: (explorerId: string, spotId: string) => Promise<void>,
 ): Promise<ResolvedSpot> {
   const entitled =
+    spot.ownerId === viewer.id ||            // owner always sees their own spot
     spot.accessLevel === 'PUBLIC' ||
     (spot.accessLevel === 'TRUSTED' && rankAtLeast(viewer.rank, 'TRUSTED')) ||
     (spot.accessLevel === 'CIRCLE_ONLY' &&

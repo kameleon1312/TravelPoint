@@ -12,7 +12,7 @@ const REQUEST_TYPES: { value: RequestType; label: string; article: string }[] = 
   { value: 'RESTRICTION',  label: 'Ograniczenie przetwarzania',          article: 'Art. 18' },
 ];
 
-export function RodoRequestForm() {
+export function RodoRequestForm(): React.JSX.Element {
   const [email, setEmail]           = useState('');
   const [handle, setHandle]         = useState('');
   const [type, setType]             = useState<RequestType>('ACCESS');

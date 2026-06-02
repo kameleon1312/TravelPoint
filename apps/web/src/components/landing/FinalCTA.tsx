@@ -4,7 +4,7 @@ import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { Colors } from '@travelpoint/theme';
 import { InviteRequestSchema } from '@travelpoint/validation';
 
-export function FinalCTA() {
+export function FinalCTA(): React.JSX.Element {
   const reduce = useReducedMotion();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });

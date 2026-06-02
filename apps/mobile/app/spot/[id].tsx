@@ -14,7 +14,7 @@ import { CoordLabel } from '@/components/ui/CoordLabel';
 import { SignalButton } from '@/components/ui/SignalButton';
 import {
   useSpot, useSaveSpot, useUnsaveSpot,
-  useSpotPhotos, useUploadSpotPhoto, useDeleteSpotPhoto,
+  useSpotPhotos, useUploadSpotPhoto, useDeleteSpotPhoto, useDeleteSpot,
 } from '@/hooks/useSpots';
 import { useAuthStore } from '@/stores/auth';
 
@@ -163,8 +163,31 @@ export default function SpotDetailScreen() {
   const { data: photos, isLoading: photosLoading } = useSpotPhotos(id ?? '');
   const saveSpot   = useSaveSpot();
   const unsaveSpot = useUnsaveSpot();
-  const [saved, setSaved]         = useState(false);
+  const deleteSpot = useDeleteSpot();
+  const [saved, setSaved]             = useState(false);
   const [addingPhoto, setAddingPhoto] = useState(false);
+
+  function handleDelete() {
+    Alert.alert(
+      'Usuń spot',
+      `Czy na pewno chcesz usunąć "${title}"? Tej operacji nie można cofnąć.`,
+      [
+        { text: 'Anuluj', style: 'cancel' },
+        {
+          text: 'Usuń spot',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSpot.mutateAsync(id ?? '');
+              router.back();
+            } catch {
+              Alert.alert('Błąd', 'Nie udało się usunąć spotu.');
+            }
+          },
+        },
+      ],
+    );
+  }
 
   async function handleSave() {
     try {
@@ -326,8 +349,23 @@ export default function SpotDetailScreen() {
 
             {isOwner && (
               <GlassCard style={styles.ownerCard}>
-                <Text style={styles.ownerLabel}>Twój spot</Text>
-                <Text style={styles.ownerSub}>Jesteś autorem tego miejsca.</Text>
+                <View style={styles.ownerRow}>
+                  <View>
+                    <Text style={styles.ownerLabel}>Twój spot</Text>
+                    <Text style={styles.ownerSub}>Jesteś autorem tego miejsca.</Text>
+                  </View>
+                  <Pressable
+                    style={styles.deleteBtn}
+                    onPress={handleDelete}
+                    disabled={deleteSpot.isPending}
+                    hitSlop={8}
+                  >
+                    {deleteSpot.isPending
+                      ? <ActivityIndicator size="small" color={Colors.ember} />
+                      : <Text style={styles.deleteBtnText}>Usuń</Text>
+                    }
+                  </Pressable>
+                </View>
               </GlassCard>
             )}
           </View>
@@ -411,7 +449,10 @@ const styles = StyleSheet.create({
   noPhotosText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starGhost, textAlign: 'center', lineHeight: 20 },
 
   ownerCard:  { gap: Spacing.xs },
+  ownerRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   ownerLabel: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.aurora, textTransform: 'uppercase', letterSpacing: 1 },
   ownerSub:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
+  deleteBtn:  { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.ember + '60' },
+  deleteBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.ember },
   errorText:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.ember },
 });

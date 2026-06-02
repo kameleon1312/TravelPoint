@@ -2,7 +2,14 @@
 const isDev = process.env.NODE_ENV === 'development';
 
 const nextConfig = {
-  transpilePackages: ['@travelpoint/theme', '@travelpoint/types', '@travelpoint/validation', '@travelpoint/api-client'],
+  transpilePackages: [
+    '@travelpoint/theme',
+    '@travelpoint/types',
+    '@travelpoint/validation',
+    '@travelpoint/api-client',
+  ],
+  // mapbox-gl uses browser APIs — exclude from server-side bundling
+  serverExternalPackages: ['mapbox-gl'],
   images: {
     remotePatterns: [
       {

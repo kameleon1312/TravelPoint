@@ -14,7 +14,7 @@ const SCENE_COLORS: Record<Scene, string> = {
   journey:  Colors.violet  + '66',
 };
 
-export function PhoneShowcase() {
+export function PhoneShowcase(): React.JSX.Element {
   const reduce = useReducedMotion();
   const [scene, setScene] = useState<Scene>('atlas');
   const [paused, setPaused] = useState(false);

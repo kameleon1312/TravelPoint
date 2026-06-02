@@ -11,7 +11,7 @@ interface HeroProps {
   onJoinClick: () => void;
 }
 
-export function Hero({ onJoinClick }: HeroProps) {
+export function Hero({ onJoinClick }: HeroProps): React.JSX.Element {
   const reduce = useReducedMotion();
 
   const containerVariants = {

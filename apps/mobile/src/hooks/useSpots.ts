@@ -80,6 +80,17 @@ export function useUploadSpotPhoto() {
   });
 }
 
+export function useDeleteSpot() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/api/spots/${id}`),
+    onSuccess: (_data, id) => {
+      qc.removeQueries({ queryKey: ['spots', id] });
+      qc.invalidateQueries({ queryKey: ['spots', 'nearby'] });
+    },
+  });
+}
+
 export function useDeleteSpotPhoto() {
   const qc = useQueryClient();
   return useMutation({

@@ -144,8 +144,16 @@ export default function DiscoverScreen() {
       {error && !isLoading && (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>◈</Text>
-          <Text style={styles.emptyTitle}>Błąd połączenia</Text>
-          <Text style={styles.emptySub}>Sprawdź połączenie z siecią.</Text>
+          <Text style={styles.emptyTitle}>Błąd ładowania</Text>
+          <Text style={styles.emptySub}>
+            {error instanceof Error ? error.message : 'Sprawdź połączenie z siecią i spróbuj ponownie.'}
+          </Text>
+          <Pressable
+            style={styles.enableBtn}
+            onPress={() => void requestLocation()}
+          >
+            <Text style={styles.enableBtnText}>Spróbuj ponownie</Text>
+          </Pressable>
         </View>
       )}
 

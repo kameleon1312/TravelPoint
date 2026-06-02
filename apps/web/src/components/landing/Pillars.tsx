@@ -42,7 +42,7 @@ const ACCENT_CLASSES = {
   },
 };
 
-export function Pillars() {
+export function Pillars(): React.JSX.Element {
   const reduce = useReducedMotion();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-100px' });

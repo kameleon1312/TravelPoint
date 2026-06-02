@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export default function NotFound() {
+export default function NotFound(): React.JSX.Element {
   return (
     <div className="min-h-screen bg-abyss flex flex-col items-center justify-center px-6 text-center">
       <p className="font-mono text-xs text-starGhost tracking-[0.3em] uppercase mb-6">

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function ReguaminPage() {
+export default function ReguaminPage(): React.JSX.Element {
   return (
     <>
       <WorldNav />

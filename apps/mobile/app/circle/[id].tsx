@@ -1,4 +1,3 @@
-'use client';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, Alert, Clipboard,

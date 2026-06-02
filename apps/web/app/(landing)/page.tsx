@@ -24,7 +24,7 @@ function SectionReveal({ children, className = '' }: { children: React.ReactNode
   );
 }
 
-export default function LandingPage() {
+export default function LandingPage(): React.JSX.Element {
   function scrollToJoin() {
     document.getElementById('join')?.scrollIntoView({ behavior: 'smooth' });
   }

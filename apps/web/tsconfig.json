@@ -2,9 +2,7 @@
   "extends": "../../tools/tsconfig/next.json",
   "compilerOptions": {
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "noEmit": true
   },

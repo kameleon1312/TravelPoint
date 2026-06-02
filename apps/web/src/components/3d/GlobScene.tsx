@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 import { useRef, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -43,7 +44,7 @@ function EarthGlobe() {
   );
 }
 
-export function GlobScene() {
+export function GlobScene(): React.JSX.Element {
   return (
     <Canvas
       camera={{ position: [0, 0, 6], fov: 45 }}

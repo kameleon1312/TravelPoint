@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { logger } from '../lib/logger';
-import { Resend } from 'resend';
+
+const RESEND_URL = 'https://api.resend.com/emails';
 
 const RodoRequestSchema = z.object({
   email:   z.string().email(),
@@ -19,6 +20,23 @@ const TYPE_LABELS: Record<string, string> = {
   RESTRICTION:   'Ograniczenie przetwarzania (Art. 18)',
 };
 
+async function sendEmail(to: string, subject: string, text: string): Promise<void> {
+  const apiKey = process.env['RESEND_API_KEY'];
+  const from   = process.env['EMAIL_FROM'] ?? 'TravelPoint <onboarding@resend.dev>';
+
+  if (!apiKey || apiKey === 're_CHANGE_ME') return;
+
+  try {
+    await fetch(RESEND_URL, {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to, subject, text }),
+    });
+  } catch (err) {
+    logger.error({ err }, 'RODO email send failed — non-fatal');
+  }
+}
+
 export async function rodoRoutes(app: FastifyInstance) {
   app.post('/api/rodo-request', async (req, reply) => {
     const parsed = RodoRequestSchema.safeParse(req.body);
@@ -28,36 +46,37 @@ export async function rodoRoutes(app: FastifyInstance) {
 
     const { email, handle, type, details } = parsed.data;
 
-    // Persist in audit log for DPO records
     await app.prisma.auditLog.create({
       data: {
         action: 'RODO_REQUEST',
-        metadata: { email, handle: handle ?? null, type, details: details ?? null, receivedAt: new Date().toISOString() },
+        metadata: {
+          email,
+          handle:     handle ?? null,
+          type,
+          details:    details ?? null,
+          receivedAt: new Date().toISOString(),
+        },
       },
     });
 
-    // Notify DPO via email (fire-and-forget)
-    const dpEmail = process.env['DPO_EMAIL'] ?? process.env['EMAIL_FROM'];
-    if (dpEmail && process.env['RESEND_API_KEY']) {
-      const resend = new Resend(process.env['RESEND_API_KEY']);
-      void resend.emails.send({
-        from: process.env['EMAIL_FROM'] ?? 'TravelPoint <noreply@travelpoint.app>',
-        to: dpEmail,
-        subject: `[RODO] ${TYPE_LABELS[type] ?? type} — ${email}`,
-        text: `Nowy wniosek RODO\n\nTyp: ${TYPE_LABELS[type] ?? type}\nE-mail: ${email}\nHandle: ${handle ?? '—'}\n\nSzczegóły:\n${details ?? '—'}\n\nDatai: ${new Date().toISOString()}`,
-      }).catch((err: unknown) => logger.error({ err }, 'RODO DPO notification failed'));
+    const dpoEmail = process.env['DPO_EMAIL'];
+    const label    = TYPE_LABELS[type] ?? type;
+
+    // Notify DPO
+    if (dpoEmail) {
+      void sendEmail(
+        dpoEmail,
+        `[RODO] ${label} — ${email}`,
+        `Nowy wniosek RODO\n\nTyp: ${label}\nE-mail: ${email}\nHandle: ${handle ?? '—'}\nSzczegóły: ${details ?? '—'}\nData: ${new Date().toISOString()}`,
+      );
     }
 
-    // Confirmation to the requester
-    if (process.env['RESEND_API_KEY']) {
-      const resend = new Resend(process.env['RESEND_API_KEY']);
-      void resend.emails.send({
-        from: process.env['EMAIL_FROM'] ?? 'TravelPoint <noreply@travelpoint.app>',
-        to: email,
-        subject: 'Potwierdzenie wniosku RODO — TravelPoint',
-        text: `Twój wniosek RODO został przyjęty.\n\nRodzaj: ${TYPE_LABELS[type] ?? type}\nData przyjęcia: ${new Date().toLocaleDateString('pl-PL')}\n\nOdpowiemy w ciągu 30 dni na ten adres e-mail, zgodnie z art. 12 RODO.\n\nJeśli nie składałeś/aś tego wniosku, zignoruj tę wiadomość.\n\n---\nTravelPoint — privacy@travelpoint.app`,
-      }).catch((err: unknown) => logger.error({ err }, 'RODO confirmation email failed'));
-    }
+    // Confirm to requester
+    void sendEmail(
+      email,
+      'Potwierdzenie wniosku RODO — TravelPoint',
+      `Twój wniosek RODO został przyjęty.\n\nRodzaj: ${label}\nData: ${new Date().toLocaleDateString('pl-PL')}\n\nOdpowiemy w ciągu 30 dni na ten adres e-mail (art. 12 RODO).\n\n---\nTravelPoint — privacy@travelpoint.app`,
+    );
 
     logger.info({ email, type }, 'RODO request received');
     return reply.status(201).send({ message: 'Request received. We will respond within 30 days.' });

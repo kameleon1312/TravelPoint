@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function PolitykaPrywatnosci() {
+export default function PolitykaPrywatnosci(): React.JSX.Element {
   return (
     <>
       <WorldNav />
