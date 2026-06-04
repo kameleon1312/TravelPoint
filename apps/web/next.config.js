@@ -9,8 +9,10 @@ const nextConfig = {
     '@travelpoint/validation',
     '@travelpoint/api-client',
   ],
-  // mapbox-gl uses browser APIs — exclude from server-side bundling
-  serverExternalPackages: ['mapbox-gl'],
+  experimental: {
+    // mapbox-gl uses browser APIs — exclude from server-side bundling
+    serverComponentsExternalPackages: ['mapbox-gl'],
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.travelpoint.io' },
