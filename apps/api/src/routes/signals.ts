@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { requireAuth } from '../middleware/requireAuth';
 import type { SignalType } from '@travelpoint/types';
 
@@ -31,7 +32,7 @@ export async function pushSignal(
   payload: Record<string, unknown>,
 ): Promise<void> {
   const signal = await app.prisma.signal.create({
-    data: { explorerId, type, payload: payload as unknown },
+    data: { explorerId, type, payload: payload as Prisma.InputJsonValue },
   });
   // Notify the explorer's personal socket room in real-time
   app.io.to(`explorer:${explorerId}`).emit('signal:new', signal);

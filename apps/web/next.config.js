@@ -1,4 +1,5 @@
 // @ts-check
+const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
 
 /** @type {import('next').NextConfig} */
@@ -12,6 +13,19 @@ const nextConfig = {
   experimental: {
     // mapbox-gl uses browser APIs — exclude from server-side bundling
     serverComponentsExternalPackages: ['mapbox-gl'],
+  },
+  webpack(config) {
+    // Alias each workspace package to its TypeScript source so Next.js
+    // transpiles them directly — no build step needed in dev.
+    const pkgRoot = path.resolve(__dirname, '../../packages');
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@travelpoint/theme':      path.join(pkgRoot, 'theme/src/index.ts'),
+      '@travelpoint/types':      path.join(pkgRoot, 'types/src/index.ts'),
+      '@travelpoint/validation': path.join(pkgRoot, 'validation/src/index.ts'),
+      '@travelpoint/api-client': path.join(pkgRoot, 'api-client/src/index.ts'),
+    };
+    return config;
   },
   images: {
     remotePatterns: [

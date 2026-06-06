@@ -5,7 +5,7 @@
     "buildCommand": "pnpm install --no-frozen-lockfile && pnpm --filter @travelpoint/geo build && pnpm --filter @travelpoint/types build && pnpm --filter @travelpoint/utils build && pnpm --filter @travelpoint/validation build && pnpm --filter @travelpoint/api db:generate && pnpm --filter @travelpoint/api build"
   },
   "deploy": {
-    "startCommand": "node dist/server.js",
+    "startCommand": "cd apps/api && npx prisma migrate deploy && node dist/server.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3,
     "healthcheckPath": "/health",

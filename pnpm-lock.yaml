@@ -342,7 +342,11 @@ importers:
 
   packages/types: {}
 
-  packages/utils: {}
+  packages/utils:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.41
 
   packages/validation:
     dependencies:

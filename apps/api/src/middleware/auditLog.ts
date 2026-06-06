@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export async function auditAccess(
   prisma: PrismaClient,
@@ -10,7 +11,7 @@ export async function auditAccess(
     data: {
       explorerId,
       action,
-      ...(metadata ? { metadata: metadata as unknown } : {}),
+      ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
     },
   });
 }
