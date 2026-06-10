@@ -4,6 +4,9 @@ const isDev = process.env.NODE_ENV === 'development';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Keep development output separate from production builds. This prevents
+  // `next build` from invalidating chunks served by a running dev server.
+  distDir: isDev ? '.next-dev' : '.next',
   transpilePackages: [
     '@travelpoint/theme',
     '@travelpoint/types',

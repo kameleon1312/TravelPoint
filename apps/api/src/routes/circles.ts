@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { CreateCircleSchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
-import { computeRank } from '../services/trustScore';
 import crypto from 'crypto';
 
 export async function circleRoutes(app: FastifyInstance) {

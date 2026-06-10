@@ -33,7 +33,7 @@ export default function ReguaminPage(): React.JSX.Element {
           <div className="space-y-10 font-sans text-sm text-star leading-relaxed">
 
             <Section title="§1 Postanowienia ogólne">
-              <p>1. Niniejszy Regulamin określa zasady korzystania z platformy TravelPoint, dostępnej jako aplikacja mobilna (CORE) oraz serwis internetowy (WORLD), zwanych łącznie „Platformą".</p>
+              <p>1. Niniejszy Regulamin określa zasady korzystania z platformy TravelPoint, dostępnej jako aplikacja mobilna (CORE) oraz serwis internetowy (WORLD), zwanych łącznie „Platformą&quot;.</p>
               <p>2. Operatorem Platformy jest TravelPoint (&bdquo;Operator&rdquo;), prowadzący działalność zgodnie z prawem Unii Europejskiej.</p>
               <p>3. Korzystanie z Platformy oznacza akceptację niniejszego Regulaminu oraz Polityki Prywatności. Jeśli nie akceptujesz tych warunków, nie korzystaj z Platformy.</p>
               <p>4. Regulamin jest dostępny w każdym czasie pod adresem travelpoint.app/regulamin.</p>

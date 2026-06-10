@@ -164,7 +164,7 @@ export default function LandingPage(): React.JSX.Element {
                   featured: false,
                   accentClass: 'border-ember/30',
                 },
-              ].map((t, i) => (
+              ].map((t) => (
                 <SectionReveal key={t.tier}>
                   <div
                     className={`glass rounded-2xl p-8 border ${t.accentClass} relative h-full flex flex-col ${

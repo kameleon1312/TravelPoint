@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { InviteRequestSchema } from '@travelpoint/validation';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env['RESEND_API_KEY'] ?? '');
 const FROM   = process.env['EMAIL_FROM'] ?? 'TravelPoint <gototrip66@gmail.com>';
 
 export async function POST(req: NextRequest) {
@@ -19,7 +18,9 @@ export async function POST(req: NextRequest) {
   const { email, handle } = parsed.data;
   const adminEmail = process.env['ADMIN_EMAIL'];
 
-  if (process.env['RESEND_API_KEY']) {
+  const apiKey = process.env['RESEND_API_KEY'];
+  if (apiKey) {
+    const resend = new Resend(apiKey);
     await Promise.allSettled([
       // ── 1. Potwierdzenie do osoby która się zgłosiła ───────────────────────
       resend.emails.send({

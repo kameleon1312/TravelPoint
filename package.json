@@ -13,9 +13,12 @@
     "test": "pnpm -r test"
   },
   "devDependencies": {
-    "typescript": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.61.0",
+    "@typescript-eslint/parser": "^8.61.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.35",
     "prettier": "^3.2.0",
-    "eslint": "^8.57.0"
+    "typescript": "^6.0.0"
   },
   "packageManager": "pnpm@11.0.8",
   "engines": {
@@ -26,6 +29,12 @@
     "schema": "apps/api/prisma/schema.prisma"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@sentry/cli", "@node-rs/argon2", "esbuild", "sharp"]
+    "onlyBuiltDependencies": [
+      "@sentry/cli",
+      "@node-rs/argon2",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
