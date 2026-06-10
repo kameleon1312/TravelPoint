@@ -22,6 +22,9 @@
     "node": ">=22.0.0",
     "pnpm": ">=11.0.0"
   },
+  "prisma": {
+    "schema": "apps/api/prisma/schema.prisma"
+  },
   "pnpm": {
     "onlyBuiltDependencies": ["@sentry/cli", "@node-rs/argon2", "esbuild", "sharp"]
   }

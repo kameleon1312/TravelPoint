@@ -89,7 +89,7 @@ function StarField() {
   const ptsRef = useRef<THREE.Points | null>(null);
 
   useEffect(() => {
-    const N = 22000;
+    const N = 12000;
     const pos = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) {
       const theta = Math.random() * Math.PI * 2;
@@ -144,7 +144,7 @@ function AmazonCanopy() {
   }, [d, n, r]);
 
   const geom = useMemo(() => {
-    const g = new THREE.PlaneGeometry(1400, 1400, 160, 160);
+    const g = new THREE.PlaneGeometry(1400, 1400, 96, 96);
     applyCanopyNoise(g, 20, 11);
     return g;
   }, []);
@@ -184,7 +184,7 @@ function ForestFloor() {
   }, [d, n, r]);
 
   const geom = useMemo(() => {
-    const g = new THREE.PlaneGeometry(1200, 1200, 100, 100);
+    const g = new THREE.PlaneGeometry(1200, 1200, 64, 64);
     applyCanopyNoise(g, 12, 29);
     return g;
   }, []);
@@ -358,7 +358,7 @@ export function ScrollScape3D(): React.JSX.Element {
     <div className="fixed inset-0 -z-10 pointer-events-none">
       <Canvas
         camera={{ position: [0, 600, 0], fov: 62, near: 1, far: 2500 }}
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
         <SceneDriver />

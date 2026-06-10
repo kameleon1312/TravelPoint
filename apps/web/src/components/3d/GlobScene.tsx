@@ -48,8 +48,8 @@ export function GlobScene(): React.JSX.Element {
   return (
     <Canvas
       camera={{ position: [0, 0, 6], fov: 45 }}
-      dpr={[1, 2]}
-      gl={{ alpha: true, antialias: true }}
+      dpr={[1, 1.5]}
+      gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
       resize={{ debounce: 0, scroll: false }}
       style={{ background: 'transparent', width: '100%', height: '100%', display: 'block' }}
     >

@@ -1,9 +1,9 @@
-import { ScrollScape3D } from '@/components/layout/ScrollScape3D';
+import { DeferredScrollScape3D } from '@/components/layout/DeferredScrollScape3D';
 
 export default function LandingLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <>
-      <ScrollScape3D />
+      <DeferredScrollScape3D />
       {children}
     </>
   );

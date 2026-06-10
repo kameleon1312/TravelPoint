@@ -45,6 +45,12 @@
     overflow: hidden;
   }
 
+  main > section:not(:first-child),
+  main > footer {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 900px;
+  }
+
   .starfield {
     position: absolute;
     inset: -50%;
