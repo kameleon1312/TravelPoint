@@ -38,7 +38,7 @@ export default function LandingPage(): React.JSX.Element {
         <Hero onJoinClick={scrollToJoin} />
 
         {/* 2 · PhoneShowcase */}
-        <section className="py-24 px-4" id="world">
+        <section className="landing-flow landing-flow-aurora py-24 px-4" id="world">
           <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
             <SectionReveal className="flex-1 text-center lg:text-left">
               <p className="eyebrow mb-4">Epicentrum Podróżnika</p>
@@ -66,7 +66,7 @@ export default function LandingPage(): React.JSX.Element {
 
         {/* 3 · Social proof */}
         <SectionReveal>
-          <div className="py-12 px-4 border-y border-steel/20">
+          <div className="landing-band py-12 px-4">
             <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-center">
               {[
                 { value: '2,400+', label: 'Hidden Spots' },
@@ -84,7 +84,7 @@ export default function LandingPage(): React.JSX.Element {
         </SectionReveal>
 
         {/* 4 · WORLD vs CORE */}
-        <section className="py-32 px-4 border-t border-steel/20" id="two-worlds">
+        <section className="landing-flow landing-flow-signal py-32 px-4" id="two-worlds">
           <div className="max-w-5xl mx-auto">
             <SectionReveal className="text-center mb-16">
               <p className="eyebrow mb-4">Dwa światy</p>
@@ -130,7 +130,7 @@ export default function LandingPage(): React.JSX.Element {
         <Pillars />
 
         {/* 6 · Tiers */}
-        <section className="py-32 px-4 border-t border-steel/20" id="tiers">
+        <section className="landing-flow landing-flow-ember py-32 px-4" id="tiers">
           <div className="max-w-5xl mx-auto">
             <SectionReveal className="text-center mb-16">
               <p className="eyebrow mb-4">Wybierz głębokość</p>
@@ -207,7 +207,7 @@ export default function LandingPage(): React.JSX.Element {
         <FinalCTA />
 
         {/* Footer */}
-        <footer className="py-12 px-4 border-t border-steel/50">
+        <footer className="landing-footer py-12 px-4">
           <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <p className="font-display text-sm font-bold text-starFaint">TravelPoint</p>
             <div className="flex gap-6">

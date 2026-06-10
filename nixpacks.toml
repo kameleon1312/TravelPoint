@@ -12,4 +12,4 @@ cmds = ["pnpm install --frozen-lockfile"]
 cmds = ["pnpm --filter @travelpoint/api build"]
 
 [start]
-cmd = "pnpm --filter @travelpoint/api db:deploy && pnpm --filter @travelpoint/api start"
+cmd = "pnpm --filter @travelpoint/api db:deploy && node apps/api/dist/server.js"

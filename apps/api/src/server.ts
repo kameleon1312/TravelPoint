@@ -37,12 +37,23 @@ async function bootstrap() {
   await app.register(rodoRoutes);
 
   // Health check — used by Railway / uptime monitors
-  app.get('/health', async () => ({ status: 'ok', ts: new Date().toISOString() }));
+  app.get('/health', async (_request, reply) => {
+    try {
+      await app.prisma.$queryRaw`SELECT 1`;
+      return { status: 'ok', ts: new Date().toISOString() };
+    } catch (error) {
+      logger.error({ err: error }, 'Database health check failed');
+      return reply.status(503).send({
+        status: 'unavailable',
+        ts: new Date().toISOString(),
+      });
+    }
+  });
 
   // Sentry error handler — must be registered after all routes
   app.setErrorHandler((error, _request, reply) => {
     Sentry.captureException(error);
-    logger.error(error, 'Unhandled request error');
+    logger.error({ err: error }, 'Unhandled request error');
     void reply.status(500).send({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   });
 
@@ -53,6 +64,6 @@ async function bootstrap() {
 
 bootstrap().catch((err) => {
   Sentry.captureException(err);
-  logger.error(err, 'Failed to start server');
+  logger.fatal({ err }, 'Failed to start server');
   process.exit(1);
 });

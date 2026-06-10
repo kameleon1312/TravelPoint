@@ -48,7 +48,7 @@ export function Pillars(): React.JSX.Element {
   const inView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
-    <section ref={ref} className="py-32 px-4 border-t border-steel/20" id="pillars">
+    <section ref={ref} className="landing-flow landing-flow-violet py-32 px-4" id="pillars">
       <div className="max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

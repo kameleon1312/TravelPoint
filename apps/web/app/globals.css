@@ -51,6 +51,63 @@
     contain-intrinsic-size: auto 900px;
   }
 
+  #world {
+    content-visibility: visible;
+    contain: none;
+  }
+
+  .landing-flow {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .landing-flow::before {
+    content: '';
+    position: absolute;
+    inset: -12rem 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 70% 45% at 50% 50%,
+      var(--section-glow),
+      transparent 72%
+    );
+    opacity: 0.58;
+  }
+
+  .landing-flow-aurora {
+    --section-glow: rgba(92, 184, 140, 0.08);
+  }
+
+  .landing-flow-signal {
+    --section-glow: rgba(30, 154, 176, 0.07);
+  }
+
+  .landing-flow-violet {
+    --section-glow: rgba(122, 109, 158, 0.07);
+  }
+
+  .landing-flow-ember {
+    --section-glow: rgba(200, 104, 64, 0.06);
+  }
+
+  .landing-band {
+    position: relative;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(237, 232, 223, 0.025) 18%,
+      rgba(92, 184, 140, 0.045) 50%,
+      rgba(237, 232, 223, 0.025) 82%,
+      transparent
+    );
+  }
+
+  .landing-footer {
+    position: relative;
+    background: linear-gradient(to bottom, transparent, rgba(7, 10, 12, 0.42));
+  }
+
   .starfield {
     position: absolute;
     inset: -50%;

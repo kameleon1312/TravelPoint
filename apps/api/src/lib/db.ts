@@ -7,7 +7,6 @@ export function createPool(): pg.Pool {
   const url = (process.env['DATABASE_URL'] ?? '').trim();
 
   if (!url) {
-    // Fallback to individual env vars or defaults for local Docker
     return new pg.Pool({
       host: '127.0.0.1',
       port: 5432,
@@ -19,25 +18,18 @@ export function createPool(): pg.Pool {
   }
 
   try {
-    const u = new URL(url);
+    const parsedUrl = new URL(url);
+    const sslMode = parsedUrl.searchParams.get('sslmode');
+    const ssl = sslMode === 'require' || sslMode === 'prefer' || sslMode === 'no-verify'
+      ? { rejectUnauthorized: false }
+      : false;
+
     return new pg.Pool({
-      host: u.hostname,
-      port: Number(u.port) || 5432,
-      user: decodeURIComponent(u.username) || 'postgres',
-      password: decodeURIComponent(u.password) || 'dev',
-      database: u.pathname.replace(/^\//, '') || 'travelpoint',
-      ssl: false,
+      connectionString: url,
+      ssl,
     });
-  } catch {
-    // URL parse failed — use defaults
-    return new pg.Pool({
-      host: '127.0.0.1',
-      port: 5432,
-      user: 'postgres',
-      password: 'dev',
-      database: 'travelpoint',
-      ssl: false,
-    });
+  } catch (error) {
+    throw new Error('DATABASE_URL is not a valid PostgreSQL URL', { cause: error });
   }
 }
 

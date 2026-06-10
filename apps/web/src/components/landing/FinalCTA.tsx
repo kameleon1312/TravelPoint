@@ -37,7 +37,7 @@ export function FinalCTA(): React.JSX.Element {
   }
 
   return (
-    <section ref={ref} className="py-32 px-4 relative overflow-hidden" id="join">
+    <section ref={ref} className="landing-flow landing-flow-signal py-32 px-4 relative overflow-hidden" id="join">
       {/* Glow background */}
       <div
         className="absolute inset-0 -z-10"
