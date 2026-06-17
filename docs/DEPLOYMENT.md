@@ -57,6 +57,15 @@
 - [ ] Uptime monitoring (UptimeRobot)
 - [ ] Log aggregation
 
+### Production hardening
+- [ ] `pnpm security:secrets` passes
+- [ ] `pnpm gate:production` passes
+- [ ] `pnpm smoke:production` passes against deployed API/Web
+- [ ] `.github/workflows/production-smoke.yml` passes manually
+- [ ] `.github/workflows/retention.yml` passes manually
+- [ ] Supabase backup restore drill completed
+- [ ] Rollback plan documented for API, web and mobile
+
 ## Deployment Commands
 
 ### Web (Vercel)
@@ -77,6 +86,16 @@ cd apps/api
 pnpm prisma migrate deploy
 ```
 
+### Production gates
+```bash
+pnpm security:secrets
+pnpm gate:production
+TRAVELPOINT_API_URL=https://api.travelpoint.app \
+TRAVELPOINT_WEB_URL=https://travelpoint.app \
+TRAVELPOINT_JOB_SECRET=<secret> \
+pnpm smoke:production
+```
+
 ### Mobile (EAS)
 ```bash
 cd apps/mobile
@@ -91,7 +110,9 @@ eas submit --platform all
 DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, ENCRYPTION_KEY,
 REDIS_URL, RESEND_API_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
 R2_BUCKET, R2_PUBLIC_URL, JOB_SECRET, EMAIL_FROM, DPO_EMAIL,
-NEXT_PUBLIC_APP_URL, LOG_LEVEL, ALLOWED_ORIGINS, PORT
+NEXT_PUBLIC_APP_URL, LOG_LEVEL, ALLOWED_ORIGINS, PORT,
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRO_PRICE_ID,
+STRIPE_EXPEDITION_PRICE_ID, BILLING_SUCCESS_URL, BILLING_CANCEL_URL
 ```
 
 ### apps/web
@@ -116,3 +137,9 @@ TRAVELPOINT_JOB_SECRET=<same value as Railway JOB_SECRET>
 
 Run `.github/workflows/retention.yml` manually once after deployment, then
 confirm the daily scheduled run remains green.
+
+## Production runbooks
+
+- `docs/SPRINT_4_PRODUCTION_HARDENING.md`
+- `docs/RUNBOOKS.md`
+- `docs/BACKUP_RESTORE_DRILL.md`

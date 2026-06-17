@@ -49,6 +49,7 @@ export function SignalButton({
   const scale = useSharedValue(1);
   const { gradient, glow } = VARIANTS[variant];
   const { height, fontSize, px } = SIZES[size];
+  const isGhost = variant === 'ghost';
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -68,10 +69,19 @@ export function SignalButton({
     scale.value = withSpring(1, { damping: 15 });
   }
 
-  const isGhost = variant === 'ghost';
-
   return (
-    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth]}>
+    <Animated.View
+      style={[
+        styles.wrapper,
+        animatedStyle,
+        fullWidth && styles.fullWidth,
+        !isGhost && !disabled && !loading && glow,
+        {
+          backgroundColor: isGhost ? Colors.glass : gradient[gradient.length - 1],
+          opacity: disabled ? 0.45 : 1,
+        },
+      ]}
+    >
       <Pressable
         onPress={onPress}
         onPressIn={handlePressIn}
@@ -80,28 +90,47 @@ export function SignalButton({
         accessibilityRole="button"
         accessibilityState={{ disabled: disabled || loading, busy: loading }}
         accessibilityLabel={label}
-        style={[fullWidth && styles.fullWidth, { opacity: disabled ? 0.45 : 1 }]}
+        style={fullWidth && styles.fullWidth}
       >
-        {isGhost ? (
-          <View
-            style={[
-              styles.base,
-              { height, paddingHorizontal: px, borderRadius: BorderRadius.xl },
-              { backgroundColor: Colors.glass, borderWidth: 1, borderColor: Colors.glassBorder },
-            ]}
-          >
-            <ButtonContent loading={loading} leftIcon={leftIcon} rightIcon={rightIcon} label={label} fontSize={fontSize} />
-          </View>
-        ) : (
-          <LinearGradient
-            colors={gradient as [string, string, ...string[]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.base, { height, paddingHorizontal: px, borderRadius: BorderRadius.xl }, glow]}
-          >
-            <ButtonContent loading={loading} leftIcon={leftIcon} rightIcon={rightIcon} label={label} fontSize={fontSize} />
-          </LinearGradient>
-        )}
+        <View style={[styles.surface, { height }]}>
+          {isGhost ? (
+            <View
+              style={[
+                styles.content,
+                {
+                  paddingHorizontal: px,
+                  backgroundColor: Colors.glass,
+                },
+              ]}
+            >
+              <ButtonContent
+                loading={loading}
+                leftIcon={leftIcon}
+                rightIcon={rightIcon}
+                label={label}
+                fontSize={fontSize}
+              />
+            </View>
+          ) : (
+            <LinearGradient
+              colors={gradient as [string, string, ...string[]]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.content, { paddingHorizontal: px }]}
+            >
+              <View pointerEvents="none" style={styles.sheen} />
+              <View pointerEvents="none" style={styles.bottomPolish} />
+              <ButtonContent
+                loading={loading}
+                leftIcon={leftIcon}
+                rightIcon={rightIcon}
+                label={label}
+                fontSize={fontSize}
+              />
+            </LinearGradient>
+          )}
+          <View pointerEvents="none" style={styles.border} />
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -123,6 +152,7 @@ function ButtonContent({
   if (loading) {
     return <ActivityIndicator color={Colors.starlight} size="small" />;
   }
+
   return (
     <>
       {leftIcon}
@@ -133,11 +163,42 @@ function ButtonContent({
 }
 
 const styles = StyleSheet.create({
-  base: {
+  wrapper: {
+    borderRadius: BorderRadius.xl,
+  },
+  surface: {
+    overflow: 'hidden',
+    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.graphite,
+  },
+  content: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+  },
+  sheen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '52%',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  bottomPolish: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 1,
+    backgroundColor: 'rgba(237,232,223,0.22)',
+  },
+  border: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 1,
+    borderRadius: BorderRadius.xl,
+    borderColor: 'rgba(237,232,223,0.18)',
   },
   label: {
     color: Colors.starlight,

@@ -17,8 +17,13 @@ import { signalRoutes } from './routes/signals';
 import { waitlistRoutes } from './routes/waitlist';
 import { rodoRoutes } from './routes/rodo';
 import { moderationRoutes } from './routes/moderation';
+import { billingRoutes } from './routes/billing';
+import { forumRoutes } from './routes/forum';
+import { analyticsRoutes } from './routes/analytics';
+import { journalRoutes } from './routes/journal';
 import { logger } from './lib/logger';
 import { env } from './config/env';
+import { getRedis } from './lib/redis';
 
 const app = Fastify({ logger: false });
 
@@ -38,12 +43,30 @@ async function bootstrap() {
   await app.register(waitlistRoutes);
   await app.register(rodoRoutes);
   await app.register(moderationRoutes);
+  await app.register(billingRoutes);
+  await app.register(forumRoutes);
+  await app.register(analyticsRoutes);
+  await app.register(journalRoutes);
 
   // Health check — used by Railway / uptime monitors
   app.get('/health', async (_request, reply) => {
     try {
-      await app.prisma.$queryRaw`SELECT 1`;
-      return { status: 'ok', ts: new Date().toISOString() };
+      const [database, postgis, redis] = await Promise.all([
+        app.prisma.$queryRaw`SELECT 1`,
+        app.prisma.$queryRaw<Array<{ installed: boolean }>>`SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis') AS installed`,
+        checkRedis(),
+      ]);
+      void database;
+      return {
+        status: 'ok',
+        ts: new Date().toISOString(),
+        checks: {
+          database: 'ok',
+          postgis: postgis[0]?.installed ? 'ok' : 'missing',
+          redis,
+        },
+        version: env.appVersion,
+      };
     } catch (error) {
       logger.error({ err: error }, 'Database health check failed');
       return reply.status(503).send({
@@ -62,6 +85,17 @@ async function bootstrap() {
 
   await app.listen({ port: env.port, host: '0.0.0.0' });
   logger.info(`TravelPoint ENGINE running on :${env.port}`);
+}
+
+async function checkRedis(): Promise<'ok' | 'disabled' | 'unavailable'> {
+  const redis = getRedis();
+  if (!redis) return 'disabled';
+  try {
+    await redis.ping();
+    return 'ok';
+  } catch {
+    return 'unavailable';
+  }
 }
 
 bootstrap().catch((err) => {

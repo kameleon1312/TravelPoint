@@ -9,6 +9,7 @@ async function main() {
   const health = await request('/health');
   assert(health.response.status === 200, `Health returned ${health.response.status}`);
   assert(health.body.status === 'ok', 'Health payload is not ok');
+  assert(health.body.checks?.database === 'ok', 'Database health check is not ok');
 
   const protectedRoute = await request('/api/explorers/me');
   assert(protectedRoute.response.status === 401, 'Protected route is accessible without a token');

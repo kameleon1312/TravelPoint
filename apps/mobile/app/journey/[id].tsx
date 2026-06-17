@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import MapView, { Polyline, Region } from 'react-native-maps';
+import MapView, { Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useJourney, useDeleteJourney } from '@/hooks/useJourneys';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -154,8 +154,9 @@ export default function JourneyDetailScreen() {
           <Text style={styles.routeLabel}>Trasa ekspedycji</Text>
           {routeCoords.length > 0 && routeRegion ? (
             <View style={styles.routeMapContainer}>
-              <MapView
-                style={styles.routeMap}
+                <MapView
+                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                  style={styles.routeMap}
                 initialRegion={routeRegion}
                 scrollEnabled={false}
                 pitchEnabled={false}

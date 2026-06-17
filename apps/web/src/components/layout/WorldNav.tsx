@@ -12,7 +12,7 @@ interface WorldNavProps {
 const NAV_LINKS = [
   { label: 'Journal', href: '/journal',  live: true  },
   { label: 'Map',     href: '/map',      live: true  },
-  { label: 'Forum',   href: '/forum',    live: false },
+  { label: 'Forum',   href: '/forum',    live: true  },
 ];
 
 export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {

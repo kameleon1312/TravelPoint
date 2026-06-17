@@ -3,6 +3,7 @@ import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { env } from '../config/env';
+import { getRedis } from '../lib/redis';
 
 export async function registerSecurity(app: FastifyInstance) {
   await app.register(helmet, {
@@ -11,8 +12,8 @@ export async function registerSecurity(app: FastifyInstance) {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https://cdn.travelpoint.io'],
-        connectSrc: ["'self'", 'https://api.travelpoint.io'],
+        imgSrc: ["'self'", 'data:', 'https:', env.r2.publicUrl ?? 'https://media.travelpoint.app'],
+        connectSrc: ["'self'", ...env.allowedOrigins],
       },
     },
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
@@ -24,9 +25,11 @@ export async function registerSecurity(app: FastifyInstance) {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
+  const redis = getRedis();
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
     keyGenerator: (req) => req.ip,
+    ...(redis ? { redis, nameSpace: 'travelpoint:rate-limit:' } : {}),
   });
 }

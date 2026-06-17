@@ -1,0 +1,39 @@
+name: Production smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Production release smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate required secrets
+        env:
+          API_URL: ${{ secrets.TRAVELPOINT_API_URL }}
+          WEB_URL: ${{ secrets.TRAVELPOINT_WEB_URL }}
+          JOB_SECRET: ${{ secrets.TRAVELPOINT_JOB_SECRET }}
+        run: |
+          test -n "$API_URL"
+          test -n "$WEB_URL"
+          test -n "$JOB_SECRET"
+
+      - name: Production smoke
+        env:
+          TRAVELPOINT_API_URL: ${{ secrets.TRAVELPOINT_API_URL }}
+          TRAVELPOINT_WEB_URL: ${{ secrets.TRAVELPOINT_WEB_URL }}
+          TRAVELPOINT_JOB_SECRET: ${{ secrets.TRAVELPOINT_JOB_SECRET }}
+        run: pnpm smoke:production

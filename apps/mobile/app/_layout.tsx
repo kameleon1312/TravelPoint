@@ -30,6 +30,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '@/stores/auth';
 import { useRecordingStore } from '@/stores/recording';
+import { hydrateQueryCache, subscribeQueryPersistence } from '@/lib/queryPersistence';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -93,6 +94,9 @@ function AuthGate() {
   useEffect(() => {
     void rehydrate();
     void recoverRecording();
+    void hydrateQueryCache(queryClient);
+    const unsubscribe = subscribeQueryPersistence(queryClient);
+    return unsubscribe;
   }, []);
 
   useEffect(() => {

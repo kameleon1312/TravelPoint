@@ -14,10 +14,18 @@ export async function moderationRoutes(app: FastifyInstance) {
       targetExplorerId?: string;
       spotId?: string;
       transmissionId?: string;
+      forumPostId?: string;
+      forumReplyId?: string;
       reason?: ReportReason;
       details?: string;
     };
-    const targetCount = [body.targetExplorerId, body.spotId, body.transmissionId].filter(Boolean).length;
+    const targetCount = [
+      body.targetExplorerId,
+      body.spotId,
+      body.transmissionId,
+      body.forumPostId,
+      body.forumReplyId,
+    ].filter(Boolean).length;
     if (targetCount !== 1 || !body.reason || !REPORT_REASONS.includes(body.reason) || (body.details?.length ?? 0) > 1000) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR' });
     }
@@ -30,6 +38,8 @@ export async function moderationRoutes(app: FastifyInstance) {
         targetExplorerId: body.targetExplorerId,
         spotId: body.spotId,
         transmissionId: body.transmissionId,
+        forumPostId: body.forumPostId,
+        forumReplyId: body.forumReplyId,
         reason: body.reason,
         details: body.details?.trim(),
       },
@@ -71,6 +81,8 @@ export async function moderationRoutes(app: FastifyInstance) {
         reporter: { select: { id: true, handle: true } },
         targetExplorer: { select: { id: true, handle: true, suspendedAt: true } },
         spot: { select: { id: true, title: true } },
+        forumPost: { select: { id: true, title: true, slug: true } },
+        forumReply: { select: { id: true, body: true, postId: true } },
       },
       orderBy: { createdAt: 'asc' },
       take: 200,

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { CreateSpotSchema, SpotQuerySchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { resolveSpotForViewer } from '../services/hiddenLayer';
@@ -36,6 +37,88 @@ function dailySpotSeed(spotId: string): number {
     hash = Math.imul(31, hash) + input.charCodeAt(i) | 0;
   }
   return Math.abs(hash);
+}
+
+async function findNearbySpotCandidates(
+  app: FastifyInstance,
+  input: {
+    lat: number;
+    lng: number;
+    radiusKm: number;
+    category?: string;
+    limit: number;
+  },
+) {
+  try {
+    const rows = await app.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "Spot"
+      WHERE "deletedAt" IS NULL
+        AND "location" IS NOT NULL
+        ${input.category ? Prisma.sql`AND "category"::text = ${input.category}` : Prisma.empty}
+        AND ST_DWithin(
+          "location",
+          ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography,
+          ${input.radiusKm * 1000}
+        )
+      ORDER BY ST_Distance(
+        "location",
+        ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography
+      ) ASC
+      LIMIT ${input.limit}
+    `);
+    if (rows.length === 0) return [];
+    const order = new Map(rows.map((row, index) => [row.id, index]));
+    const spots = await app.prisma.spot.findMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+      include: { photos: true },
+    });
+    return spots.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  } catch {
+    // Local/dev databases may not have PostGIS migrated yet. Keep the old path as
+    // a deterministic fallback so tests and non-geo deployments still function.
+    return findNearbySpotCandidatesFallback(app, input);
+  }
+}
+
+async function findNearbySpotCandidatesFallback(
+  app: FastifyInstance,
+  input: {
+    lat: number;
+    lng: number;
+    radiusKm: number;
+    category?: string;
+    limit: number;
+  },
+) {
+  const latDelta = input.radiusKm / 111;
+  const lngDelta = input.radiusKm / (111 * Math.cos(input.lat * (Math.PI / 180)));
+  const candidates = await app.prisma.spot.findMany({
+    where: {
+      deletedAt: null,
+      lat: { gte: input.lat - latDelta, lte: input.lat + latDelta },
+      lng: { gte: input.lng - lngDelta, lte: input.lng + lngDelta },
+      ...(input.category ? { category: input.category as never } : {}),
+    },
+    include: { photos: true },
+    take: input.limit * 3,
+  });
+  return candidates
+    .filter((spot) => haversineKm(input.lat, input.lng, spot.lat, spot.lng) <= input.radiusKm)
+    .slice(0, input.limit);
+}
+
+async function syncSpotLocation(app: FastifyInstance, spotId: string, lat: number, lng: number): Promise<void> {
+  try {
+    await app.prisma.$executeRaw(Prisma.sql`
+      UPDATE "Spot"
+      SET "location" = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+      WHERE "id" = ${spotId}
+    `);
+  } catch {
+    // PostGIS is an optional Sprint 3 capability until the migration reaches all
+    // environments. The lat/lng columns remain the source of truth.
+  }
 }
 
 export async function spotsRoutes(app: FastifyInstance) {
@@ -134,26 +217,7 @@ export async function spotsRoutes(app: FastifyInstance) {
     });
     if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
 
-    // Bounding box pre-filter in DB (fast, uses lat/lng columns)
-    // Over-fetch by 3× since bbox is larger than the radius circle
-    const latDelta = radiusKm / 111;
-    const lngDelta = radiusKm / (111 * Math.cos(lat * (Math.PI / 180)));
-
-    const candidates = await app.prisma.spot.findMany({
-      where: {
-        deletedAt: null,
-        lat: { gte: lat - latDelta, lte: lat + latDelta },
-        lng: { gte: lng - lngDelta, lte: lng + lngDelta },
-        ...(category ? { category: category as never } : {}),
-      },
-      include: { photos: true },
-      take: limit * 3,
-    });
-
-    // Exact Haversine filter — drops corners of the bounding box
-    const nearby = candidates
-      .filter((s: typeof candidates[0]) => haversineKm(lat, lng, s.lat, s.lng) <= radiusKm)
-      .slice(0, limit);
+    const nearby = await findNearbySpotCandidates(app, { lat, lng, radiusKm, category, limit });
 
     const sessionSeed = generateSessionSeed();
     const circleIds   = explorer.memberships.map((m: { circleId: string }) => m.circleId);
@@ -199,6 +263,7 @@ export async function spotsRoutes(app: FastifyInstance) {
     const spot = await app.prisma.spot.create({
       data: { ...rest, lat, lng, h3Index, ownerId: req.explorerId },
     });
+    await syncSpotLocation(app, spot.id, lat, lng);
 
     void addTrustPoints(app.prisma, req.explorerId, TrustPoints.SPOT_CREATED, 'SPOT_CREATED', spot.id);
     if (spot.accessLevel === 'SECRET_DROP') {

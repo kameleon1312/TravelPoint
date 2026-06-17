@@ -9,6 +9,7 @@ const RawEnvSchema = z.object({
   ALLOWED_ORIGINS: z.string().trim().optional(),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  REDIS_URL: z.string().url().optional().or(z.literal('')),
   SENTRY_DSN: z.string().url().optional().or(z.literal('')),
   APP_VERSION: z.string().trim().default('dev'),
   ENCRYPTION_KEY: z.string().trim().optional(),
@@ -22,6 +23,12 @@ const RawEnvSchema = z.object({
   R2_BUCKET: z.string().trim().optional(),
   R2_PUBLIC_URL: z.string().url().optional(),
   JOB_SECRET: z.string().trim().optional(),
+  STRIPE_SECRET_KEY: z.string().trim().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().trim().optional(),
+  STRIPE_PRO_PRICE_ID: z.string().trim().optional(),
+  STRIPE_EXPEDITION_PRICE_ID: z.string().trim().optional(),
+  BILLING_SUCCESS_URL: z.string().url().optional(),
+  BILLING_CANCEL_URL: z.string().url().optional(),
   RAILWAY_ENVIRONMENT: z.string().trim().optional(),
   RAILWAY_PROJECT_ID: z.string().trim().optional(),
 });
@@ -129,6 +136,7 @@ export function loadEnv(source: NodeJS.ProcessEnv) {
     allowedOrigins: allowedOrigins(raw.ALLOWED_ORIGINS, isProduction),
     port: raw.PORT,
     logLevel: raw.LOG_LEVEL,
+    redisUrl: optionalValue(raw.REDIS_URL),
     sentryDsn: raw.SENTRY_DSN || undefined,
     appVersion: raw.APP_VERSION,
     encryptionKey: encryptionKey(raw.ENCRYPTION_KEY, isProduction),
@@ -144,6 +152,14 @@ export function loadEnv(source: NodeJS.ProcessEnv) {
       publicUrl: optionalValue(raw.R2_PUBLIC_URL),
     },
     jobSecret: optionalValue(raw.JOB_SECRET),
+    stripe: {
+      secretKey: optionalValue(raw.STRIPE_SECRET_KEY),
+      webhookSecret: optionalValue(raw.STRIPE_WEBHOOK_SECRET),
+      proPriceId: optionalValue(raw.STRIPE_PRO_PRICE_ID),
+      expeditionPriceId: optionalValue(raw.STRIPE_EXPEDITION_PRICE_ID),
+      successUrl: optionalValue(raw.BILLING_SUCCESS_URL) ?? `${optionalValue(raw.NEXT_PUBLIC_APP_URL) ?? 'https://travelpoint.app'}/billing/success`,
+      cancelUrl: optionalValue(raw.BILLING_CANCEL_URL) ?? `${optionalValue(raw.NEXT_PUBLIC_APP_URL) ?? 'https://travelpoint.app'}/billing/cancel`,
+    },
   } as const;
 }
 

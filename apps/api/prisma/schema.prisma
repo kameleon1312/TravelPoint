@@ -44,6 +44,7 @@ model Explorer {
   // Subscription
   tier          Tier      @default(FREE)
   tierExpiresAt DateTime?
+  stripeCustomerId String? @unique
 
   // Privacy / audit
   consentTerms   DateTime
@@ -82,6 +83,10 @@ model Explorer {
   blocksReceived       Block[]            @relation("Blocked")
   moderationActions    ModerationAction[] @relation("Moderator")
   moderationReceived   ModerationAction[] @relation("ModerationTarget")
+  subscriptions         Subscription[]
+  forumPosts            ForumPost[]
+  forumReplies          ForumReply[]
+  analyticsEvents       AnalyticsEvent[]
 
   @@index([handle])
   @@index([deletedAt])
@@ -98,6 +103,7 @@ model Spot {
   category      SpotCategory
   lat           Float
   lng           Float
+  location      Unsupported("geography(Point, 4326)")?
   h3Index       String
   accessLevel   AccessLevel  @default(PUBLIC)
   circleId      String?
@@ -327,6 +333,90 @@ model TierEvent {
   @@index([explorerId, createdAt])
 }
 
+model Subscription {
+  id                   String             @id @default(cuid())
+  explorerId           String
+  explorer             Explorer           @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  provider             BillingProvider    @default(STRIPE)
+  providerCustomerId   String
+  providerSubscriptionId String?           @unique
+  status               SubscriptionStatus @default(INCOMPLETE)
+  tier                 Tier
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([explorerId])
+  @@index([providerCustomerId])
+  @@index([status])
+}
+
+model ForumPost {
+  id        String       @id @default(cuid())
+  authorId  String
+  author    Explorer     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title     String       @db.VarChar(120)
+  slug      String       @unique @db.VarChar(140)
+  body      String       @db.VarChar(5000)
+  category  ForumCategory
+  isPinned  Boolean      @default(false)
+  lockedAt  DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  replies   ForumReply[]
+  reports   Report[]
+
+  @@index([category, createdAt])
+  @@index([authorId])
+}
+
+model ForumReply {
+  id        String    @id @default(cuid())
+  postId    String
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    Explorer  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String    @db.VarChar(3000)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  reports   Report[]
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+}
+
+model JournalPost {
+  id          String        @id @default(cuid())
+  slug        String        @unique @db.VarChar(140)
+  title       String        @db.VarChar(160)
+  excerpt     String        @db.VarChar(400)
+  bodyMdx     String
+  coverImage  String?
+  authorName  String        @db.VarChar(80)
+  publishedAt DateTime?
+  status      ContentStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  explorerId String?
+  explorer   Explorer? @relation(fields: [explorerId], references: [id], onDelete: SetNull)
+  sessionId  String?  @db.VarChar(120)
+  name       String   @db.VarChar(80)
+  source     String?  @db.VarChar(40)
+  path       String?  @db.VarChar(500)
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([explorerId, createdAt])
+}
+
 model Reaction {
   id         String       @id @default(cuid())
   spotId     String
@@ -365,6 +455,10 @@ model Report {
   spot              Spot?              @relation(fields: [spotId], references: [id], onDelete: SetNull)
   transmissionId    String?
   transmission      Transmission?      @relation(fields: [transmissionId], references: [id], onDelete: SetNull)
+  forumPostId       String?
+  forumPost         ForumPost?         @relation(fields: [forumPostId], references: [id], onDelete: SetNull)
+  forumReplyId      String?
+  forumReply        ForumReply?        @relation(fields: [forumReplyId], references: [id], onDelete: SetNull)
   reason            ReportReason
   details           String?            @db.VarChar(1000)
   status            ReportStatus       @default(OPEN)
@@ -439,6 +533,33 @@ enum Tier {
   FREE
   PRO
   EXPEDITION
+}
+
+enum BillingProvider {
+  STRIPE
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+}
+
+enum ForumCategory {
+  FIELD_NOTES
+  GEAR
+  SAFETY
+  REQUESTS
+  STORIES
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 enum SpotCategory {
