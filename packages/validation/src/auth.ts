@@ -14,8 +14,8 @@ export const RegisterSchema = z.object({
     .regex(/[A-Z]/, 'Musi zawierać wielką literę')
     .regex(/[0-9]/, 'Musi zawierać cyfrę')
     .regex(/[^A-Za-z0-9]/, 'Musi zawierać znak specjalny'),
-  acceptTerms: z.literal(true),
-  acceptPrivacy: z.literal(true),
+  acceptTerms: z.boolean().refine((value) => value, 'Akceptacja regulaminu jest wymagana'),
+  acceptPrivacy: z.boolean().refine((value) => value, 'Akceptacja polityki prywatności jest wymagana'),
   inviteCode: z.string().optional(),
 });
 export type RegisterInput = z.infer<typeof RegisterSchema>;
@@ -30,6 +30,18 @@ export const RefreshTokenSchema = z.object({
   refreshToken: z.string().min(1),
 });
 export type RefreshTokenInput = z.infer<typeof RefreshTokenSchema>;
+
+export const EmailSchema = z.object({
+  email: z.string().email().toLowerCase().trim().max(255),
+});
+
+export const AuthTokenSchema = z.object({
+  token: z.string().min(32).max(256),
+});
+
+export const ResetPasswordSchema = AuthTokenSchema.extend({
+  password: RegisterSchema.shape.password,
+});
 
 export const WaitlistSchema = z.object({
   email: z.string().email().toLowerCase().trim().max(255),

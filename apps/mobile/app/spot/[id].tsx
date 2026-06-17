@@ -29,10 +29,6 @@ const SCREEN_W = Dimensions.get('window').width;
 const PHOTO_W  = SCREEN_W * 0.72;
 const PHOTO_H  = PHOTO_W * 0.68;
 
-// Max base64 size we'll attempt to upload (~3.5 MB decoded ≈ ~4.7 MB base64).
-// The API bodyLimit is 6 MB so this leaves headroom.
-const MAX_B64_LEN = 4_700_000;
-
 const CATEGORY_ICONS: Record<string, string> = {
   ABANDONED: '◈', CAFE: '◎', BEACH: '◎',
   ROUTE: '◉', UNDERGROUND: '◈', VIEWPOINT: '◎', CAMP: '◉',
@@ -133,7 +129,7 @@ function AddPhotoPanel({
 }: { spotId: string; onDone: () => void }) {
   const [caption, setCaption]         = useState('');
   const [preview, setPreview]         = useState<string | null>(null);
-  const [base64,  setBase64]          = useState<string | null>(null);
+  const [selected, setSelected]       = useState<{ uri: string; mimeType: string } | null>(null);
   const [urlInput, setUrlInput]       = useState('');
   const [pickerAvailable, setPickerAvailable] = useState<boolean | null>(null);
   const upload = useUploadSpotPhoto();
@@ -168,25 +164,25 @@ function AddPhotoPanel({
     }
 
     const result = useCamera
-      ? await picker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7, base64: true, exif: false })
-      : await picker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, base64: true, exif: false, selectionLimit: 1 });
+      ? await picker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7, exif: false })
+      : await picker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, exif: false, selectionLimit: 1 });
 
     if (result.canceled || !result.assets?.[0]) return;
 
     const asset = result.assets[0];
-    if (!asset.base64) { Alert.alert(pl.common.error, pl.photos.uploadFailed); return; }
-    if (asset.base64.length > MAX_B64_LEN) { Alert.alert(pl.common.error, pl.photos.tooLarge); return; }
-
-    const mime    = asset.mimeType ?? 'image/jpeg';
-    const dataUri = `data:${mime};base64,${asset.base64}`;
     setPreview(asset.uri);
-    setBase64(dataUri);
+    setSelected({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
   }
 
   async function handleUploadBase64() {
-    if (!base64) return;
+    if (!selected) return;
     try {
-      await upload.mutateAsync({ spotId, url: base64, caption: caption.trim() || undefined });
+      await upload.mutateAsync({
+        spotId,
+        uri: selected.uri,
+        mimeType: selected.mimeType,
+        caption: caption.trim() || undefined,
+      });
       onDone();
     } catch { Alert.alert(pl.common.error, pl.photos.uploadFailed); }
   }
@@ -194,16 +190,12 @@ function AddPhotoPanel({
   async function handleUploadUrl() {
     const url = urlInput.trim();
     if (!url) return;
-    if (url.length > MAX_B64_LEN) { Alert.alert(pl.common.error, pl.photos.tooLarge); return; }
-    try {
-      await upload.mutateAsync({ spotId, url, caption: caption.trim() || undefined });
-      onDone();
-    } catch { Alert.alert(pl.common.error, pl.photos.uploadFailed); }
+    Alert.alert(pl.common.error, 'Wybierz zdjęcie z aparatu lub galerii.');
   }
 
   function handleCancel() {
     setPreview(null);
-    setBase64(null);
+    setSelected(null);
     setCaption('');
     setUrlInput('');
     onDone();
@@ -237,7 +229,7 @@ function AddPhotoPanel({
           <Image source={{ uri: preview }} style={styles.previewImg} resizeMode="cover" />
           <Pressable
             style={styles.previewRetakeBtn}
-            onPress={() => { setPreview(null); setBase64(null); }}
+            onPress={() => { setPreview(null); setSelected(null); }}
             hitSlop={8}
           >
             <Text style={styles.previewRetakeText}>↺ Zmień</Text>
@@ -288,10 +280,10 @@ function AddPhotoPanel({
           <Pressable
             style={[
               styles.addPhotoConfirmBtn,
-              (!base64 || upload.isPending) && styles.addPhotoConfirmBtnDisabled,
+              (!selected || upload.isPending) && styles.addPhotoConfirmBtnDisabled,
             ]}
             onPress={handleUploadBase64}
-            disabled={!base64 || upload.isPending}
+            disabled={!selected || upload.isPending}
           >
             {upload.isPending
               ? <ActivityIndicator size="small" color={Colors.void} />

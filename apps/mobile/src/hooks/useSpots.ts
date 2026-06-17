@@ -72,8 +72,35 @@ export function useSpotPhotos(id: string) {
 export function useUploadSpotPhoto() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ spotId, url, caption }: { spotId: string; url: string; caption?: string }) =>
-      api.post<Photo>(`/api/spots/${spotId}/photos`, { url, caption }),
+    mutationFn: async ({
+      spotId,
+      uri,
+      mimeType,
+      caption,
+    }: {
+      spotId: string;
+      uri: string;
+      mimeType: string;
+      caption?: string;
+    }) => {
+      const blob = await (await fetch(uri)).blob();
+      const signed = await api.post<{ objectKey: string; uploadUrl: string }>(
+        `/api/spots/${spotId}/photos/upload-url`,
+        { mimeType, sizeBytes: blob.size },
+      );
+      const uploaded = await fetch(signed.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': mimeType },
+        body: blob,
+      });
+      if (!uploaded.ok) throw new Error(`Storage upload failed: ${uploaded.status}`);
+      return api.post<Photo>(`/api/spots/${spotId}/photos/complete`, {
+        objectKey: signed.objectKey,
+        mimeType,
+        sizeBytes: blob.size,
+        caption,
+      });
+    },
     onSuccess: (_data, { spotId }) => {
       qc.invalidateQueries({ queryKey: ['spots', spotId, 'photos'] });
     },
@@ -94,7 +121,7 @@ export function useDeleteSpot() {
 export function useDeleteSpotPhoto() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ photoId, spotId }: { photoId: string; spotId: string }) =>
+    mutationFn: ({ photoId }: { photoId: string; spotId: string }) =>
       api.delete<void>(`/api/photos/${photoId}`),
     onSuccess: (_data, { spotId }) => {
       qc.invalidateQueries({ queryKey: ['spots', spotId, 'photos'] });

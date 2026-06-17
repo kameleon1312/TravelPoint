@@ -1,11 +1,10 @@
 import { logger } from '../lib/logger';
+import { env } from '../config/env';
 
 const RESEND_URL = 'https://api.resend.com/emails';
 
 function getConfig() {
-  const apiKey = process.env['RESEND_API_KEY'];
-  const from   = process.env['EMAIL_FROM'] ?? 'TravelPoint <onboarding@resend.dev>';
-  return { apiKey, from };
+  return { apiKey: env.resendApiKey, from: env.emailFrom };
 }
 
 // ─── Core send — native fetch, no SDK, no React dependency ───────────────────
@@ -83,7 +82,7 @@ const codeBlock = (text: string) =>
 const hr = () =>
   `<hr style="margin:24px 0;border:none;border-top:1px solid #253035;"/>`;
 
-const APP_URL = process.env['NEXT_PUBLIC_APP_URL'] ?? 'https://travelpoint.app';
+const APP_URL = env.appUrl;
 
 // ─── 1. Welcome ───────────────────────────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, handle: string): Promise<void> {
@@ -142,6 +141,24 @@ export async function sendInviteEmail(
       ${hr()}
       ${p('<span style="color:#8A827A;font-size:12px;">Kod jest jednorazowy. Nie udostępniaj go publicznie.</span>')}
     `),
+  );
+}
+
+export async function sendVerificationEmail(to: string, token: string): Promise<void> {
+  const url = `${APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
+  await send(
+    to,
+    'Potwierdź adres e-mail - TravelPoint',
+    wrap(`${eyebrow('Bezpieczeństwo konta')}${h1('Potwierdź adres e-mail')}${p('Link jest ważny przez 24 godziny.')}${cta('Potwierdź e-mail', url)}`),
+  );
+}
+
+export async function sendPasswordResetEmail(to: string, token: string): Promise<void> {
+  const url = `${APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
+  await send(
+    to,
+    'Reset hasła - TravelPoint',
+    wrap(`${eyebrow('Bezpieczeństwo konta')}${h1('Ustaw nowe hasło')}${p('Link jest ważny przez godzinę. Jeżeli to nie Ty, zignoruj wiadomość.')}${cta('Ustaw nowe hasło', url, '#C86840')}`),
   );
 }
 

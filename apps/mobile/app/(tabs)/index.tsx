@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, Region } from 'react-native-maps';
-import { Colors, FontSize, Spacing, Shadow } from '@travelpoint/theme';
+import { Colors, Spacing, Shadow } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import { useNearbySpots } from '@/hooks/useSpots';
@@ -279,7 +279,9 @@ export default function AtlasScreen() {
   }, [explorer?.id]);
 
   // ── Location ─────────────────────────────────────────────────────────────────
-  useEffect(() => { void requestLocation(); }, []);
+  useEffect(() => {
+    void syncLocationState();
+  }, [explorer?.locationConsent]);
 
   useEffect(() => {
     if (!locationGranted) return;
@@ -291,25 +293,47 @@ export default function AtlasScreen() {
     }
   }, [presenceActive, locationGranted]);
 
+  async function syncLocationState() {
+    const current = await Location.getForegroundPermissionsAsync();
+    if (!explorer?.locationConsent) {
+      setLocationGranted(current.status === 'granted');
+      return;
+    }
+    if (current.status !== 'granted') {
+      setLocationGranted(false);
+      if (explorer?.locationConsent) await requestLocation();
+      return;
+    }
+    await loadCurrentLocation();
+  }
+
   async function requestLocation() {
     const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return;
-    setLocationGranted(true);
-
-    // Sync consent to server the first time the user grants location permission.
-    // Guard: explorer may still be null if called before rehydration completes.
-    if (explorer && !explorer.locationConsent) {
-      try {
-        await api.patch('/api/explorers/me', { locationConsent: true });
-        setExplorer({ ...explorer, locationConsent: true });
-      } catch { /* non-fatal — consent will sync on next profile fetch */ }
+    if (status !== 'granted') {
+      setLocationGranted(false);
+      return;
     }
+    await loadCurrentLocation();
+  }
 
+  async function loadCurrentLocation() {
+    setLocationGranted(true);
     const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     const { latitude, longitude } = loc.coords;
     const newRegion: Region = { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
     setRegion(newRegion);
     mapRef.current?.animateToRegion(newRegion, 1200);
+  }
+
+  async function grantLocationConsent() {
+    if (!explorer) return;
+    try {
+      await api.patch('/api/explorers/me', { locationConsent: true });
+      setExplorer({ ...explorer, locationConsent: true });
+      await requestLocation();
+    } catch {
+      Alert.alert(pl.common.error, 'Nie udało się zapisać zgody na lokalizację.');
+    }
   }
 
   // ── Presence consent ─────────────────────────────────────────────────────────
@@ -324,7 +348,21 @@ export default function AtlasScreen() {
   }
 
   function togglePresence() {
-    if (!locationActive) { void requestLocation(); return; }
+    if (!locationActive) {
+      if (explorer?.locationConsent) {
+        void requestLocation();
+      } else {
+        Alert.alert(
+          'Włącz lokalizację',
+          'TravelPoint użyje lokalizacji do pokazania spotów w pobliżu. Presence pozostaje osobną zgodą, a Twoja pozycja publiczna jest przybliżana o co najmniej 500 m.',
+          [
+            { text: 'Anuluj', style: 'cancel' },
+            { text: 'Zgadzam się', onPress: () => void grantLocationConsent() },
+          ],
+        );
+      }
+      return;
+    }
 
     if (!presenceActive && !explorer?.presenceConsent) {
       // First activation — require explicit consent.
@@ -378,7 +416,7 @@ export default function AtlasScreen() {
   }
 
   async function handleStopRecording() {
-    const result = stopRecording();
+    const result = await stopRecording();
 
     if (!result) {
       Alert.alert('Journey', pl.recording.tooFewPoints);

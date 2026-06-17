@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { useMyJourneys } from '@/hooks/useJourneys';

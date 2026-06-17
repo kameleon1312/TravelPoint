@@ -1,17 +1,21 @@
-import { View, Text, TextInput, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View, Text, TextInput, StyleSheet, ScrollView,
+  KeyboardAvoidingView, Platform, Pressable, Linking,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RegisterSchema, type RegisterInput } from '@travelpoint/validation';
-import { Colors, FontSize, FontWeight, Gradients, Spacing, BorderRadius } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import { useState } from 'react';
 import { tokenStorage } from '@/lib/secureStorage';
 import { useAuthStore } from '@/stores/auth';
 import type { Explorer } from '@travelpoint/types';
+import { api, ApiError } from '@/lib/api';
 
 export default function JoinScreen() {
   const [serverError, setServerError] = useState('');
@@ -22,28 +26,33 @@ export default function JoinScreen() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(RegisterSchema),
-    defaultValues: { acceptTerms: true, acceptPrivacy: true },
+    defaultValues: {
+      email: '',
+      handle: '',
+      password: '',
+      acceptTerms: false,
+      acceptPrivacy: false,
+    },
   });
+  const webUrl = process.env['EXPO_PUBLIC_WEB_URL'] ?? 'https://travelpoint.app';
 
   async function onSubmit(data: RegisterInput) {
     setServerError('');
     try {
-      const res = await fetch(`${process.env['EXPO_PUBLIC_API_URL']}/api/auth/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json() as { message?: string };
-        setServerError(err.message ?? 'Błąd rejestracji');
-        return;
-      }
-      const body = await res.json() as { accessToken: string; refreshToken: string; explorer: Explorer };
+      const body = await api.post<{
+        accessToken: string;
+        refreshToken: string;
+        explorer: Explorer;
+      }>('/api/auth/join', data);
       await tokenStorage.setTokens(body.accessToken, body.refreshToken);
       setExplorer(body.explorer);
       router.replace('/(onboarding)/step-1-archetype');
-    } catch {
-      setServerError('Brak połączenia z siecią');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setServerError(error.message);
+        return;
+      }
+      setServerError('Błąd rejestracji. Spróbuj ponownie.');
     }
   }
 
@@ -123,6 +132,54 @@ export default function JoinScreen() {
                 )}
               />
 
+              <Controller
+                control={control}
+                name="acceptTerms"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.consentGroup}>
+                    <Pressable
+                      style={styles.consentRow}
+                      onPress={() => onChange(!value)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: value }}
+                    >
+                      <View style={[styles.checkbox, value && styles.checkboxChecked]}>
+                        {value && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+                      <Text style={styles.consentText}>{pl.auth.acceptTerms}</Text>
+                    </Pressable>
+                    <Pressable onPress={() => void Linking.openURL(`${webUrl}/regulamin`)}>
+                      <Text style={styles.legalLink}>Przeczytaj regulamin</Text>
+                    </Pressable>
+                    {errors.acceptTerms && <Text style={styles.error}>{errors.acceptTerms.message}</Text>}
+                  </View>
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="acceptPrivacy"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.consentGroup}>
+                    <Pressable
+                      style={styles.consentRow}
+                      onPress={() => onChange(!value)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: value }}
+                    >
+                      <View style={[styles.checkbox, value && styles.checkboxChecked]}>
+                        {value && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+                      <Text style={styles.consentText}>{pl.auth.acceptPrivacy}</Text>
+                    </Pressable>
+                    <Pressable onPress={() => void Linking.openURL(`${webUrl}/polityka-prywatnosci`)}>
+                      <Text style={styles.legalLink}>Przeczytaj politykę prywatności</Text>
+                    </Pressable>
+                    {errors.acceptPrivacy && <Text style={styles.error}>{errors.acceptPrivacy.message}</Text>}
+                  </View>
+                )}
+              />
+
               {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
 
               <SignalButton
@@ -194,6 +251,32 @@ const styles = StyleSheet.create({
     fontSize: FontSize.caption,
     color: Colors.danger,
     marginLeft: Spacing.sm,
+  },
+  consentGroup: { gap: Spacing.xs },
+  consentRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.steel,
+    backgroundColor: Colors.graphite,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: { borderColor: Colors.aurora, backgroundColor: Colors.aurora },
+  checkmark: { color: Colors.void, fontSize: 14, fontWeight: '700' },
+  consentText: {
+    flex: 1,
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: FontSize.bodySm,
+    color: Colors.star,
+  },
+  legalLink: {
+    marginLeft: 22 + Spacing.md,
+    fontFamily: 'GeneralSans-Semibold',
+    fontSize: FontSize.caption,
+    color: Colors.signal,
   },
   loginRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   loginText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },

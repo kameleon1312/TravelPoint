@@ -28,8 +28,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
-import { View } from 'react-native';
 import { useAuthStore } from '@/stores/auth';
+import { useRecordingStore } from '@/stores/recording';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -64,6 +64,7 @@ const queryClient = new QueryClient({
 
 function AuthGate() {
   const { rehydrate, isLoading, isAuthenticated } = useAuthStore();
+  const recoverRecording = useRecordingStore((state) => state.recoverRecording);
 
   // Wire up deep-link handler: notification tap → navigate to correct screen.
   useEffect(() => {
@@ -91,6 +92,7 @@ function AuthGate() {
 
   useEffect(() => {
     void rehydrate();
+    void recoverRecording();
   }, []);
 
   useEffect(() => {
@@ -103,6 +105,8 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+  /* Expo's asset registry requires static CommonJS calls for bundled fonts. */
+  /* eslint-disable @typescript-eslint/no-require-imports */
   const [fontsLoaded, fontError] = useFonts({
     'ClashDisplay-Regular':  require('../assets/fonts/ClashDisplay-Regular.ttf'),
     'ClashDisplay-Medium':   require('../assets/fonts/ClashDisplay-Medium.ttf'),
@@ -115,6 +119,7 @@ export default function RootLayout() {
     'SpaceMono-Regular':     require('../assets/fonts/SpaceMono-Regular.ttf'),
     'SpaceMono-Bold':        require('../assets/fonts/SpaceMono-Bold.ttf'),
   });
+  /* eslint-enable @typescript-eslint/no-require-imports */
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded || fontError) {

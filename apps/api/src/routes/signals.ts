@@ -30,10 +30,16 @@ export async function pushSignal(
   explorerId: string,
   type: SignalType,
   payload: Record<string, unknown>,
+  dedupeKey?: string,
 ): Promise<void> {
-  const signal = await app.prisma.signal.create({
-    data: { explorerId, type, payload: payload as Prisma.InputJsonValue },
-  });
+  const data = { explorerId, type, payload: payload as Prisma.InputJsonValue, dedupeKey };
+  const signal = dedupeKey
+    ? await app.prisma.signal.upsert({
+        where: { dedupeKey },
+        create: data,
+        update: {},
+      })
+    : await app.prisma.signal.create({ data });
   // Notify the explorer's personal socket room in real-time
   app.io.to(`explorer:${explorerId}`).emit('signal:new', signal);
 }

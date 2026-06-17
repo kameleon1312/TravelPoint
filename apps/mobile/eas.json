@@ -5,6 +5,11 @@
   },
   "build": {
     "development": {
+      "node": "22.13.0",
+      "environment": "development",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "developmentClient": true,
       "distribution": "internal",
       "android": {
@@ -12,12 +17,22 @@
       }
     },
     "preview": {
+      "node": "22.13.0",
+      "environment": "preview",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "node": "22.13.0",
+      "environment": "production",
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"

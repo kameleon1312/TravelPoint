@@ -1,0 +1,40 @@
+name: Retention job
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  retention:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate required secrets
+        env:
+          API_URL: ${{ secrets.TRAVELPOINT_API_URL }}
+          JOB_SECRET: ${{ secrets.TRAVELPOINT_JOB_SECRET }}
+        run: |
+          test -n "$API_URL"
+          test -n "$JOB_SECRET"
+
+      - name: Run retention
+        env:
+          API_URL: ${{ secrets.TRAVELPOINT_API_URL }}
+          JOB_SECRET: ${{ secrets.TRAVELPOINT_JOB_SECRET }}
+        run: |
+          curl --fail-with-body --retry 3 --retry-all-errors \
+            --max-time 120 \
+            -X POST \
+            -H "x-job-secret: $JOB_SECRET" \
+            "$API_URL/internal/jobs/retention"
+
+      - name: Verify retention status
+        env:
+          API_URL: ${{ secrets.TRAVELPOINT_API_URL }}
+          JOB_SECRET: ${{ secrets.TRAVELPOINT_JOB_SECRET }}
+        run: |
+          curl --fail-with-body --retry 3 --retry-all-errors \
+            --max-time 30 \
+            -H "x-job-secret: $JOB_SECRET" \
+            "$API_URL/internal/jobs/retention/status"

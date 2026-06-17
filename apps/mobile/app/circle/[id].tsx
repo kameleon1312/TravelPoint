@@ -1,5 +1,5 @@
 import {
-  View, Text, StyleSheet, ScrollView, Pressable,
+  View, Text, TextInput, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, Alert, Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +7,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import Animated, {
   useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
@@ -33,6 +33,7 @@ type CircleDetail = {
   members: CircleMemberEntry[];
   _count?: { members: number };
   createdAt: string;
+  viewerRole?: string | null;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -116,6 +117,7 @@ export default function CircleDetailScreen() {
   const { mutateAsync: joinCircle,     isPending: isJoining  } = useJoinCircle();
   const { mutateAsync: leaveCircle,    isPending: isLeaving  } = useLeaveCircle();
   const { mutateAsync: generateCode,   isPending: isGenerating } = useGenerateInviteCode();
+  const [inviteCode, setInviteCode] = useState('');
 
   const detail = circle as unknown as CircleDetail | undefined;
   const slug    = detail?.slug ?? id ?? '';
@@ -141,15 +143,20 @@ export default function CircleDetailScreen() {
 
   const members      = detail.members ?? [];
   const myMembership = members.find((m) => m.explorer.id === explorer?.id);
-  const isMember     = !!myMembership;
-  const isFounder    = myMembership?.role === 'FOUNDER';
-  const isGuide      = myMembership?.role === 'GUIDE';
+  const viewerRole   = detail.viewerRole ?? myMembership?.role ?? null;
+  const isMember     = viewerRole !== null;
+  const isFounder    = viewerRole === 'FOUNDER';
+  const isGuide      = viewerRole === 'GUIDE';
   const canInvite    = isFounder || isGuide;
   const memberCount  = detail._count?.members ?? members.length;
+  const isInviteOnly = detail.isInviteOnly;
 
   async function handleJoin() {
     try {
-      await joinCircle({ slug });
+      await joinCircle({
+        slug,
+        inviteCode: isInviteOnly ? inviteCode.trim() : undefined,
+      });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Nie udało się dołączyć.';
       Alert.alert('Błąd', msg);
@@ -227,10 +234,10 @@ export default function CircleDetailScreen() {
                 <Text style={[styles.metaChipText, { color: Colors.ember }]}>🔒 Tylko zaproszenia</Text>
               </View>
             )}
-            {myMembership && (
-              <View style={[styles.metaChip, { borderColor: (ROLE_COLORS[myMembership.role] ?? Colors.signal) + '60' }]}>
-                <Text style={[styles.metaChipText, { color: ROLE_COLORS[myMembership.role] ?? Colors.signal }]}>
-                  {ROLE_ICONS[myMembership.role] ?? '◎'} {ROLE_LABELS[myMembership.role] ?? myMembership.role}
+            {viewerRole && (
+              <View style={[styles.metaChip, { borderColor: (ROLE_COLORS[viewerRole] ?? Colors.signal) + '60' }]}>
+                <Text style={[styles.metaChipText, { color: ROLE_COLORS[viewerRole] ?? Colors.signal }]}>
+                  {ROLE_ICONS[viewerRole] ?? '◎'} {ROLE_LABELS[viewerRole] ?? viewerRole}
                 </Text>
               </View>
             )}
@@ -243,16 +250,34 @@ export default function CircleDetailScreen() {
 
         {/* Join button (non-member) */}
         {!isMember && (
-          <SignalButton
-            label={detail.isInviteOnly ? 'Wymaga zaproszenia' : 'Dołącz do circle'}
-            onPress={handleJoin}
-            variant="signal"
-            size="lg"
-            fullWidth
-            loading={isJoining}
-            disabled={detail.isInviteOnly}
-            haptic="medium"
-          />
+          <View style={styles.joinPanel}>
+            {detail.isInviteOnly && (
+              <>
+                <Text style={styles.joinHint}>
+                  Ten circle jest prywatny. Wpisz jednorazowy kod otrzymany od GUIDE lub FOUNDER.
+                </Text>
+                <TextInput
+                  style={styles.inviteInput}
+                  value={inviteCode}
+                  onChangeText={setInviteCode}
+                  placeholder="Kod zaproszenia"
+                  placeholderTextColor={Colors.starGhost}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </>
+            )}
+            <SignalButton
+              label="Dołącz do circle"
+              onPress={handleJoin}
+              variant="signal"
+              size="lg"
+              fullWidth
+              loading={isJoining}
+              disabled={detail.isInviteOnly && inviteCode.trim().length === 0}
+              haptic="medium"
+            />
+          </View>
         )}
 
         {/* Member actions */}
@@ -349,6 +374,25 @@ const styles = StyleSheet.create({
   description:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, lineHeight: 22 },
 
   memberActions: { gap: Spacing.sm },
+  joinPanel: { gap: Spacing.md },
+  joinHint: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: FontSize.bodySm,
+    color: Colors.star,
+    lineHeight: 20,
+  },
+  inviteInput: {
+    height: 50,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.ember + '60',
+    backgroundColor: Colors.graphite,
+    paddingHorizontal: Spacing.lg,
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: FontSize.bodySm,
+    color: Colors.starlight,
+    letterSpacing: 1,
+  },
 
   section: { gap: Spacing.sm },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xs },

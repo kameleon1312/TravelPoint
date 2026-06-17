@@ -47,7 +47,13 @@ export async function journeyRoutes(app: FastifyInstance) {
     });
 
     if (!parsed.data.isPrivate) {
-      void addTrustPoints(app.prisma, req.explorerId, TrustPoints.JOURNEY_PUBLISHED);
+      void addTrustPoints(
+        app.prisma,
+        req.explorerId,
+        TrustPoints.JOURNEY_PUBLISHED,
+        'JOURNEY_PUBLISHED',
+        journey.id,
+      );
     }
 
     return reply.status(201).send(journey);
@@ -68,17 +74,50 @@ export async function journeyRoutes(app: FastifyInstance) {
 
     // Prisma Json fields require InputJsonValue — routeGeoJson is typed GeoJSON,
     // so we cast it explicitly while keeping other fields strongly typed.
-    const { routeGeoJson, ...rest } = parsed.data;
+    const { routeGeoJson, retainRoute, ...rest } = parsed.data;
     const journey = await app.prisma.journey.update({
       where: { id },
       data: {
         ...rest,
+        ...(retainRoute !== undefined ? { retainRoute } : {}),
         ...(routeGeoJson !== undefined
-          ? { routeGeoJson: routeGeoJson as Prisma.InputJsonValue }
+          ? {
+              routeGeoJson: routeGeoJson as Prisma.InputJsonValue,
+              routeExpiresAt: retainRoute || existing.retainRoute
+                ? null
+                : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+            }
           : {}),
       },
     });
     return reply.send(journey);
+  });
+
+  app.post('/api/journeys/:id/like', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const journey = await app.prisma.journey.findUnique({ where: { id } });
+    if (!journey || journey.isPrivate) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (journey.explorerId === req.explorerId) return reply.status(403).send({ code: 'SELF_LIKE' });
+    const like = await app.prisma.journeyLike.upsert({
+      where: { journeyId_explorerId: { journeyId: id, explorerId: req.explorerId } },
+      create: {
+        journeyId: id,
+        explorerId: req.explorerId,
+        authorId: journey.explorerId,
+      },
+      update: {},
+    });
+    await app.prisma.signal.upsert({
+      where: { dedupeKey: `journey-like:${like.id}` },
+      create: {
+        explorerId: journey.explorerId,
+        type: 'JOURNEY_LIKE',
+        dedupeKey: `journey-like:${like.id}`,
+        payload: { journeyId: id, explorerId: req.explorerId },
+      },
+      update: {},
+    });
+    return reply.status(201).send(like);
   });
 
   // DELETE /api/journeys/:id

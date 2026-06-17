@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "main": "./dist/index.js",
+  "react-native": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": {
       "types": "./src/index.ts",
+      "react-native": "./src/index.ts",
       "source": "./src/index.ts",
       "require": "./dist/index.js",
       "default": "./dist/index.js"

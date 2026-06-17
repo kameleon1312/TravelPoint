@@ -2,8 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
-
-const ALLOWED_ORIGINS = (process.env['ALLOWED_ORIGINS'] ?? 'http://localhost:3000').split(',');
+import { env } from '../config/env';
 
 export async function registerSecurity(app: FastifyInstance) {
   await app.register(helmet, {
@@ -20,7 +19,7 @@ export async function registerSecurity(app: FastifyInstance) {
   });
 
   await app.register(cors, {
-    origin: ALLOWED_ORIGINS,
+    origin: env.allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });

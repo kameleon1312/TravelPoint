@@ -39,7 +39,7 @@ async function connectSocketWithToken(): Promise<void> {
   if (token) socketManager.connect(token);
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   explorer: null,
   isLoading: true,
   isAuthenticated: false,

@@ -10,79 +10,108 @@ datasource db {
 }
 
 model Explorer {
-  id            String   @id @default(cuid())
-  email         String   @unique @db.VarChar(255)
-  handle        String   @unique @db.VarChar(24)
+  id            String  @id @default(cuid())
+  email         String  @unique @db.VarChar(255)
+  handle        String  @unique @db.VarChar(24)
   passwordHash  String
-  emailVerified Boolean  @default(false)
+  emailVerified Boolean @default(false)
 
   // Identity
-  displayName   String?  @db.VarChar(60)
-  archetype     Archetype @default(WANDERER)
-  bio           String?  @db.VarChar(500)
-  obsessions    String[]
-  territories   String[]
+  displayName String?   @db.VarChar(60)
+  archetype   Archetype @default(WANDERER)
+  bio         String?   @db.VarChar(500)
+  obsessions  String[]
+  territories String[]
 
   // Push notifications
-  pushToken     String?
+  pushToken String?
 
   // Trust & rank
-  trustScore    Int      @default(0)
-  rank          Rank     @default(NEWCOMER)
-  invitedById   String?
+  trustScore       Int         @default(0)
+  rank             Rank        @default(NEWCOMER)
+  invitedById      String?
+  invitedBy        Explorer?   @relation("ExplorerInvites", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitedExplorers Explorer[]  @relation("ExplorerInvites")
+  role             AccountRole @default(USER)
+  suspendedAt      DateTime?
+  suspensionReason String?     @db.VarChar(500)
 
   // Location (privacy-first — all opt-in, publicly fuzzed)
-  homeBaseEnc   String?
+  homeBaseEnc     String?
   locationConsent Boolean @default(false)
   presenceConsent Boolean @default(false)
 
   // Subscription
-  tier          Tier     @default(FREE)
+  tier          Tier      @default(FREE)
   tierExpiresAt DateTime?
 
   // Privacy / audit
-  consentTerms    DateTime
-  consentPrivacy  DateTime
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  lastSeenAt      DateTime?
-  deletedAt       DateTime?
+  consentTerms   DateTime
+  consentPrivacy DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastSeenAt     DateTime?
+  deletedAt      DateTime?
+  purgeAt        DateTime?
 
   // Relations
-  spots           Spot[]
-  journeys        Journey[]
-  memberships     CircleMember[]
-  sentMsgs        Transmission[]  @relation("Sender")
-  refreshTokens   RefreshToken[]
-  auditLogs       AuditLog[]
-  signals         Signal[]
-  spotSaves       SpotSave[]
-  photos          Photo[]
+  spots                Spot[]
+  journeys             Journey[]
+  memberships          CircleMember[]
+  sentMsgs             Transmission[]     @relation("Sender")
+  receivedMsgs         Transmission[]     @relation("Recipient")
+  refreshTokens        RefreshToken[]
+  auditLogs            AuditLog[]
+  signals              Signal[]
+  spotSaves            SpotSave[]
+  photos               Photo[]
+  createdInvites       InviteCode[]       @relation("InviteCreator")
+  usedInvites          InviteCode[]       @relation("InviteUser")
+  inviteUses           InviteUse[]
+  createdCircles       Circle[]           @relation("CircleCreator")
+  authTokens           AuthToken[]
+  trustEvents          TrustEvent[]
+  tierEvents           TierEvent[]
+  reactions            Reaction[]
+  journeyLikes         JourneyLike[]      @relation("JourneyLiker")
+  journeyLikesReceived JourneyLike[]      @relation("JourneyAuthor")
+  verifications        SpotVerification[]
+  reportsFiled         Report[]           @relation("ReportReporter")
+  reportsReceived      Report[]           @relation("ReportTargetExplorer")
+  blocksMade           Block[]            @relation("Blocker")
+  blocksReceived       Block[]            @relation("Blocked")
+  moderationActions    ModerationAction[] @relation("Moderator")
+  moderationReceived   ModerationAction[] @relation("ModerationTarget")
 
   @@index([handle])
   @@index([deletedAt])
+  @@index([purgeAt])
 }
 
 model Spot {
-  id            String      @id @default(cuid())
-  ownerId       String
-  owner         Explorer    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id      String   @id @default(cuid())
+  ownerId String
+  owner   Explorer @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  title         String      @db.VarChar(120)
-  story         String?     @db.VarChar(2000)
+  title         String       @db.VarChar(120)
+  story         String?      @db.VarChar(2000)
   category      SpotCategory
   lat           Float
   lng           Float
   h3Index       String
-  accessLevel   AccessLevel @default(PUBLIC)
+  accessLevel   AccessLevel  @default(PUBLIC)
   circleId      String?
+  circle        Circle?      @relation(fields: [circleId], references: [id], onDelete: SetNull)
   dropExpiresAt DateTime?
 
   photos        Photo[]
   saves         SpotSave[]
   auditLogs     AuditLog[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  reactions     Reaction[]
+  verifications SpotVerification[]
+  reports       Report[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
   deletedAt     DateTime?
 
   @@index([h3Index])
@@ -92,28 +121,52 @@ model Spot {
 }
 
 model Journey {
-  id           String   @id @default(cuid())
-  explorerId   String
-  explorer     Explorer @relation(fields: [explorerId], references: [id], onDelete: Cascade)
-  title        String   @db.VarChar(120)
-  mood         String?  @db.VarChar(60)
-  soundtrack   String?  @db.VarChar(500)
-  routeGeoJson Json?
-  isPrivate    Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String        @id @default(cuid())
+  explorerId     String
+  explorer       Explorer      @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  title          String        @db.VarChar(120)
+  mood           String?       @db.VarChar(60)
+  soundtrack     String?       @db.VarChar(500)
+  routeGeoJson   Json?
+  routeExpiresAt DateTime?
+  retainRoute    Boolean       @default(false)
+  isPrivate      Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  likes          JourneyLike[]
 
   @@index([explorerId])
+  @@index([routeExpiresAt])
+}
+
+model JourneyLike {
+  id         String   @id @default(cuid())
+  journeyId  String
+  explorerId String
+  authorId   String
+  createdAt  DateTime @default(now())
+
+  journey  Journey  @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  explorer Explorer @relation("JourneyLiker", fields: [explorerId], references: [id], onDelete: Cascade)
+  author   Explorer @relation("JourneyAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([journeyId, explorerId])
+  @@index([authorId, createdAt])
 }
 
 model Circle {
-  id            String   @id @default(cuid())
-  name          String   @db.VarChar(60)
-  slug          String   @unique @db.VarChar(40)
-  description   String?  @db.VarChar(300)
-  isInviteOnly  Boolean  @default(true)
+  id            String         @id @default(cuid())
+  name          String         @db.VarChar(60)
+  slug          String         @unique @db.VarChar(40)
+  description   String?        @db.VarChar(300)
+  isInviteOnly  Boolean        @default(true)
+  createdById   String?
+  createdBy     Explorer?      @relation("CircleCreator", fields: [createdById], references: [id], onDelete: SetNull)
   members       CircleMember[]
-  createdAt     DateTime @default(now())
+  inviteCodes   InviteCode[]
+  spots         Spot[]
+  transmissions Transmission[]
+  createdAt     DateTime       @default(now())
 }
 
 model CircleMember {
@@ -129,14 +182,19 @@ model CircleMember {
 }
 
 model Photo {
-  id         String   @id @default(cuid())
-  spotId     String?
-  spot       Spot?    @relation(fields: [spotId], references: [id], onDelete: Cascade)
-  uploaderId String
-  uploader   Explorer @relation(fields: [uploaderId], references: [id])
-  url        String
-  caption    String?  @db.VarChar(300)
-  createdAt  DateTime @default(now())
+  id           String   @id @default(cuid())
+  spotId       String?
+  spot         Spot?    @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  uploaderId   String
+  uploader     Explorer @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  url          String
+  thumbnailUrl String?
+  objectKey    String?  @unique
+  thumbnailKey String?
+  mimeType     String?  @db.VarChar(100)
+  sizeBytes    Int?
+  caption      String?  @db.VarChar(300)
+  createdAt    DateTime @default(now())
 }
 
 model SpotSave {
@@ -151,14 +209,17 @@ model SpotSave {
 }
 
 model Transmission {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   senderId    String
-  sender      Explorer @relation("Sender", fields: [senderId], references: [id])
+  sender      Explorer  @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
   recipientId String?
+  recipient   Explorer? @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade)
   circleId    String?
-  body        String   @db.VarChar(2000)
-  createdAt   DateTime @default(now())
+  circle      Circle?   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  body        String    @db.VarChar(2000)
+  createdAt   DateTime  @default(now())
   readAt      DateTime?
+  reports     Report[]
 
   @@index([recipientId])
   @@index([circleId])
@@ -173,41 +234,186 @@ model Signal {
   payload    Json
   createdAt  DateTime   @default(now())
   seenAt     DateTime?
+  dedupeKey  String?    @unique
 
   @@index([explorerId])
 }
 
 model RefreshToken {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   explorerId String
-  explorer   Explorer @relation(fields: [explorerId], references: [id], onDelete: Cascade)
-  tokenHash  String   @unique
+  explorer   Explorer  @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
   expiresAt  DateTime
   revokedAt  DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([explorerId])
 }
 
 model InviteCode {
-  id          String   @id @default(cuid())
-  code        String   @unique
+  id          String        @id @default(cuid())
+  code        String        @unique
   createdById String
+  createdBy   Explorer      @relation("InviteCreator", fields: [createdById], references: [id], onDelete: Cascade)
   usedById    String?
+  usedBy      Explorer?     @relation("InviteUser", fields: [usedById], references: [id], onDelete: SetNull)
+  purpose     InvitePurpose @default(ACCOUNT)
+  circleId    String?
+  circle      Circle?       @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  maxUses     Int           @default(1)
+  useCount    Int           @default(0)
   expiresAt   DateTime
   usedAt      DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime      @default(now())
+  uses        InviteUse[]
+
+  @@index([createdById])
+  @@index([circleId])
+  @@index([purpose, expiresAt])
+}
+
+model InviteUse {
+  id         String     @id @default(cuid())
+  inviteId   String
+  invite     InviteCode @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  explorerId String
+  explorer   Explorer   @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  usedAt     DateTime   @default(now())
+
+  @@unique([inviteId, explorerId])
+  @@index([explorerId])
+}
+
+model AuthToken {
+  id         String        @id @default(cuid())
+  explorerId String
+  explorer   Explorer      @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  type       AuthTokenType
+  tokenHash  String        @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@index([explorerId, type])
+  @@index([expiresAt])
+}
+
+model TrustEvent {
+  id          String         @id @default(cuid())
+  explorerId  String
+  explorer    Explorer       @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  type        TrustEventType
+  delta       Int
+  scoreAfter  Int
+  rankAfter   Rank
+  referenceId String?
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+
+  @@index([explorerId, createdAt])
+  @@index([type, referenceId])
+}
+
+model TierEvent {
+  id         String   @id @default(cuid())
+  explorerId String
+  explorer   Explorer @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  fromTier   Tier?
+  toTier     Tier
+  reason     String   @db.VarChar(120)
+  createdAt  DateTime @default(now())
+
+  @@index([explorerId, createdAt])
+}
+
+model Reaction {
+  id         String       @id @default(cuid())
+  spotId     String
+  spot       Spot         @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  explorerId String
+  explorer   Explorer     @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  type       ReactionType
+  createdAt  DateTime     @default(now())
+
+  @@unique([spotId, explorerId])
+  @@index([explorerId])
+}
+
+model SpotVerification {
+  id         String               @id @default(cuid())
+  spotId     String
+  spot       Spot                 @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  explorerId String
+  explorer   Explorer             @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  decision   VerificationDecision
+  note       String?              @db.VarChar(500)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@unique([spotId, explorerId])
+  @@index([spotId, decision])
+}
+
+model Report {
+  id                String             @id @default(cuid())
+  reporterId        String
+  reporter          Explorer           @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetExplorerId  String?
+  targetExplorer    Explorer?          @relation("ReportTargetExplorer", fields: [targetExplorerId], references: [id], onDelete: SetNull)
+  spotId            String?
+  spot              Spot?              @relation(fields: [spotId], references: [id], onDelete: SetNull)
+  transmissionId    String?
+  transmission      Transmission?      @relation(fields: [transmissionId], references: [id], onDelete: SetNull)
+  reason            ReportReason
+  details           String?            @db.VarChar(1000)
+  status            ReportStatus       @default(OPEN)
+  resolution        String?            @db.VarChar(1000)
+  resolvedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  moderationActions ModerationAction[]
+
+  @@index([status, createdAt])
+  @@index([reporterId])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   Explorer @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   Explorer @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model ModerationAction {
+  id               String               @id @default(cuid())
+  moderatorId      String
+  moderator        Explorer             @relation("Moderator", fields: [moderatorId], references: [id], onDelete: Cascade)
+  targetExplorerId String?
+  targetExplorer   Explorer?            @relation("ModerationTarget", fields: [targetExplorerId], references: [id], onDelete: SetNull)
+  reportId         String?
+  report           Report?              @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  type             ModerationActionType
+  reason           String               @db.VarChar(1000)
+  createdAt        DateTime             @default(now())
+
+  @@index([moderatorId, createdAt])
+  @@index([targetExplorerId])
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   explorerId String?
-  explorer   Explorer? @relation(fields: [explorerId], references: [id])
+  explorer   Explorer? @relation(fields: [explorerId], references: [id], onDelete: SetNull)
   spotId     String?
-  spot       Spot?     @relation(fields: [spotId], references: [id])
+  spot       Spot?     @relation(fields: [spotId], references: [id], onDelete: SetNull)
   action     String
   metadata   Json?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([explorerId])
   @@index([spotId])
@@ -265,4 +471,66 @@ enum SignalType {
   SECRET_DROP
   JOURNEY_LIKE
   TRANSMISSION
+}
+
+enum InvitePurpose {
+  ACCOUNT
+  CIRCLE
+}
+
+enum AccountRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum TrustEventType {
+  SPOT_CREATED
+  PHOTO_ADDED
+  SPOT_VERIFIED
+  REACTION_RECEIVED
+  INVITE_JOINED
+  JOURNEY_PUBLISHED
+  WEEK_ACTIVE
+  MODERATION_PENALTY
+}
+
+enum ReactionType {
+  LIKE
+  INSIGHTFUL
+  HIDDEN_GEM
+}
+
+enum VerificationDecision {
+  CONFIRMED
+  REJECTED
+}
+
+enum ReportReason {
+  SAFETY
+  HARASSMENT
+  SPAM
+  ILLEGAL_CONTENT
+  PRIVACY
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum ModerationActionType {
+  SUSPEND
+  UNSUSPEND
+  DELETE_CONTENT
+  WARN
+  RESOLVE_REPORT
 }

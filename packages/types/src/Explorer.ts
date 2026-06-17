@@ -2,6 +2,11 @@ export type Archetype = 'WANDERER' | 'URBEXER' | 'NOMAD' | 'HUNTER' | 'PILGRIM';
 export type Rank = 'NEWCOMER' | 'EXPLORER' | 'TRUSTED' | 'INSIDER' | 'LEGEND';
 export type Tier = 'FREE' | 'PRO' | 'EXPEDITION';
 
+export interface HomeBase {
+  lat: number;
+  lng: number;
+}
+
 export interface Explorer {
   id: string;
   email: string;
@@ -17,6 +22,7 @@ export interface Explorer {
   tierExpiresAt?: string;
   locationConsent: boolean;
   presenceConsent: boolean;
+  homeBase?: HomeBase;
   emailVerified: boolean;
   invitedById?: string;
   consentTerms: string;

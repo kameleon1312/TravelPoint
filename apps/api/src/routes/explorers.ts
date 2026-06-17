@@ -4,6 +4,18 @@ import { requireAuth } from '../middleware/requireAuth';
 import { hashPassword } from '../lib/crypto';
 import { auditAccess } from '../middleware/auditLog';
 import { logger } from '../lib/logger';
+import { decrypt, encrypt } from '@travelpoint/utils';
+import { HomeBaseSchema } from '@travelpoint/validation';
+
+function decryptHomeBase(value: string | null): { lat: number; lng: number } | null {
+  if (!value) return null;
+  try {
+    return HomeBaseSchema.parse(JSON.parse(decrypt(value)));
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to decrypt explorer home base');
+    return null;
+  }
+}
 
 export async function explorerRoutes(app: FastifyInstance) {
   // ─── GET /api/explorers/me ─────────────────────────────────────────────────
@@ -15,12 +27,40 @@ export async function explorerRoutes(app: FastifyInstance) {
         bio: true, obsessions: true, territories: true, trustScore: true,
         rank: true, tier: true, tierExpiresAt: true, emailVerified: true,
         locationConsent: true, presenceConsent: true,
+        homeBaseEnc: true,
         consentTerms: true, consentPrivacy: true,
         createdAt: true, updatedAt: true,
       },
     });
     if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
-    return reply.send(explorer);
+    const { homeBaseEnc, ...publicExplorer } = explorer;
+    return reply.send({ ...publicExplorer, homeBase: decryptHomeBase(homeBaseEnc) });
+  });
+
+  app.put('/api/explorers/me/home-base', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = HomeBaseSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        errors: parsed.error.flatten(),
+      });
+    }
+
+    await app.prisma.explorer.update({
+      where: { id: req.explorerId },
+      data: { homeBaseEnc: encrypt(JSON.stringify(parsed.data)) },
+    });
+    await auditAccess(app.prisma, req.explorerId, 'HOME_BASE_UPDATED');
+    return reply.send(parsed.data);
+  });
+
+  app.delete('/api/explorers/me/home-base', { preHandler: [requireAuth] }, async (req, reply) => {
+    await app.prisma.explorer.update({
+      where: { id: req.explorerId },
+      data: { homeBaseEnc: null },
+    });
+    await auditAccess(app.prisma, req.explorerId, 'HOME_BASE_REMOVED');
+    return reply.status(204).send();
   });
 
   // ─── PATCH /api/explorers/me ───────────────────────────────────────────────
@@ -84,6 +124,7 @@ export async function explorerRoutes(app: FastifyInstance) {
         where: { id: explorerId },
         data: {
           deletedAt:      now,
+          purgeAt:        new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
           email:          anonEmail,
           handle:         anonHandle,
           displayName:    null,
@@ -135,8 +176,8 @@ export async function explorerRoutes(app: FastifyInstance) {
           trustScore: true, rank: true, tier: true,
           locationConsent: true, presenceConsent: true,
           consentTerms: true, consentPrivacy: true,
-          emailVerified: true, createdAt: true, updatedAt: true,
-          // Never exported: passwordHash, homeBaseEnc, pushToken
+          emailVerified: true, homeBaseEnc: true, createdAt: true, updatedAt: true,
+          // Never exported: passwordHash and pushToken
         },
       }),
       app.prisma.spot.findMany({
@@ -144,7 +185,7 @@ export async function explorerRoutes(app: FastifyInstance) {
         select: {
           id: true, title: true, story: true,
           category: true, accessLevel: true, createdAt: true, updatedAt: true,
-          // lat/lng excluded — precise coords are PII under our privacy policy
+          lat: true, lng: true, circleId: true, dropExpiresAt: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -153,7 +194,7 @@ export async function explorerRoutes(app: FastifyInstance) {
         select: {
           id: true, title: true, mood: true, soundtrack: true,
           isPrivate: true, createdAt: true, updatedAt: true,
-          // routeGeoJson excluded — GPS trace is sensitive location data
+          routeGeoJson: true, routeExpiresAt: true, retainRoute: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -184,15 +225,22 @@ export async function explorerRoutes(app: FastifyInstance) {
       },
     });
 
+    const exportExplorer = explorer
+      ? {
+          ...explorer,
+          homeBase: decryptHomeBase(explorer.homeBaseEnc),
+          homeBaseEnc: undefined,
+        }
+      : null;
     const exportPayload = {
       exportedAt:    new Date().toISOString(),
-      exportVersion: '1.0',
+      exportVersion: '2.0',
       privacyNote:   [
-        'GPS coordinates and route data are excluded from this export.',
-        'Encrypted home base location is excluded.',
+        'The export contains precise spot coordinates and retained journey routes.',
+        'Home base is decrypted for this authenticated export.',
         'Auth credentials are never exported.',
       ],
-      explorer,
+      explorer: exportExplorer,
       content: { spots, journeys, circles: memberships, signals },
     };
 

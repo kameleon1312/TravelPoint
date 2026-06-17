@@ -1,11 +1,9 @@
-import 'dotenv/config';
 import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { env } from '../config/env';
 
-export function createPool(): pg.Pool {
-  const url = (process.env['DATABASE_URL'] ?? '').trim();
-
+export function createPool(url = env.databaseUrl): pg.Pool {
   if (!url) {
     return new pg.Pool({
       host: '127.0.0.1',
@@ -23,9 +21,10 @@ export function createPool(): pg.Pool {
     const ssl = sslMode === 'require' || sslMode === 'prefer' || sslMode === 'no-verify'
       ? { rejectUnauthorized: false }
       : false;
+    parsedUrl.searchParams.delete('sslmode');
 
     return new pg.Pool({
-      connectionString: url,
+      connectionString: parsedUrl.toString(),
       ssl,
     });
   } catch (error) {

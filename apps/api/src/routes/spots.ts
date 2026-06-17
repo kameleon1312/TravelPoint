@@ -5,6 +5,13 @@ import { resolveSpotForViewer } from '../services/hiddenLayer';
 import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
 import { latLngToCell } from 'h3-js';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
+import {
+  createPhotoUpload,
+  deleteStoredPhotos,
+  finalizePhoto,
+  validatePhoto,
+} from '../services/storage';
+import { pushSignal } from './signals';
 
 // Haversine distance in km — replaces PostGIS ST_DWithin (no extension required)
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -32,6 +39,41 @@ function dailySpotSeed(spotId: string): number {
 }
 
 export async function spotsRoutes(app: FastifyInstance) {
+  async function resolveForExplorer(
+    spot: Parameters<typeof resolveSpotForViewer>[0],
+    explorerId: string,
+  ) {
+    const explorer = await app.prisma.explorer.findUnique({
+      where: { id: explorerId },
+      include: { memberships: { select: { circleId: true } } },
+    });
+    if (!explorer) return null;
+
+    return resolveSpotForViewer(
+      spot,
+      {
+        id: explorer.id,
+        rank: explorer.rank,
+        circleIds: explorer.memberships.map((membership) => membership.circleId),
+        tier: explorer.tier,
+      },
+      generateSessionSeed(),
+      async (viewerId, spotId) => {
+        await app.prisma.auditLog.create({
+          data: { explorerId: viewerId, spotId, action: 'SPOT_ACCESS' },
+        });
+      },
+    );
+  }
+
+  async function requireExactSpotAccess(
+    spot: Parameters<typeof resolveSpotForViewer>[0],
+    explorerId: string,
+  ) {
+    const resolved = await resolveForExplorer(spot, explorerId);
+    return resolved && !resolved.locked ? resolved : null;
+  }
+
   // ── GET /api/spots/public ─────────────────────────────────────────────────
   // Public endpoint — no auth, returns fuzzed PUBLIC spots for the world map.
   // Coords fuzzed ≥500m with daily-per-spot seed (stable within day, shifts daily).
@@ -129,7 +171,7 @@ export async function spotsRoutes(app: FastifyInstance) {
       ),
     );
 
-    return reply.send(resolved);
+    return reply.send(resolved.filter((spot): spot is NonNullable<typeof spot> => spot !== null));
   });
 
   // GET /api/spots/:id
@@ -138,21 +180,8 @@ export async function spotsRoutes(app: FastifyInstance) {
     const spot = await app.prisma.spot.findUnique({ where: { id }, include: { photos: true } });
     if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
 
-    const explorer = await app.prisma.explorer.findUnique({
-      where: { id: req.explorerId },
-      include: { memberships: { select: { circleId: true } } },
-    });
-    if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
-
-    const sessionSeed = generateSessionSeed();
-    const resolved = await resolveSpotForViewer(
-      spot,
-      { id: explorer.id, rank: explorer.rank, circleIds: explorer.memberships.map((m: { circleId: string }) => m.circleId), tier: explorer.tier },
-      sessionSeed,
-      async (eId, sId) => {
-        await app.prisma.auditLog.create({ data: { explorerId: eId, spotId: sId, action: 'SPOT_ACCESS' } });
-      },
-    );
+    const resolved = await resolveForExplorer(spot, req.explorerId);
+    if (!resolved) return reply.status(404).send({ code: 'NOT_FOUND' });
 
     return reply.send(resolved);
   });
@@ -171,7 +200,30 @@ export async function spotsRoutes(app: FastifyInstance) {
       data: { ...rest, lat, lng, h3Index, ownerId: req.explorerId },
     });
 
-    void addTrustPoints(app.prisma, req.explorerId, TrustPoints.SPOT_CREATED);
+    void addTrustPoints(app.prisma, req.explorerId, TrustPoints.SPOT_CREATED, 'SPOT_CREATED', spot.id);
+    if (spot.accessLevel === 'SECRET_DROP') {
+      const memberships = await app.prisma.circleMember.findMany({
+        where: { explorerId: req.explorerId },
+        select: { circleId: true },
+      });
+      const recipients = await app.prisma.circleMember.findMany({
+        where: {
+          circleId: { in: memberships.map((membership) => membership.circleId) },
+          explorerId: { not: req.explorerId },
+        },
+        distinct: ['explorerId'],
+        select: { explorerId: true },
+      });
+      for (const recipient of recipients) {
+        void pushSignal(
+          app,
+          recipient.explorerId,
+          'SECRET_DROP',
+          { spotId: spot.id, title: spot.title },
+          `secret-drop:${spot.id}:${recipient.explorerId}`,
+        );
+      }
+    }
 
     return reply.status(201).send({ ...spot, locked: false });
   });
@@ -181,6 +233,9 @@ export async function spotsRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const spot = await app.prisma.spot.findUnique({ where: { id } });
     if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
 
     const existing = await app.prisma.spotSave.findUnique({
       where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
@@ -205,6 +260,9 @@ export async function spotsRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const spot = await app.prisma.spot.findUnique({ where: { id } });
     if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
 
     const photos = await app.prisma.photo.findMany({
       where: { spotId: id },
@@ -216,33 +274,65 @@ export async function spotsRoutes(app: FastifyInstance) {
 
   // POST /api/spots/:id/photos — accepts { url, caption? }
   // url can be a data URI (base64) for mobile uploads or a remote https URL
-  app.post('/api/spots/:id/photos', {
-    preHandler: [requireAuth],
-    bodyLimit: 6 * 1024 * 1024,
-  }, async (req, reply) => {
+  app.post('/api/spots/:id/photos/upload-url', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { url, caption } = req.body as { url?: string; caption?: string };
-
-    if (!url?.trim()) {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'url required' });
-    }
-    if (url.length > 5_000_000) {
-      return reply.status(413).send({ code: 'PAYLOAD_TOO_LARGE', message: 'Image too large (max ~3.5 MB)' });
-    }
-
+    const { mimeType, sizeBytes } = req.body as { mimeType?: string; sizeBytes?: number };
     const spot = await app.prisma.spot.findUnique({ where: { id } });
     if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+    try {
+      validatePhoto(mimeType ?? '', sizeBytes ?? 0);
+      return reply.send(await createPhotoUpload(req.explorerId, mimeType!, sizeBytes!));
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'UPLOAD_FAILED';
+      const status = code === 'STORAGE_NOT_CONFIGURED' ? 503
+        : code === 'UNSUPPORTED_MEDIA_TYPE' ? 415
+          : code === 'PHOTO_TOO_LARGE' ? 413 : 400;
+      return reply.status(status).send({ code });
+    }
+  });
+
+  app.post('/api/spots/:id/photos/complete', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { objectKey, mimeType, sizeBytes, caption } = req.body as {
+      objectKey?: string;
+      mimeType?: string;
+      sizeBytes?: number;
+      caption?: string;
+    };
+    if (!objectKey?.startsWith(`photos/${req.explorerId}/`)) {
+      return reply.status(400).send({ code: 'INVALID_OBJECT_KEY' });
+    }
+    const spot = await app.prisma.spot.findUnique({ where: { id } });
+    if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+    let stored;
+    try {
+      stored = await finalizePhoto(objectKey, mimeType ?? '', sizeBytes ?? 0);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'UPLOAD_FAILED';
+      return reply.status(code === 'STORAGE_NOT_CONFIGURED' ? 503 : 400).send({ code });
+    }
 
     const photo = await app.prisma.photo.create({
       data: {
         spotId: id,
         uploaderId: req.explorerId,
-        url: url.trim(),
+        objectKey,
+        url: stored.url,
+        thumbnailUrl: stored.thumbnailUrl,
+        thumbnailKey: stored.thumbnailKey,
+        mimeType: stored.mimeType,
+        sizeBytes: stored.sizeBytes,
         caption: caption?.trim() ?? null,
       },
     });
 
-    void addTrustPoints(app.prisma, req.explorerId, 5);
+    void addTrustPoints(app.prisma, req.explorerId, TrustPoints.PHOTO_ADDED, 'PHOTO_ADDED', photo.id);
 
     return reply.status(201).send(photo);
   });
@@ -255,8 +345,72 @@ export async function spotsRoutes(app: FastifyInstance) {
     if (photo.uploaderId !== req.explorerId) {
       return reply.status(403).send({ code: 'FORBIDDEN' });
     }
+    await deleteStoredPhotos([photo.objectKey, photo.thumbnailKey]);
     await app.prisma.photo.delete({ where: { id: photoId } });
     return reply.status(204).send();
+  });
+
+  app.post('/api/spots/:id/reactions', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { type } = req.body as { type?: 'LIKE' | 'INSIGHTFUL' | 'HIDDEN_GEM' };
+    if (!type || !['LIKE', 'INSIGHTFUL', 'HIDDEN_GEM'].includes(type)) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR' });
+    }
+    const spot = await app.prisma.spot.findFirst({ where: { id, deletedAt: null } });
+    if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+    const previous = await app.prisma.reaction.findUnique({
+      where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
+    });
+    const reaction = await app.prisma.reaction.upsert({
+      where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
+      create: { spotId: id, explorerId: req.explorerId, type },
+      update: { type },
+    });
+    if (!previous && spot.ownerId !== req.explorerId) {
+      void addTrustPoints(
+        app.prisma,
+        spot.ownerId,
+        TrustPoints.CIRCLE_REACTION,
+        'REACTION_RECEIVED',
+        reaction.id,
+      );
+    }
+    return reply.status(previous ? 200 : 201).send(reaction);
+  });
+
+  app.post('/api/spots/:id/verify', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { decision, note } = req.body as {
+      decision?: 'CONFIRMED' | 'REJECTED';
+      note?: string;
+    };
+    if (!decision || !['CONFIRMED', 'REJECTED'].includes(decision) || (note?.length ?? 0) > 500) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR' });
+    }
+    const spot = await app.prisma.spot.findFirst({ where: { id, deletedAt: null } });
+    if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+    if (spot.ownerId === req.explorerId) return reply.status(403).send({ code: 'SELF_VERIFICATION' });
+    const verification = await app.prisma.spotVerification.upsert({
+      where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
+      create: { spotId: id, explorerId: req.explorerId, decision, note: note?.trim() },
+      update: { decision, note: note?.trim() },
+    });
+    if (decision === 'CONFIRMED') {
+      void addTrustPoints(
+        app.prisma,
+        spot.ownerId,
+        TrustPoints.SPOT_VERIFIED,
+        'SPOT_VERIFIED',
+        verification.id,
+      );
+    }
+    return reply.send(verification);
   });
 
   // DELETE /api/spots/:id

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { logger } from '../lib/logger';
+import { env } from '../config/env';
 
 const RESEND_URL = 'https://api.resend.com/emails';
 
@@ -21,8 +22,8 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 async function sendEmail(to: string, subject: string, text: string): Promise<void> {
-  const apiKey = process.env['RESEND_API_KEY'];
-  const from   = process.env['EMAIL_FROM'] ?? 'TravelPoint <onboarding@resend.dev>';
+  const apiKey = env.resendApiKey;
+  const from = env.emailFrom;
 
   if (!apiKey || apiKey === 're_CHANGE_ME') return;
 
@@ -59,7 +60,7 @@ export async function rodoRoutes(app: FastifyInstance) {
       },
     });
 
-    const dpoEmail = process.env['DPO_EMAIL'];
+    const dpoEmail = env.dpoEmail;
     const label    = TYPE_LABELS[type] ?? type;
 
     // Notify DPO

@@ -5,20 +5,54 @@ import { verifyAccessToken } from '../lib/jwt';
 import { logger } from '../lib/logger';
 import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
 import { sendPushToMany } from '../services/push';
+import { hasCircleMembership } from '../services/circleAccess';
+import { env } from '../config/env';
+import {
+  getAllowedCircleRecipientIds,
+  getBlockedExplorerIds,
+} from '../services/blockAccess';
+
+interface CircleRoomSocket {
+  join(room: string): Promise<void> | void;
+  emit(event: 'error', payload: { code: string; message: string }): void;
+}
+
+export async function joinCircleRoom(
+  prisma: FastifyInstance['prisma'],
+  socket: CircleRoomSocket,
+  explorerId: string,
+  circleId: unknown,
+): Promise<boolean> {
+  if (typeof circleId !== 'string' || !circleId) {
+    socket.emit('error', { code: 'VALIDATION_ERROR', message: 'Circle id required' });
+    return false;
+  }
+  if (!await hasCircleMembership(prisma, circleId, explorerId)) {
+    socket.emit('error', { code: 'FORBIDDEN', message: 'Not a circle member' });
+    return false;
+  }
+  await socket.join(`circle:${circleId}`);
+  return true;
+}
 
 export default fp(async (app: FastifyInstance) => {
   const io = new Server(app.server, {
     cors: {
-      origin: (process.env['ALLOWED_ORIGINS'] ?? 'http://localhost:3000').split(','),
+      origin: env.allowedOrigins,
       credentials: true,
     },
   });
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth['token'] as string | undefined;
     if (!token) return next(new Error('UNAUTHORIZED'));
     try {
       const payload = verifyAccessToken(token);
+      const explorer = await app.prisma.explorer.findFirst({
+        where: { id: payload.sub, deletedAt: null },
+        select: { id: true },
+      });
+      if (!explorer) return next(new Error('ACCOUNT_DELETED'));
       socket.data['explorerId'] = payload.sub;
       next();
     } catch {
@@ -33,11 +67,64 @@ export default fp(async (app: FastifyInstance) => {
     void socket.join(`explorer:${explorerId}`);
 
     // ── Presence (opt-in, coords fuzzed ≥500m) ────────────────────────────────
-    socket.on('presence:enable', (data: { lat: number; lng: number }) => {
-      void socket.join('presence');
+    socket.on('presence:enable', async (data: { lat?: unknown; lng?: unknown }) => {
+      if (
+        typeof data?.lat !== 'number' ||
+        typeof data.lng !== 'number' ||
+        data.lat < -90 || data.lat > 90 ||
+        data.lng < -180 || data.lng > 180
+      ) {
+        socket.emit('error', { code: 'VALIDATION_ERROR', message: 'Invalid coordinates' });
+        return;
+      }
+
+      const explorer = await app.prisma.explorer.findFirst({
+        where: { id: explorerId, deletedAt: null, presenceConsent: true, locationConsent: true },
+        select: { id: true },
+      });
+      if (!explorer) {
+        socket.emit('error', { code: 'CONSENT_REQUIRED', message: 'Presence consent required' });
+        return;
+      }
+
+      await socket.join('presence');
       const seed = generateSessionSeed();
       const fuzzed = fuzzCoordinates(data.lat, data.lng, 500, seed);
-      socket.to('presence').emit('explorer:nearby', { explorerId, lat: fuzzed.lat, lng: fuzzed.lng });
+      const nearbySockets = await io.in('presence').fetchSockets();
+      const blockedIds = new Set(await getBlockedExplorerIds(app.prisma, explorerId));
+      const day = new Date().toISOString().slice(0, 10);
+      for (const nearbySocket of nearbySockets) {
+        const nearbyId = nearbySocket.data['explorerId'] as string | undefined;
+        if (!nearbyId || nearbyId === explorerId || blockedIds.has(nearbyId)) continue;
+        io.to(nearbySocket.id).emit('explorer:nearby', {
+          explorerId,
+          lat: fuzzed.lat,
+          lng: fuzzed.lng,
+        });
+        const pair = [explorerId, nearbyId].sort().join(':');
+        await Promise.all([
+          app.prisma.signal.upsert({
+            where: { dedupeKey: `nearby:${pair}:${day}:${explorerId}` },
+            create: {
+              explorerId,
+              type: 'NEARBY_EXPLORER',
+              dedupeKey: `nearby:${pair}:${day}:${explorerId}`,
+              payload: { explorerId: nearbyId },
+            },
+            update: {},
+          }),
+          app.prisma.signal.upsert({
+            where: { dedupeKey: `nearby:${pair}:${day}:${nearbyId}` },
+            create: {
+              explorerId: nearbyId,
+              type: 'NEARBY_EXPLORER',
+              dedupeKey: `nearby:${pair}:${day}:${nearbyId}`,
+              payload: { explorerId },
+            },
+            update: {},
+          }),
+        ]);
+      }
     });
 
     socket.on('presence:disable', () => {
@@ -45,8 +132,8 @@ export default fp(async (app: FastifyInstance) => {
     });
 
     // ── Circle room management ─────────────────────────────────────────────────
-    socket.on('circle:join', (circleId: string) => {
-      void socket.join(`circle:${circleId}`);
+    socket.on('circle:join', async (circleId: unknown) => {
+      await joinCircleRoom(app.prisma, socket, explorerId, circleId);
     });
 
     socket.on('circle:leave', (circleId: string) => {
@@ -59,10 +146,7 @@ export default fp(async (app: FastifyInstance) => {
       if (!data?.circleId || !data?.body?.trim() || data.body.length > 2000) return;
 
       try {
-        const membership = await app.prisma.circleMember.findFirst({
-          where: { circleId: data.circleId, explorerId },
-        });
-        if (!membership) {
+        if (!await hasCircleMembership(app.prisma, data.circleId, explorerId)) {
           socket.emit('error', { code: 'FORBIDDEN', message: 'Not a circle member' });
           return;
         }
@@ -78,22 +162,20 @@ export default fp(async (app: FastifyInstance) => {
           },
         });
 
-        io.to(`circle:${data.circleId}`).emit('circle:message', msg);
-
-        // Push to offline circle members
-        const [members, circle] = await Promise.all([
-          app.prisma.circleMember.findMany({
-            where: { circleId: data.circleId, explorerId: { not: explorerId } },
-            select: { explorerId: true },
-          }),
+        const [recipientIds, circle] = await Promise.all([
+          getAllowedCircleRecipientIds(app.prisma, data.circleId, explorerId),
           app.prisma.circle.findUnique({
             where: { id: data.circleId }, select: { name: true },
           }),
         ]);
+        io.to(`explorer:${explorerId}`).emit('circle:message', msg);
+        for (const recipientId of recipientIds) {
+          io.to(`explorer:${recipientId}`).emit('circle:message', msg);
+        }
 
         void sendPushToMany(
           app.prisma,
-          members.map((m: { explorerId: string }) => m.explorerId),
+          recipientIds,
           `◑ ${circle?.name ?? 'Circle'}`,
           `@${msg.sender?.handle ?? 'explorer'}: ${data.body.trim().slice(0, 60)}`,
           { type: 'circle_message', circleId: data.circleId, id: msg.id },

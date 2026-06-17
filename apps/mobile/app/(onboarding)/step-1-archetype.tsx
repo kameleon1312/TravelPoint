@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Colors, FontSize, Spacing, BorderRadius, Gradients } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import type { Archetype } from '@travelpoint/types';
 import { useOnboardingStore } from '@/stores/onboarding';

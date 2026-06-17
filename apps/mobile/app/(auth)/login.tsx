@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { z } from 'zod';
-import { Colors, FontSize, Spacing, BorderRadius, Gradients } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import { useAuthStore } from '@/stores/auth';
@@ -37,6 +37,8 @@ export default function LoginScreen() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setServerError('Nieprawidłowy e-mail lub hasło.');
+      } else if (err instanceof ApiError) {
+        setServerError(err.message);
       } else {
         setServerError('Błąd połączenia. Spróbuj ponownie.');
       }

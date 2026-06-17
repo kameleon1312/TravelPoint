@@ -16,7 +16,9 @@ import { transmissionRoutes } from './routes/transmissions';
 import { signalRoutes } from './routes/signals';
 import { waitlistRoutes } from './routes/waitlist';
 import { rodoRoutes } from './routes/rodo';
+import { moderationRoutes } from './routes/moderation';
 import { logger } from './lib/logger';
+import { env } from './config/env';
 
 const app = Fastify({ logger: false });
 
@@ -35,6 +37,7 @@ async function bootstrap() {
   await app.register(signalRoutes);
   await app.register(waitlistRoutes);
   await app.register(rodoRoutes);
+  await app.register(moderationRoutes);
 
   // Health check — used by Railway / uptime monitors
   app.get('/health', async (_request, reply) => {
@@ -57,9 +60,8 @@ async function bootstrap() {
     void reply.status(500).send({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   });
 
-  const port = Number(process.env['PORT'] ?? 4000);
-  await app.listen({ port, host: '0.0.0.0' });
-  logger.info(`TravelPoint ENGINE running on :${port}`);
+  await app.listen({ port: env.port, host: '0.0.0.0' });
+  logger.info(`TravelPoint ENGINE running on :${env.port}`);
 }
 
 bootstrap().catch((err) => {

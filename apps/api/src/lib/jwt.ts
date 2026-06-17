@@ -1,11 +1,9 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-
-const ACCESS_SECRET = process.env['JWT_ACCESS_SECRET']!;
-const REFRESH_SECRET = process.env['JWT_REFRESH_SECRET']!;
+import { env } from '../config/env';
 
 export function signAccessToken(explorerId: string): string {
-  return jwt.sign({ sub: explorerId, type: 'access' }, ACCESS_SECRET, {
+  return jwt.sign({ sub: explorerId, type: 'access' }, env.jwtAccessSecret, {
     expiresIn: '15m',
     algorithm: 'HS256',
     issuer: 'travelpoint.io',
@@ -14,7 +12,7 @@ export function signAccessToken(explorerId: string): string {
 }
 
 export function signRefreshToken(explorerId: string): string {
-  return jwt.sign({ sub: explorerId, type: 'refresh' }, REFRESH_SECRET, {
+  return jwt.sign({ sub: explorerId, type: 'refresh' }, env.jwtRefreshSecret, {
     expiresIn: '7d',
     algorithm: 'HS256',
     issuer: 'travelpoint.io',
@@ -23,7 +21,7 @@ export function signRefreshToken(explorerId: string): string {
 }
 
 export function verifyAccessToken(token: string): { sub: string } {
-  return jwt.verify(token, ACCESS_SECRET, {
+  return jwt.verify(token, env.jwtAccessSecret, {
     algorithms: ['HS256'],
     issuer: 'travelpoint.io',
     audience: 'travelpoint-core',
@@ -31,7 +29,7 @@ export function verifyAccessToken(token: string): { sub: string } {
 }
 
 export function verifyRefreshToken(token: string): { sub: string } {
-  return jwt.verify(token, REFRESH_SECRET, {
+  return jwt.verify(token, env.jwtRefreshSecret, {
     algorithms: ['HS256'],
     issuer: 'travelpoint.io',
     audience: 'travelpoint-core',

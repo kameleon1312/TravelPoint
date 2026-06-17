@@ -28,7 +28,7 @@
 - [ ] Locked spots do NOT leak raw coordinates (test this!)
 - [ ] Geo redaction active in logs
 - [ ] Location/presence/journey consent: separate, default OFF
-- [ ] Geo retention job: raw GPS deleted after 90d
+- [ ] GitHub `Retention job` workflow succeeds and status endpoint records the run
 - [ ] Sentry + audit log for auth and hidden spot access
 
 ### Database
@@ -90,7 +90,8 @@ eas submit --platform all
 ```
 DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, ENCRYPTION_KEY,
 REDIS_URL, RESEND_API_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
-LOG_LEVEL, ALLOWED_ORIGINS, PORT
+R2_BUCKET, R2_PUBLIC_URL, JOB_SECRET, EMAIL_FROM, DPO_EMAIL,
+NEXT_PUBLIC_APP_URL, LOG_LEVEL, ALLOWED_ORIGINS, PORT
 ```
 
 ### apps/web
@@ -100,5 +101,18 @@ NEXT_PUBLIC_API_URL, NEXT_PUBLIC_MAPBOX_TOKEN, NEXT_PUBLIC_SENTRY_DSN
 
 ### apps/mobile
 ```
-EXPO_PUBLIC_API_URL, EXPO_PUBLIC_MAPBOX_TOKEN
+EXPO_PUBLIC_API_URL, EXPO_PUBLIC_GOOGLE_MAPS_API_KEY, EXPO_PUBLIC_SENTRY_DSN
 ```
+
+## Scheduled retention
+
+The API does not rely on an in-process timer. Configure GitHub repository
+secrets:
+
+```text
+TRAVELPOINT_API_URL=https://api.travelpoint.app
+TRAVELPOINT_JOB_SECRET=<same value as Railway JOB_SECRET>
+```
+
+Run `.github/workflows/retention.yml` manually once after deployment, then
+confirm the daily scheduled run remains green.

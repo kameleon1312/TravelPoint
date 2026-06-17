@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withSpring,
+  useSharedValue, useAnimatedStyle, withSpring,
   FadeIn, FadeInDown,
 } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';

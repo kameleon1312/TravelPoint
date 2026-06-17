@@ -137,6 +137,7 @@ export default function IdentityScreen() {
   const [isDeleting, setIsDeleting]             = useState(false);
   const [presenceToggling, setPresenceToggling] = useState(false);
   const [locationToggling, setLocationToggling] = useState(false);
+  const [homeBaseSaving, setHomeBaseSaving] = useState(false);
   // Real device-level location permission status (checked on mount).
   const [deviceLocationGranted, setDeviceLocationGranted] = useState(false);
 
@@ -278,6 +279,45 @@ export default function IdentityScreen() {
       Alert.alert('Błąd', 'Nie udało się zmienić ustawienia lokalizacji.');
     } finally {
       setLocationToggling(false);
+    }
+  }
+
+  async function setHomeBaseFromLocation() {
+    setHomeBaseSaving(true);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert('Uprawnienie wymagane', 'Zezwól na lokalizację, aby ustawić bazę domową.');
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const homeBase = await api.put<{ lat: number; lng: number }>(
+        '/api/explorers/me/home-base',
+        {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        },
+      );
+      setExplorer({ ...explorer!, homeBase });
+      Alert.alert('Baza domowa zapisana', 'Koordynaty są przechowywane w formie zaszyfrowanej.');
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zapisać bazy domowej.');
+    } finally {
+      setHomeBaseSaving(false);
+    }
+  }
+
+  async function removeHomeBase() {
+    setHomeBaseSaving(true);
+    try {
+      await api.delete('/api/explorers/me/home-base');
+      setExplorer({ ...explorer!, homeBase: undefined });
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się usunąć bazy domowej.');
+    } finally {
+      setHomeBaseSaving(false);
     }
   }
 
@@ -425,6 +465,35 @@ export default function IdentityScreen() {
           <Text style={styles.consentNote}>
             Zgody regulaminowe udzielone: {new Date(explorer.consentTerms ?? '').toLocaleDateString('pl-PL')}
           </Text>
+
+          <View style={styles.homeBaseBlock}>
+            <View style={styles.consentInfo}>
+              <Text style={styles.consentTitle}>Baza domowa</Text>
+              <Text style={styles.consentSub}>
+                {explorer.homeBase
+                  ? 'Zapisana i zaszyfrowana. Nie jest widoczna publicznie.'
+                  : 'Opcjonalna. Pomaga personalizować odkrywanie miejsc.'}
+              </Text>
+            </View>
+            <View style={styles.homeBaseActions}>
+              <SignalButton
+                label={explorer.homeBase ? 'Aktualizuj' : 'Ustaw z GPS'}
+                onPress={setHomeBaseFromLocation}
+                variant="ghost"
+                size="sm"
+                loading={homeBaseSaving}
+              />
+              {explorer.homeBase && (
+                <SignalButton
+                  label="Usuń"
+                  onPress={removeHomeBase}
+                  variant="ghost"
+                  size="sm"
+                  disabled={homeBaseSaving}
+                />
+              )}
+            </View>
+          </View>
         </GlassCard>
 
         <SignalButton
@@ -526,6 +595,13 @@ const styles = StyleSheet.create({
     color: Colors.starGhost, marginTop: Spacing.md,
     borderTopWidth: 1, borderTopColor: Colors.steel, paddingTop: Spacing.md,
   },
+  homeBaseBlock: {
+    gap: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.steel,
+    paddingTop: Spacing.md,
+  },
+  homeBaseActions: { flexDirection: 'row', gap: Spacing.sm },
 
   // Danger zone
   dangerZone: { gap: Spacing.md, paddingTop: Spacing.md },

@@ -20,13 +20,10 @@ export default function NewJourneyModal() {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
-    watch,
   } = useForm<CreateJourneyInput>({
     resolver: zodResolver(CreateJourneySchema),
     defaultValues: { isPrivate: true },
   });
-
-  const isPrivate = watch('isPrivate');
 
   async function onSubmit(data: CreateJourneyInput) {
     setServerError('');

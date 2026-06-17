@@ -41,9 +41,9 @@ export type ResolvedSpot =
       requiredAccess: string;
     };
 
-function isDropActive(spot: SpotRow): boolean {
+export function isDropActive(spot: Pick<SpotRow, 'dropExpiresAt'>, now = new Date()): boolean {
   if (!spot.dropExpiresAt) return false;
-  return spot.dropExpiresAt > new Date();
+  return spot.dropExpiresAt > now;
 }
 
 export async function resolveSpotForViewer(
@@ -51,7 +51,23 @@ export async function resolveSpotForViewer(
   viewer: ViewerContext,
   sessionSeed: number,
   auditFn: (explorerId: string, spotId: string) => Promise<void>,
-): Promise<ResolvedSpot> {
+): Promise<ResolvedSpot | null> {
+  // Expired drops are removed from discovery entirely, including for the
+  // creator. Keeping them addressable would turn an expiry into a UI-only rule.
+  if (spot.accessLevel === 'SECRET_DROP' && !isDropActive(spot)) {
+    return null;
+  }
+
+  // Circle-only spots do not exist outside their circle. Returning even a
+  // fuzzed pin would disclose the circle's activity and spot metadata.
+  if (
+    spot.accessLevel === 'CIRCLE_ONLY' &&
+    spot.ownerId !== viewer.id &&
+    (spot.circleId === null || !viewer.circleIds.includes(spot.circleId))
+  ) {
+    return null;
+  }
+
   const entitled =
     spot.ownerId === viewer.id ||            // owner always sees their own spot
     spot.accessLevel === 'PUBLIC' ||
@@ -59,7 +75,7 @@ export async function resolveSpotForViewer(
     (spot.accessLevel === 'CIRCLE_ONLY' &&
       spot.circleId !== null &&
       viewer.circleIds.includes(spot.circleId)) ||
-    (spot.accessLevel === 'SECRET_DROP' && isDropActive(spot));
+    spot.accessLevel === 'SECRET_DROP';
 
   if (entitled) {
     await auditFn(viewer.id, spot.id);

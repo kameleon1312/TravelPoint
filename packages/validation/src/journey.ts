@@ -27,5 +27,8 @@ export type RouteGeoJson = z.infer<typeof RouteGeoJsonSchema>;
 
 export const UpdateJourneySchema = CreateJourneySchema
   .partial()
-  .extend({ routeGeoJson: RouteGeoJsonSchema.optional() });
+  .extend({
+    routeGeoJson: RouteGeoJsonSchema.optional(),
+    retainRoute: z.boolean().optional(),
+  });
 export type UpdateJourneyInput = z.infer<typeof UpdateJourneySchema>;

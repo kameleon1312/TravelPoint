@@ -8,7 +8,6 @@ import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useCreateCircle } from '@/hooks/useCircles';
-import { pl } from '@/i18n/pl';
 
 const CreateCircleSchema = z.object({
   name: z.string().min(3, 'Minimum 3 znaki').max(50, 'Maksimum 50 znaków'),
