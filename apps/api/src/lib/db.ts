@@ -26,6 +26,8 @@ export function createPool(url = env.databaseUrl): pg.Pool {
     return new pg.Pool({
       connectionString: parsedUrl.toString(),
       ssl,
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000,
     });
   } catch (error) {
     throw new Error('DATABASE_URL is not a valid PostgreSQL URL', { cause: error });

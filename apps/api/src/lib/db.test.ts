@@ -10,6 +10,7 @@ describe('createPool', () => {
     expect(pool.options.connectionString).not.toContain('sslmode=');
     expect(pool.options.connectionString).toContain('application_name=test');
     expect(pool.options.ssl).toEqual({ rejectUnauthorized: false });
+    expect(pool.options.connectionTimeoutMillis).toBe(10_000);
 
     await pool.end();
   });

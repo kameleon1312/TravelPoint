@@ -22,6 +22,8 @@ const RawEnvSchema = z.object({
   R2_BUCKET: z.string().trim().optional(),
   R2_PUBLIC_URL: z.string().url().optional(),
   JOB_SECRET: z.string().trim().optional(),
+  RAILWAY_ENVIRONMENT: z.string().trim().optional(),
+  RAILWAY_PROJECT_ID: z.string().trim().optional(),
 });
 
 function productionSecret(name: string, value: string | undefined, isProduction: boolean): string {
@@ -46,6 +48,11 @@ function requiredInProduction(
   return value;
 }
 
+function optionalValue(value: string | undefined): string | undefined {
+  if (!value || /change_me/i.test(value)) return undefined;
+  return value;
+}
+
 function encryptionKey(value: string | undefined, isProduction: boolean): string | undefined {
   const key = requiredInProduction('ENCRYPTION_KEY', value, isProduction);
   if (!key) return undefined;
@@ -57,9 +64,15 @@ function encryptionKey(value: string | undefined, isProduction: boolean): string
   return key;
 }
 
-function databaseUrl(value: string | undefined, isProduction: boolean): string | undefined {
+function databaseUrl(
+  value: string | undefined,
+  isProduction: boolean,
+  isHostedRuntime: boolean,
+): string | undefined {
   if (!value) {
-    if (isProduction) throw new Error('DATABASE_URL is required in production');
+    if (isProduction || isHostedRuntime) {
+      throw new Error('DATABASE_URL is required in production and hosted runtimes');
+    }
     return undefined;
   }
   try {
@@ -100,6 +113,7 @@ export function loadEnv(source: NodeJS.ProcessEnv) {
 
   const raw = parsed.data;
   const isProduction = raw.NODE_ENV === 'production';
+  const isHostedRuntime = Boolean(raw.RAILWAY_ENVIRONMENT || raw.RAILWAY_PROJECT_ID);
   const accessSecret = productionSecret('JWT_ACCESS_SECRET', raw.JWT_ACCESS_SECRET, isProduction);
   const refreshSecret = productionSecret('JWT_REFRESH_SECRET', raw.JWT_REFRESH_SECRET, isProduction);
   if (accessSecret === refreshSecret) {
@@ -109,7 +123,7 @@ export function loadEnv(source: NodeJS.ProcessEnv) {
   return {
     nodeEnv: raw.NODE_ENV,
     isProduction,
-    databaseUrl: databaseUrl(raw.DATABASE_URL, isProduction),
+    databaseUrl: databaseUrl(raw.DATABASE_URL, isProduction, isHostedRuntime),
     jwtAccessSecret: accessSecret,
     jwtRefreshSecret: refreshSecret,
     allowedOrigins: allowedOrigins(raw.ALLOWED_ORIGINS, isProduction),
@@ -118,20 +132,18 @@ export function loadEnv(source: NodeJS.ProcessEnv) {
     sentryDsn: raw.SENTRY_DSN || undefined,
     appVersion: raw.APP_VERSION,
     encryptionKey: encryptionKey(raw.ENCRYPTION_KEY, isProduction),
-    resendApiKey: requiredInProduction('RESEND_API_KEY', raw.RESEND_API_KEY, isProduction),
-    emailFrom: requiredInProduction('EMAIL_FROM', raw.EMAIL_FROM, isProduction)
-      ?? 'TravelPoint <onboarding@resend.dev>',
-    dpoEmail: requiredInProduction('DPO_EMAIL', raw.DPO_EMAIL, isProduction),
-    appUrl: requiredInProduction('NEXT_PUBLIC_APP_URL', raw.NEXT_PUBLIC_APP_URL, isProduction)
-      ?? 'https://travelpoint.app',
+    resendApiKey: optionalValue(raw.RESEND_API_KEY),
+    emailFrom: optionalValue(raw.EMAIL_FROM) ?? 'TravelPoint <onboarding@resend.dev>',
+    dpoEmail: raw.DPO_EMAIL,
+    appUrl: optionalValue(raw.NEXT_PUBLIC_APP_URL) ?? 'https://travelpoint.app',
     r2: {
-      accountId: requiredInProduction('R2_ACCOUNT_ID', raw.R2_ACCOUNT_ID, isProduction),
-      accessKeyId: requiredInProduction('R2_ACCESS_KEY_ID', raw.R2_ACCESS_KEY_ID, isProduction),
-      secretAccessKey: requiredInProduction('R2_SECRET_ACCESS_KEY', raw.R2_SECRET_ACCESS_KEY, isProduction),
-      bucket: requiredInProduction('R2_BUCKET', raw.R2_BUCKET, isProduction),
-      publicUrl: requiredInProduction('R2_PUBLIC_URL', raw.R2_PUBLIC_URL, isProduction),
+      accountId: optionalValue(raw.R2_ACCOUNT_ID),
+      accessKeyId: optionalValue(raw.R2_ACCESS_KEY_ID),
+      secretAccessKey: optionalValue(raw.R2_SECRET_ACCESS_KEY),
+      bucket: optionalValue(raw.R2_BUCKET),
+      publicUrl: optionalValue(raw.R2_PUBLIC_URL),
     },
-    jobSecret: productionSecret('JOB_SECRET', raw.JOB_SECRET, isProduction),
+    jobSecret: optionalValue(raw.JOB_SECRET),
   } as const;
 }
 

@@ -33,20 +33,43 @@ describe('loadEnv', () => {
     'JWT_ACCESS_SECRET',
     'JWT_REFRESH_SECRET',
     'ENCRYPTION_KEY',
-    'RESEND_API_KEY',
-    'EMAIL_FROM',
-    'DPO_EMAIL',
-    'NEXT_PUBLIC_APP_URL',
-    'R2_ACCOUNT_ID',
-    'R2_ACCESS_KEY_ID',
-    'R2_SECRET_ACCESS_KEY',
-    'R2_BUCKET',
-    'R2_PUBLIC_URL',
-    'JOB_SECRET',
   ])('fails fast when production variable %s is missing', (name) => {
     const source = { ...productionEnv };
     delete source[name];
     expect(() => loadEnv(source)).toThrow();
+  });
+
+  it('starts in production without optional integrations', () => {
+    const source = { ...productionEnv };
+    for (const name of [
+      'RESEND_API_KEY',
+      'EMAIL_FROM',
+      'DPO_EMAIL',
+      'NEXT_PUBLIC_APP_URL',
+      'R2_ACCOUNT_ID',
+      'R2_ACCESS_KEY_ID',
+      'R2_SECRET_ACCESS_KEY',
+      'R2_BUCKET',
+      'R2_PUBLIC_URL',
+      'JOB_SECRET',
+    ]) {
+      delete source[name];
+    }
+
+    expect(loadEnv(source)).toMatchObject({
+      resendApiKey: undefined,
+      emailFrom: 'TravelPoint <onboarding@resend.dev>',
+      dpoEmail: undefined,
+      appUrl: 'https://travelpoint.app',
+      jobSecret: undefined,
+      r2: {
+        accountId: undefined,
+        accessKeyId: undefined,
+        secretAccessKey: undefined,
+        bucket: undefined,
+        publicUrl: undefined,
+      },
+    });
   });
 
   it('rejects insecure origins and malformed encryption keys in production', () => {
@@ -54,5 +77,11 @@ describe('loadEnv', () => {
       .toThrow('Production origin must use HTTPS');
     expect(() => loadEnv({ ...productionEnv, ENCRYPTION_KEY: 'invalid' }))
       .toThrow('ENCRYPTION_KEY must be valid base64');
+  });
+
+  it('requires DATABASE_URL on Railway even when NODE_ENV is not production', () => {
+    expect(() => loadEnv({ RAILWAY_ENVIRONMENT: 'production' })).toThrow(
+      'DATABASE_URL is required in production and hosted runtimes',
+    );
   });
 });

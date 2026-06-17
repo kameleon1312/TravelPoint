@@ -156,6 +156,9 @@ export async function moderationRoutes(app: FastifyInstance) {
   });
 
   app.post('/internal/jobs/retention', async (req, reply) => {
+    if (!env.jobSecret) {
+      return reply.status(503).send({ code: 'JOB_SECRET_NOT_CONFIGURED' });
+    }
     if (req.headers['x-job-secret'] !== env.jobSecret) {
       return reply.status(401).send({ code: 'UNAUTHORIZED' });
     }
@@ -163,6 +166,9 @@ export async function moderationRoutes(app: FastifyInstance) {
   });
 
   app.get('/internal/jobs/retention/status', async (req, reply) => {
+    if (!env.jobSecret) {
+      return reply.status(503).send({ code: 'JOB_SECRET_NOT_CONFIGURED' });
+    }
     if (req.headers['x-job-secret'] !== env.jobSecret) {
       return reply.status(401).send({ code: 'UNAUTHORIZED' });
     }
