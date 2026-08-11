@@ -22,11 +22,12 @@ interface ForumPost {
 }
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = await getForumPost(params.slug);
+  const { slug } = await params;
+  const post = await getForumPost(slug);
   if (!post) return { title: 'Forum — TravelPoint' };
   return {
     title: `${post.title} — Forum`,
@@ -40,7 +41,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ForumPostPage({ params }: Props): Promise<React.JSX.Element> {
-  const post = await getForumPost(params.slug);
+  const { slug } = await params;
+  const post = await getForumPost(slug);
   if (!post) notFound();
 
   return (

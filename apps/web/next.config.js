@@ -13,10 +13,8 @@ const nextConfig = {
     '@travelpoint/validation',
     '@travelpoint/api-client',
   ],
-  experimental: {
-    // mapbox-gl uses browser APIs — exclude from server-side bundling
-    serverComponentsExternalPackages: ['mapbox-gl'],
-  },
+  // mapbox-gl uses browser APIs — exclude from server-side bundling
+  serverExternalPackages: ['mapbox-gl'],
   webpack(config) {
     // Alias each workspace package to its TypeScript source so Next.js
     // transpiles them directly — no build step needed in dev.

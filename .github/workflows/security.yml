@@ -32,4 +32,4 @@ jobs:
         run: pnpm security:secrets
 
       - name: Dependency audit
-        run: pnpm audit --audit-level high
+        run: pnpm security:audit
