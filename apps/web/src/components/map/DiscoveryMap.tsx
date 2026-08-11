@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import Link from 'next/link';
 import type mapboxgl from 'mapbox-gl';
 import type { ProjectionSpecification, FogSpecification } from 'mapbox-gl';
 import { SpotPanel, type PublicSpot } from './SpotPanel';
@@ -260,12 +261,12 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
               <p className="font-mono text-[10px] text-starGhost">
                 <span className="text-aurora">{spots.length}</span> odkryć na mapie
               </p>
-              <a
+              <Link
                 href="/#join"
                 className="rounded-full bg-aurora px-3.5 py-2 font-sans text-xs font-semibold text-void transition-all hover:brightness-110"
               >
                 Dołącz →
-              </a>
+              </Link>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 export interface PublicSpot {
   id: string;
@@ -114,13 +115,13 @@ export function SpotPanel({ spot, onClose }: Props): React.JSX.Element {
 
             {/* CTA */}
             <div className="p-5 border-t border-steel">
-              <a
+              <Link
                 href="/#join"
                 className="block w-full py-3 rounded-xl text-center font-sans font-semibold text-sm
                            bg-aurora/90 text-void hover:bg-aurora transition-colors duration-200"
               >
                 Odblokuj w CORE →
-              </a>
+              </Link>
               <p className="font-mono text-[10px] text-starGhost text-center mt-2">
                 Sieć eksploratorów na zaproszenia
               </p>
