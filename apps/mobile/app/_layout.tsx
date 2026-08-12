@@ -6,7 +6,7 @@ const sentryDsn =
   (Constants.expoConfig?.extra as { sentryDsn?: string } | undefined)?.sentryDsn ??
   process.env['EXPO_PUBLIC_SENTRY_DSN'];
 
-if (sentryDsn) {
+if (sentryDsn && !__DEV__) {
   Sentry.init({
     dsn: sentryDsn,
     environment:         process.env.NODE_ENV ?? 'production',
