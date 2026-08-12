@@ -127,6 +127,7 @@ export default function JoinScreen() {
                       value={value}
                       onChangeText={onChange}
                     />
+                    <Text style={styles.hint}>Min. 12 znaków · wielka litera · cyfra · znak specjalny</Text>
                     {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
                   </View>
                 )}
@@ -246,6 +247,12 @@ const styles = StyleSheet.create({
     color: Colors.starlight,
   },
   inputError: { borderColor: Colors.danger },
+  hint: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: FontSize.caption,
+    color: Colors.starFaint,
+    marginLeft: Spacing.sm,
+  },
   error: {
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.caption,

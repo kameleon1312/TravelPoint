@@ -4,9 +4,10 @@ const isDev = process.env.NODE_ENV === 'development';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Keep development output separate from production builds. This prevents
-  // `next build` from invalidating chunks served by a running dev server.
   distDir: isDev ? '.next-dev' : '.next',
+  // Tell Next.js the monorepo root so it doesn't mistake a stale package-lock.json
+  // in the user's home directory for the workspace root.
+  outputFileTracingRoot: path.resolve(__dirname, '../../'),
   transpilePackages: [
     '@travelpoint/theme',
     '@travelpoint/types',
@@ -16,8 +17,6 @@ const nextConfig = {
   // mapbox-gl uses browser APIs — exclude from server-side bundling
   serverExternalPackages: ['mapbox-gl'],
   webpack(config) {
-    // Alias each workspace package to its TypeScript source so Next.js
-    // transpiles them directly — no build step needed in dev.
     const pkgRoot = path.resolve(__dirname, '../../packages');
     config.resolve.alias = {
       ...config.resolve.alias,

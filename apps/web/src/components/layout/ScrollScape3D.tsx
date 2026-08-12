@@ -127,17 +127,17 @@ function StarField() {
   return null;
 }
 
-// ─── Terrain (PolyHaven CC0) ──────────────────────────────────────────────────
-const PH = 'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k';
+// ─── Terrain ──────────────────────────────────────────────────────────────────
+// Textures served from /public/textures/ (downloaded from PolyHaven CC0).
 
 function AmazonCanopy() {
   const meshRef = useRef<THREE.Mesh>(null!);
   const { camera } = useThree();
 
   const [d, n, r] = useTexture([
-    `${PH}/forest_leaves_02/forest_leaves_02_diffuse_1k.jpg`,
-    `${PH}/forest_leaves_02/forest_leaves_02_nor_gl_1k.jpg`,
-    `${PH}/forest_leaves_02/forest_leaves_02_rough_1k.jpg`,
+    '/textures/forest_leaves_diff.jpg',
+    '/textures/forest_leaves_nor.jpg',
+    '/textures/forest_leaves_rough.jpg',
   ]);
   useMemo(() => {
     for (const tx of [d, n, r]) { tx!.wrapS = tx!.wrapT = THREE.RepeatWrapping; tx!.repeat.set(10, 10); }
@@ -175,9 +175,9 @@ function ForestFloor() {
   const { camera } = useThree();
 
   const [d, n, r] = useTexture([
-    `${PH}/leaves_forest_ground/leaves_forest_ground_diff_1k.jpg`,
-    `${PH}/leaves_forest_ground/leaves_forest_ground_nor_gl_1k.jpg`,
-    `${PH}/leaves_forest_ground/leaves_forest_ground_rough_1k.jpg`,
+    '/textures/forest_ground_diff.jpg',
+    '/textures/forest_ground_nor.jpg',
+    '/textures/forest_ground_rough.jpg',
   ]);
   useMemo(() => {
     for (const tx of [d, n, r]) { tx!.wrapS = tx!.wrapT = THREE.RepeatWrapping; tx!.repeat.set(8, 8); }

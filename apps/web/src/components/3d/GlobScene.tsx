@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Sphere, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -50,21 +50,21 @@ export function GlobScene(): React.JSX.Element {
       camera={{ position: [0, 0, 6], fov: 45 }}
       dpr={[1, 1.5]}
       gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
+      onCreated={({ gl, scene }) => {
+        // R3F v9 does not auto-clear to transparent — must be set explicitly.
+        gl.setClearColor(0, 0, 0, 0);
+        scene.background = null;
+      }}
       resize={{ debounce: 0, scroll: false }}
       style={{ background: 'transparent', width: '100%', height: '100%', display: 'block' }}
     >
       <CameraResponsive />
-
-      {/* Soft ambient — keeps night side visible */}
       <ambientLight intensity={0.15} color={Colors.star} />
-
-      {/* Main sun light — warm white from upper-right */}
       <directionalLight position={[5, 3, 5]} intensity={2.4} color="#fff8f0" />
-
-      {/* Subtle cold fill from behind — deep space */}
       <directionalLight position={[-4, -2, -5]} intensity={0.2} color="#8ab0d0" />
-
-      <EarthGlobe />
+      <Suspense fallback={null}>
+        <EarthGlobe />
+      </Suspense>
     </Canvas>
   );
 }
