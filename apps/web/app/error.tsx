@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import type { ReactElement } from 'react';
+import Link from 'next/link';
 
 interface Props {
   error: Error & { digest?: string };
@@ -41,12 +42,12 @@ export default function ErrorBoundary({ error, reset }: Props): ReactElement {
           >
             Spróbuj ponownie
           </button>
-          <a
+          <Link
             href="/"
             className="rounded-full border border-[#253035] px-7 py-3 font-sans font-medium text-[#C4B9AC] transition hover:border-[#5CB88C]"
           >
             Strona główna
-          </a>
+          </Link>
         </div>
       </div>
     </main>

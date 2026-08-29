@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ReactElement } from 'react';
 
 interface JournalPost {
@@ -39,7 +39,7 @@ export default function AdminJournalPage(): ReactElement {
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
 
-  async function apiFetch(path: string, init?: RequestInit) {
+  const apiFetch = useCallback(async (path: string, init?: RequestInit) => {
     const res = await fetch(`${API_URL}${path}`, {
       ...init,
       headers: {
@@ -54,9 +54,9 @@ export default function AdminJournalPage(): ReactElement {
     }
     if (res.status === 204) return null;
     return res.json();
-  }
+  }, [token]);
 
-  async function loadPosts() {
+  const loadPosts = useCallback(async () => {
     if (!token) return;
     try {
       const data = await apiFetch('/api/journal/posts') as JournalPost[];
@@ -65,9 +65,9 @@ export default function AdminJournalPage(): ReactElement {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Błąd pobierania postów');
     }
-  }
+  }, [token, apiFetch]);
 
-  useEffect(() => { void loadPosts(); }, [token]);
+  useEffect(() => { void loadPosts(); }, [loadPosts]);
 
   function startEdit(post: JournalPost) {
     setEditingId(post.id);

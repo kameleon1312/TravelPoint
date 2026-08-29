@@ -131,13 +131,15 @@ export function loadEnv(source: NodeJS.ProcessEnv) {
     throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different');
   }
 
+  const supabaseJwtSecret = productionSecret('SUPABASE_JWT_SECRET', raw.SUPABASE_JWT_SECRET, isProduction);
+
   return {
     nodeEnv: raw.NODE_ENV,
     isProduction,
     databaseUrl: databaseUrl(raw.DATABASE_URL, isProduction, isHostedRuntime),
     jwtAccessSecret: accessSecret,
     jwtRefreshSecret: refreshSecret,
-    supabaseJwtSecret: raw.SUPABASE_JWT_SECRET ?? '',
+    supabaseJwtSecret,
     supabaseUrl: raw.SUPABASE_URL ?? '',
     supabaseServiceRoleKey: raw.SUPABASE_SERVICE_ROLE_KEY ?? '',
     allowedOrigins: allowedOrigins(raw.ALLOWED_ORIGINS, isProduction),

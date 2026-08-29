@@ -6,10 +6,9 @@ import { env } from '../config/env';
  * Używaj TYLKO w testach — nie w kodzie produkcyjnym.
  */
 export function createTestToken(supabaseId: string, email = 'test@travelpoint.app'): string {
-  const secret = env.supabaseJwtSecret || 'test-only-insecure-secret';
   return jwt.sign(
     { sub: supabaseId, email, role: 'authenticated', iss: 'supabase' },
-    secret,
+    env.supabaseJwtSecret,
     { expiresIn: '1h' },
   );
 }

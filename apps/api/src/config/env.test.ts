@@ -6,6 +6,7 @@ const productionEnv = {
   DATABASE_URL: 'postgresql://user:pass@db.example.com:5432/travelpoint',
   JWT_ACCESS_SECRET: 'a'.repeat(32),
   JWT_REFRESH_SECRET: 'b'.repeat(32),
+  SUPABASE_JWT_SECRET: 'c'.repeat(32),
   ALLOWED_ORIGINS: 'https://travelpoint.app',
   ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
   RESEND_API_KEY: 're_production_key',
