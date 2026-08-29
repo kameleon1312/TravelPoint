@@ -4,8 +4,7 @@
   "buildCommand": "cd ../.. && pnpm -w run build:packages && cd apps/web && pnpm build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/web packages",
-  "regions": ["fra1"],
+"regions": ["fra1"],
   "headers": [
     {
       "source": "/api/(.*)",
