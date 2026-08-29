@@ -73,20 +73,43 @@ export async function moderationRoutes(app: FastifyInstance) {
     return reply.status(204).send();
   });
 
-  app.get('/api/admin/reports', { preHandler: [requireModerator] }, async (req) => {
-    const status = (req.query as { status?: ReportStatus }).status;
-    return app.prisma.report.findMany({
-      where: status && REPORT_STATUSES.includes(status) ? { status } : {},
-      include: {
-        reporter: { select: { id: true, handle: true } },
-        targetExplorer: { select: { id: true, handle: true, suspendedAt: true } },
-        spot: { select: { id: true, title: true } },
-        forumPost: { select: { id: true, title: true, slug: true } },
-        forumReply: { select: { id: true, body: true, postId: true } },
-      },
-      orderBy: { createdAt: 'asc' },
-      take: 200,
-    });
+  app.get('/api/admin/reports', { preHandler: [requireModerator] }, async (req, reply) => {
+    const query = req.query as { status?: ReportStatus; type?: string; page?: string; limit?: string };
+    const status = query.status;
+    const type = query.type;
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.min(Math.max(Number(query.limit ?? 50), 1), 100);
+    const skip = (page - 1) * limit;
+
+    const typeFilter = type === 'explorer' ? { targetExplorerId: { not: null } }
+      : type === 'spot' ? { spotId: { not: null } }
+      : type === 'forum' ? { forumPostId: { not: null } }
+      : type === 'transmission' ? { transmissionId: { not: null } }
+      : {};
+
+    const where = {
+      ...(status && REPORT_STATUSES.includes(status) ? { status } : {}),
+      ...typeFilter,
+    };
+
+    const [reports, total] = await Promise.all([
+      app.prisma.report.findMany({
+        where,
+        include: {
+          reporter: { select: { id: true, handle: true } },
+          targetExplorer: { select: { id: true, handle: true, suspendedAt: true } },
+          spot: { select: { id: true, title: true } },
+          forumPost: { select: { id: true, title: true, slug: true } },
+          forumReply: { select: { id: true, body: true, postId: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+        skip,
+        take: limit,
+      }),
+      app.prisma.report.count({ where }),
+    ]);
+
+    return reply.send({ reports, total, page, limit, pages: Math.ceil(total / limit) });
   });
 
   app.patch('/api/admin/reports/:id', { preHandler: [requireModerator] }, async (req, reply) => {

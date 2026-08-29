@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@prisma/client';
+import type { SignalType as PrismaSignalType } from '@prisma/client';
 import { requireAuth } from '../middleware/requireAuth';
 import type { SignalType } from '@travelpoint/types';
 
@@ -32,7 +33,8 @@ export async function pushSignal(
   payload: Record<string, unknown>,
   dedupeKey?: string,
 ): Promise<void> {
-  const data = { explorerId, type, payload: payload as Prisma.InputJsonValue, dedupeKey };
+  // Cast needed: packages/types includes FORUM_REPLY which is pending migration on DB
+  const data = { explorerId, type: type as PrismaSignalType, payload: payload as Prisma.InputJsonValue, dedupeKey };
   const signal = dedupeKey
     ? await app.prisma.signal.upsert({
         where: { dedupeKey },

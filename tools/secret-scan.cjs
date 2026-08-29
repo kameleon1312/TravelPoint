@@ -18,6 +18,9 @@ const patterns = [
 const allowlistedFiles = new Set([
   '.env.example',
   'docs/SPRINT_1_2_COMPLETION_RUNBOOK.md',
+  // EXPO_PUBLIC_ vars are intentionally embedded in the app bundle (public by design).
+  // Supabase anon key grants only anonymous DB access. Google Maps key is bundle-ID restricted.
+  'apps/mobile/eas.json',
 ]);
 
 let failed = false;

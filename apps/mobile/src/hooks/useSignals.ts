@@ -11,6 +11,7 @@ const SIGNAL_LABELS: Record<SignalType, string> = {
   SECRET_DROP:     'Secret drop aktywny',
   JOURNEY_LIKE:    'Reakcja na journey',
   TRANSMISSION:    'Nowa transmisja',
+  FORUM_REPLY:     'Odpowiedź na forum',
 };
 
 const SIGNAL_ICONS: Record<SignalType, string> = {
@@ -20,6 +21,7 @@ const SIGNAL_ICONS: Record<SignalType, string> = {
   SECRET_DROP:     '◉',
   JOURNEY_LIKE:    '◎',
   TRANSMISSION:    '◐',
+  FORUM_REPLY:     '◇',
 };
 
 export { SIGNAL_LABELS, SIGNAL_ICONS };

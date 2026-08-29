@@ -1,0 +1,2 @@
+-- Add FORUM_REPLY to SignalType enum
+ALTER TYPE "SignalType" ADD VALUE IF NOT EXISTS 'FORUM_REPLY';

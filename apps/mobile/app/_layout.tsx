@@ -18,9 +18,10 @@ if (sentryDsn && !__DEV__) {
   });
 }
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { Stack, router } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
+import { replayOfflineQueue } from '@/stores/offlineQueue';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -66,6 +67,7 @@ const queryClient = new QueryClient({
 function AuthGate() {
   const { rehydrate, initialize, isLoading, isAuthenticated } = useAuthStore();
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
+  const appState = useRef(AppState.currentState);
 
   // Wire up deep-link handler: notification tap → navigate to correct screen.
   useEffect(() => {
@@ -97,9 +99,18 @@ function AuthGate() {
     void hydrateQueryCache(queryClient);
     const unsubscribeQuery = subscribeQueryPersistence(queryClient);
     const unsubscribeAuth = initialize();
+
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+        void replayOfflineQueue();
+      }
+      appState.current = nextState;
+    });
+
     return () => {
       unsubscribeQuery();
       unsubscribeAuth();
+      appStateSub.remove();
     };
   }, []);
 

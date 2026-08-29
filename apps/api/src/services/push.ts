@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { logger } from '../lib/logger';
+import { storePendingTicket } from './pushReceipts';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
@@ -21,16 +22,15 @@ interface ExpoPushTicket {
   details?: { error?: string };
 }
 
-// ─── Send one or many push messages ──────────────────────────────────────────
-async function sendBatch(messages: ExpoPushMessage[]): Promise<void> {
-  if (messages.length === 0) return;
+async function sendBatch(messages: ExpoPushMessage[]): Promise<ExpoPushTicket[]> {
+  if (messages.length === 0) return [];
 
   try {
     const res = await fetch(EXPO_PUSH_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Accept-Encoding': 'gzip, deflate',
       },
       body: JSON.stringify(messages),
@@ -38,32 +38,49 @@ async function sendBatch(messages: ExpoPushMessage[]): Promise<void> {
 
     if (!res.ok) {
       logger.warn({ status: res.status }, 'Expo Push API non-2xx response');
-      return;
+      return [];
     }
 
-    const { data }: { data: ExpoPushTicket[] } = await res.json() as { data: ExpoPushTicket[] };
-    for (const ticket of data) {
-      if (ticket.status === 'error') {
-        logger.warn({ ticket }, 'Expo Push ticket error');
-      }
-    }
+    const { data } = await res.json() as { data: ExpoPushTicket[] };
+    return data;
   } catch (err) {
     logger.error({ err }, 'Expo Push send failed — non-fatal');
+    return [];
   }
 }
 
-// ─── Send push to a specific token ───────────────────────────────────────────
-export async function sendPush(
-  token: string,
-  title: string,
-  body: string,
-  data?: Record<string, unknown>,
+async function handleTickets(
+  tickets: ExpoPushTicket[],
+  tokens: string[],
+  prisma: PrismaClient,
 ): Promise<void> {
-  if (!token || !token.startsWith('ExponentPushToken')) return;
-  await sendBatch([{ to: token, title, body, sound: 'default', priority: 'high', data }]);
+  const unregistered: string[] = [];
+
+  for (let i = 0; i < tickets.length; i++) {
+    const ticket = tickets[i];
+    const token = tokens[i];
+    if (!ticket || !token) continue;
+
+    if (ticket.status === 'ok' && ticket.id) {
+      storePendingTicket(ticket.id, token);
+    } else if (ticket.status === 'error') {
+      if (ticket.details?.error === 'DeviceNotRegistered') {
+        unregistered.push(token);
+      } else {
+        logger.warn({ ticket }, 'Expo Push ticket error');
+      }
+    }
+  }
+
+  if (unregistered.length > 0) {
+    await prisma.explorer.updateMany({
+      where: { pushToken: { in: unregistered } },
+      data: { pushToken: null },
+    });
+    logger.info({ count: unregistered.length }, 'Cleared unregistered push tokens at send time');
+  }
 }
 
-// ─── Resolve explorer's push token from DB and send ──────────────────────────
 export async function sendPushToExplorer(
   prisma: PrismaClient,
   explorerId: string,
@@ -75,11 +92,13 @@ export async function sendPushToExplorer(
     where: { id: explorerId },
     select: { pushToken: true },
   });
-  if (!explorer?.pushToken) return;
-  await sendPush(explorer.pushToken, title, body, data);
+  const token = explorer?.pushToken;
+  if (!token || !token.startsWith('ExponentPushToken')) return;
+
+  const tickets = await sendBatch([{ to: token, title, body, sound: 'default', priority: 'high', data }]);
+  await handleTickets(tickets, [token], prisma);
 }
 
-// ─── Send push to multiple explorers (e.g. circle members) ───────────────────
 export async function sendPushToMany(
   prisma: PrismaClient,
   explorerIds: string[],
@@ -94,16 +113,32 @@ export async function sendPushToMany(
     select: { pushToken: true },
   });
 
-  const messages: ExpoPushMessage[] = explorers
-    .filter((e: { pushToken: string | null }): e is { pushToken: string } => !!e.pushToken && e.pushToken.startsWith('ExponentPushToken'))
-    .map((e: { pushToken: string }) => ({
-      to: e.pushToken,
-      title,
-      body,
-      sound: 'default' as const,
-      priority: 'high' as const,
-      data,
-    }));
+  const tokens = explorers
+    .filter((e): e is { pushToken: string } => !!e.pushToken && e.pushToken.startsWith('ExponentPushToken'))
+    .map((e) => e.pushToken);
 
-  await sendBatch(messages);
+  if (tokens.length === 0) return;
+
+  const messages = tokens.map((to) => ({
+    to,
+    title,
+    body,
+    sound: 'default' as const,
+    priority: 'high' as const,
+    data,
+  }));
+
+  const tickets = await sendBatch(messages);
+  await handleTickets(tickets, tokens, prisma);
+}
+
+// Kept for ad-hoc use where prisma is not available
+export async function sendPush(
+  token: string,
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+): Promise<void> {
+  if (!token || !token.startsWith('ExponentPushToken')) return;
+  await sendBatch([{ to: token, title, body, sound: 'default', priority: 'high', data }]);
 }

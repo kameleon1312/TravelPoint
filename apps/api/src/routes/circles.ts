@@ -5,6 +5,7 @@ import { inviteErrorMessage, validateInvite } from '../services/inviteCodes';
 import crypto from 'crypto';
 import { pushSignal } from './signals';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
+import { sendPushToExplorer } from '../services/push';
 
 export async function circleRoutes(app: FastifyInstance) {
   // GET /api/circles — list public circles
@@ -240,6 +241,13 @@ export async function circleRoutes(app: FastifyInstance) {
         'CIRCLE_INVITE',
         { circleId: circle.id, circleName: circle.name, code },
         `circle-invite:${circle.id}:${recipientId}:${code}`,
+      );
+      void sendPushToExplorer(
+        app.prisma,
+        recipientId,
+        'Zaproszenie do circle',
+        `Zostałeś zaproszony do circle ${circle.name}`,
+        { type: 'circle_invite', circleId: circle.id, circleName: circle.name, code },
       );
     }
     return reply.status(201).send({ code });

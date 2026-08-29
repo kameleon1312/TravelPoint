@@ -1,12 +1,14 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
 import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 import { verifySupabaseJwt } from '../middleware/requireAuth';
 import { logger } from '../lib/logger';
 import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
 import { sendPushToMany } from '../services/push';
 import { hasCircleMembership } from '../services/circleAccess';
 import { env } from '../config/env';
+import { getRedisPub, getRedisSub } from '../lib/redis';
 import {
   getAllowedCircleRecipientIds,
   getBlockedExplorerIds,
@@ -42,6 +44,15 @@ export default fp(async (app: FastifyInstance) => {
       credentials: true,
     },
   });
+
+  const pub = getRedisPub();
+  const sub = getRedisSub();
+  if (pub && sub) {
+    io.adapter(createAdapter(pub, sub));
+    logger.info('Socket.IO using Redis adapter');
+  } else {
+    logger.info('Socket.IO using in-memory adapter (no REDIS_URL)');
+  }
 
   io.use(async (socket, next) => {
     const token = socket.handshake.auth['token'] as string | undefined;

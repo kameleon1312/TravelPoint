@@ -594,6 +594,7 @@ enum SignalType {
   SECRET_DROP
   JOURNEY_LIKE
   TRANSMISSION
+  FORUM_REPLY
 }
 
 enum InvitePurpose {

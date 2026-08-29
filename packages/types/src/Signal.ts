@@ -4,7 +4,8 @@ export type SignalType =
   | 'CIRCLE_INVITE'
   | 'SECRET_DROP'
   | 'JOURNEY_LIKE'
-  | 'TRANSMISSION';
+  | 'TRANSMISSION'
+  | 'FORUM_REPLY';
 
 export interface Signal {
   id: string;

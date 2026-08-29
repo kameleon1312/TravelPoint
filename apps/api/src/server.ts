@@ -24,6 +24,7 @@ import { journalRoutes } from './routes/journal';
 import { logger } from './lib/logger';
 import { env } from './config/env';
 import { getRedis } from './lib/redis';
+import { checkPushReceipts } from './services/pushReceipts';
 
 const app = Fastify({ logger: false });
 
@@ -85,6 +86,12 @@ async function bootstrap() {
 
   await app.listen({ port: env.port, host: '0.0.0.0' });
   logger.info(`TravelPoint ENGINE running on :${env.port}`);
+
+  // Check Expo push receipts every 30 minutes to clean up invalid tokens
+  const RECEIPT_INTERVAL_MS = 30 * 60 * 1000;
+  setInterval(() => {
+    void checkPushReceipts(app.prisma);
+  }, RECEIPT_INTERVAL_MS);
 }
 
 async function checkRedis(): Promise<'ok' | 'disabled' | 'unavailable'> {

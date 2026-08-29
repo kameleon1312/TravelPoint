@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { enqueueOfflineMutation } from '../stores/offlineQueue';
 
 export const API_BASE_URL = (
   process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:4000'
@@ -59,13 +60,34 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
   return res.json() as Promise<T>;
 }
 
+type MutationMethod = 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+async function mutation<T>(
+  method: MutationMethod,
+  path: string,
+  body?: unknown,
+  queue = true,
+): Promise<T> {
+  const init: RequestInit = { method };
+  if (body !== undefined) init.body = JSON.stringify(body);
+  try {
+    return await request<T>(path, init);
+  } catch (err) {
+    if (queue && err instanceof ApiError && err.code === 'NETWORK_ERROR') {
+      void enqueueOfflineMutation(method, path, body);
+    }
+    throw err;
+  }
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  put: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
-  patch: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  post: <T>(path: string, body: unknown, queue?: boolean) =>
+    mutation<T>('POST', path, body, queue),
+  put: <T>(path: string, body: unknown, queue?: boolean) =>
+    mutation<T>('PUT', path, body, queue),
+  patch: <T>(path: string, body: unknown, queue?: boolean) =>
+    mutation<T>('PATCH', path, body, queue),
+  delete: <T>(path: string, queue?: boolean) =>
+    mutation<T>('DELETE', path, undefined, queue),
 };

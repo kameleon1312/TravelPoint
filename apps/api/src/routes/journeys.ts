@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { CreateJourneySchema, UpdateJourneySchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
+import { sendPushToExplorer } from '../services/push';
 
 export async function journeyRoutes(app: FastifyInstance) {
   // GET /api/journeys/me — own journeys
@@ -117,6 +118,13 @@ export async function journeyRoutes(app: FastifyInstance) {
       },
       update: {},
     });
+    void sendPushToExplorer(
+      app.prisma,
+      journey.explorerId,
+      'Nowy sygnał',
+      'Ktoś polubił Twoją podróż',
+      { type: 'journey_like', journeyId: id, explorerId: req.explorerId },
+    );
     return reply.status(201).send(like);
   });
 
