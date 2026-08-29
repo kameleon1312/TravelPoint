@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @travelpoint/web build",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install --frozen-lockfile",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm -w run build:packages && cd apps/web && pnpm build",
+  "outputDirectory": ".next",
   "framework": "nextjs",
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/web packages",
   "regions": ["fra1"],

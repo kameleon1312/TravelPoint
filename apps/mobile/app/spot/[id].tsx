@@ -10,10 +10,7 @@ import Animated, {
   FadeIn, FadeInDown,
 } from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
-// expo-image-picker uses a native module that requires a custom dev-client build.
-// We load it dynamically so the module never crashes on load when the native
-// module is absent (e.g. Expo Go or an old dev-client build).
-import type * as ImagePickerTypes from 'expo-image-picker';
+import * as ImagePickerTypes from 'expo-image-picker';
 import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
@@ -104,77 +101,42 @@ function PhotoItem({
 }
 
 // ─── ImagePicker panel ────────────────────────────────────────────────────────
-// expo-image-picker requires a native dev-client build. When the native module
-// is absent (Expo Go / old build), we fall back to a URL text input so the
-// screen still loads and photos can still be added.
 
-type IpModule = typeof ImagePickerTypes;
-
-async function tryLoadImagePicker(): Promise<IpModule | null> {
-  try {
-    // Dynamic import — evaluated lazily, so a missing native module only
-    // throws when the user tries to use the picker, not on screen load.
-    const mod = await import('expo-image-picker');
-    // Confirm the native module is actually present before returning.
-    await (mod as IpModule).requestMediaLibraryPermissionsAsync();
-    return mod as IpModule;
-  } catch {
-    return null;
-  }
-}
 
 function AddPhotoPanel({
   spotId,
   onDone,
 }: { spotId: string; onDone: () => void }) {
-  const [caption, setCaption]         = useState('');
-  const [preview, setPreview]         = useState<string | null>(null);
-  const [selected, setSelected]       = useState<{ uri: string; mimeType: string } | null>(null);
-  const [urlInput, setUrlInput]       = useState('');
-  const [pickerAvailable, setPickerAvailable] = useState<boolean | null>(null);
+  const [caption, setCaption] = useState('');
+  const [preview, setPreview] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{ uri: string; mimeType: string } | null>(null);
   const upload = useUploadSpotPhoto();
 
-  // Probe for native module availability once on mount.
-  useEffect(() => {
-    void (async () => {
-      try {
-        await import('expo-image-picker');
-        setPickerAvailable(true);
-      } catch {
-        setPickerAvailable(false);
-      }
-    })();
-  }, []);
-
   async function pickFromSource(useCamera: boolean) {
-    const picker = await tryLoadImagePicker();
-    if (!picker) {
-      Alert.alert('Brak obsługi', 'Picker niedostępny w tej wersji build. Użyj URL.');
-      setPickerAvailable(false);
-      return;
+    try {
+      const perm = useCamera
+        ? await ImagePickerTypes.requestCameraPermissionsAsync()
+        : await ImagePickerTypes.requestMediaLibraryPermissionsAsync();
+
+      if (perm.status !== 'granted') {
+        Alert.alert(pl.common.error, pl.photos.permissionDenied);
+        return;
+      }
+
+      const result = useCamera
+        ? await ImagePickerTypes.launchCameraAsync({ mediaTypes: ['images'], quality: 0.82, exif: false })
+        : await ImagePickerTypes.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.82, exif: false, selectionLimit: 1 });
+
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      setPreview(asset.uri);
+      setSelected({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
+    } catch {
+      Alert.alert(pl.common.error, pl.photos.uploadFailed);
     }
-
-    const perm = useCamera
-      ? await picker.requestCameraPermissionsAsync()
-      : await picker.requestMediaLibraryPermissionsAsync();
-
-    if (perm.status !== 'granted') {
-      Alert.alert(pl.common.error, pl.photos.permissionDenied);
-      return;
-    }
-
-    const result = useCamera
-      ? await picker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7, exif: false })
-      : await picker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, exif: false, selectionLimit: 1 });
-
-    if (result.canceled || !result.assets?.[0]) return;
-
-    const asset = result.assets[0];
-    setPreview(asset.uri);
-    setSelected({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
   }
 
-  async function handleUploadBase64() {
+  async function handleUpload() {
     if (!selected) return;
     try {
       await upload.mutateAsync({
@@ -184,33 +146,24 @@ function AddPhotoPanel({
         caption: caption.trim() || undefined,
       });
       onDone();
-    } catch { Alert.alert(pl.common.error, pl.photos.uploadFailed); }
-  }
-
-  async function handleUploadUrl() {
-    const url = urlInput.trim();
-    if (!url) return;
-    Alert.alert(pl.common.error, 'Wybierz zdjęcie z aparatu lub galerii.');
+    } catch {
+      Alert.alert(pl.common.error, pl.photos.uploadFailed);
+    }
   }
 
   function handleCancel() {
     setPreview(null);
     setSelected(null);
     setCaption('');
-    setUrlInput('');
     onDone();
   }
-
-  // pickerAvailable === null means we're still probing.
-  const useNativePicker = pickerAvailable === true;
-  const useUrlFallback  = pickerAvailable === false;
 
   return (
     <Animated.View entering={FadeInDown.duration(280)} style={styles.addPhotoPanel}>
       <Text style={styles.addPhotoTitle}>{pl.photos.addPhoto}</Text>
 
-      {/* ── Native picker mode (expo-image-picker available) ── */}
-      {useNativePicker && !preview && (
+      {/* Source picker — camera / gallery */}
+      {!preview && (
         <View style={styles.addPhotoSourceRow}>
           <Pressable style={styles.addPhotoSourceBtn} onPress={() => void pickFromSource(true)}>
             <Text style={styles.addPhotoSourceIcon}>📷</Text>
@@ -224,7 +177,7 @@ function AddPhotoPanel({
       )}
 
       {/* Preview after picking */}
-      {useNativePicker && preview && (
+      {preview && (
         <View style={styles.previewContainer}>
           <Image source={{ uri: preview }} style={styles.previewImg} resizeMode="cover" />
           <Pressable
@@ -237,23 +190,8 @@ function AddPhotoPanel({
         </View>
       )}
 
-      {/* ── URL fallback mode (native module absent) ── */}
-      {useUrlFallback && (
-        <TextInput
-          style={styles.addPhotoInput}
-          value={urlInput}
-          onChangeText={setUrlInput}
-          placeholder="https://... (URL zdjęcia)"
-          placeholderTextColor={Colors.starGhost}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          autoFocus
-        />
-      )}
-
-      {/* Caption — shown in both modes when image/URL is ready */}
-      {((useNativePicker && preview) || (useUrlFallback && urlInput.trim())) && (
+      {/* Caption — only after picking */}
+      {preview && (
         <TextInput
           style={styles.addPhotoInput}
           value={caption}
@@ -264,43 +202,20 @@ function AddPhotoPanel({
         />
       )}
 
-      {/* Probing spinner */}
-      {pickerAvailable === null && (
-        <ActivityIndicator color={Colors.aurora} style={{ marginVertical: 8 }} />
-      )}
-
-      {/* Action buttons */}
+      {/* Actions */}
       <View style={styles.addPhotoActions}>
         <Pressable style={styles.addPhotoCancelBtn} onPress={handleCancel}>
           <Text style={styles.addPhotoCancelText}>{pl.common.cancel}</Text>
         </Pressable>
 
-        {/* Native upload button */}
-        {useNativePicker && preview && (
+        {preview && (
           <Pressable
             style={[
               styles.addPhotoConfirmBtn,
               (!selected || upload.isPending) && styles.addPhotoConfirmBtnDisabled,
             ]}
-            onPress={handleUploadBase64}
+            onPress={handleUpload}
             disabled={!selected || upload.isPending}
-          >
-            {upload.isPending
-              ? <ActivityIndicator size="small" color={Colors.void} />
-              : <Text style={styles.addPhotoConfirmText}>{pl.photos.addBtn}</Text>
-            }
-          </Pressable>
-        )}
-
-        {/* URL fallback upload button */}
-        {useUrlFallback && urlInput.trim().length > 0 && (
-          <Pressable
-            style={[
-              styles.addPhotoConfirmBtn,
-              upload.isPending && styles.addPhotoConfirmBtnDisabled,
-            ]}
-            onPress={handleUploadUrl}
-            disabled={upload.isPending}
           >
             {upload.isPending
               ? <ActivityIndicator size="small" color={Colors.void} />

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import type { Explorer } from '@travelpoint/types';
-import { tokenStorage } from '../lib/secureStorage';
+import { supabase } from '../lib/supabase';
 import { socketManager } from '../lib/socket';
 import { api, ApiError } from '../lib/api';
 
@@ -10,8 +10,6 @@ async function registerPushToken(): Promise<void> {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return;
 
-  // projectId is required for production Expo Push Notifications.
-  // It comes from app.json → extra.eas.projectId.
   const projectId =
     (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)
       ?.eas?.projectId;
@@ -31,12 +29,8 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   rehydrate: () => Promise<void>;
+  initialize: () => () => void;
   deleteAccount: () => Promise<void>;
-}
-
-async function connectSocketWithToken(): Promise<void> {
-  const token = await tokenStorage.getAccessToken();
-  if (token) socketManager.connect(token);
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -48,52 +42,70 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ explorer, isLoading: false, isAuthenticated: !!explorer }),
 
   login: async (email, password) => {
-    const data = await api.post<{
-      accessToken: string;
-      refreshToken: string;
-      explorer: Explorer;
-    }>('/api/auth/login', { email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new ApiError('INVALID_CREDENTIALS', error.message, 401);
+    if (!data.session) throw new ApiError('NO_SESSION', 'Brak sesji po logowaniu', 401);
 
-    await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-    socketManager.connect(data.accessToken);
-    set({ explorer: data.explorer, isAuthenticated: true, isLoading: false });
-    // Register push token after successful login (best-effort, no throw)
+    const explorer = await api.get<Explorer>('/api/explorers/me');
+    socketManager.connect(data.session.access_token);
+    set({ explorer, isAuthenticated: true, isLoading: false });
     void registerPushToken();
   },
 
   logout: async () => {
-    const refresh = await tokenStorage.getRefreshToken();
-    if (refresh) {
-      await api.post('/api/auth/logout', { refreshToken: refresh }).catch(() => {});
-    }
     socketManager.disconnect();
-    await tokenStorage.clear();
     set({ explorer: null, isAuthenticated: false, isLoading: false });
-  },
-
-  deleteAccount: async () => {
-    await api.delete('/api/explorers/me');
-    socketManager.disconnect();
-    await tokenStorage.clear();
-    set({ explorer: null, isAuthenticated: false, isLoading: false });
+    await supabase.auth.signOut();
   },
 
   rehydrate: async () => {
     set({ isLoading: true });
     try {
-      const token = await tokenStorage.getAccessToken();
-      if (!token) return set({ isLoading: false });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return set({ isLoading: false });
+
       const explorer = await api.get<Explorer>('/api/explorers/me');
-      await connectSocketWithToken();
+      socketManager.connect(session.access_token);
       set({ explorer, isAuthenticated: true, isLoading: false });
       void registerPushToken();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        // Token refresh already attempted in api.ts — if still 401, session expired
+      // Jeśli API zwróci 401 lub ACCOUNT_NOT_FOUND — wyczyść sesję lokalnie
+      if (err instanceof ApiError && (err.status === 401 || err.code === 'ACCOUNT_NOT_FOUND')) {
         socketManager.disconnect();
-        await tokenStorage.clear();
+        await supabase.auth.signOut();
       }
       set({ explorer: null, isAuthenticated: false, isLoading: false });
     }
+  },
+
+  initialize: () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'TOKEN_REFRESHED' && session) {
+        socketManager.connect(session.access_token);
+      }
+      if (event === 'SIGNED_OUT') {
+        socketManager.disconnect();
+        useAuthStore.setState({ explorer: null, isAuthenticated: false, isLoading: false });
+      }
+    });
+    return () => subscription.unsubscribe();
+  },
+
+  deleteAccount: async () => {
+    try {
+      await api.delete('/api/explorers/me');
+    } catch (err) {
+      // Jeśli konto już usunięte server-side, wyczyść lokalnie
+      if (err instanceof ApiError && (err.status === 401 || err.status === 404)) {
+        socketManager.disconnect();
+        await supabase.auth.signOut();
+        set({ explorer: null, isAuthenticated: false, isLoading: false });
+        return;
+      }
+      throw err;
+    }
+    socketManager.disconnect();
+    await supabase.auth.signOut();
+    set({ explorer: null, isAuthenticated: false, isLoading: false });
   },
 }));

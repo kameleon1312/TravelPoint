@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { signAccessToken } from '../lib/jwt';
+import { createTestToken } from '../lib/testHelpers';
 import { explorerRoutes } from './explorers';
 
 describe('Explorer sensitive data', () => {
@@ -30,7 +30,7 @@ describe('Explorer sensitive data', () => {
     const response = await app.inject({
       method: 'PUT',
       url: '/api/explorers/me/home-base',
-      headers: { authorization: `Bearer ${signAccessToken('explorer-a')}` },
+      headers: { authorization: `Bearer ${createTestToken('explorer-a')}` },
       payload: { lat: 52.2297, lng: 21.0122 },
     });
 
@@ -58,7 +58,7 @@ describe('Explorer sensitive data', () => {
     const response = await app.inject({
       method: 'PUT',
       url: '/api/explorers/me/home-base',
-      headers: { authorization: `Bearer ${signAccessToken('explorer-a')}` },
+      headers: { authorization: `Bearer ${createTestToken('explorer-a')}` },
       payload: { lat: 120, lng: 21 },
     });
 

@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { signAccessToken } from '../lib/jwt';
+import { createTestToken } from '../lib/testHelpers';
 import { spotsRoutes } from './spots';
 
 describe('Hidden spot subresources', () => {
@@ -53,7 +53,7 @@ describe('Hidden spot subresources', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/spots/secret-spot/photos',
-      headers: { authorization: `Bearer ${signAccessToken('outsider')}` },
+      headers: { authorization: `Bearer ${createTestToken('outsider')}` },
     });
 
     expect(response.statusCode).toBe(404);

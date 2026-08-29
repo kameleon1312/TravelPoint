@@ -1,14 +1,18 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { verifyAccessToken } from '../lib/jwt';
+import { verifySupabaseJwt } from './requireAuth';
 
 export async function requireAuthOptional(req: FastifyRequest, _reply: FastifyReply) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) return;
   try {
     const token = header.slice('Bearer '.length);
-    const payload = verifyAccessToken(token);
-    req.explorerId = payload.sub;
+    const { sub: supabaseUserId } = verifySupabaseJwt(token);
+    const explorer = await req.server.prisma.explorer.findFirst({
+      where: { supabaseId: supabaseUserId, deletedAt: null },
+      select: { id: true },
+    });
+    if (explorer) req.explorerId = explorer.id;
   } catch {
-    // Optional auth: malformed tokens simply produce anonymous analytics.
+    // Optional auth: invalid tokens produce anonymous requests.
   }
 }

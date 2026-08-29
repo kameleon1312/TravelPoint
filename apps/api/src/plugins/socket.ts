@@ -1,7 +1,7 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
 import { Server } from 'socket.io';
-import { verifyAccessToken } from '../lib/jwt';
+import { verifySupabaseJwt } from '../middleware/requireAuth';
 import { logger } from '../lib/logger';
 import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
 import { sendPushToMany } from '../services/push';
@@ -47,13 +47,13 @@ export default fp(async (app: FastifyInstance) => {
     const token = socket.handshake.auth['token'] as string | undefined;
     if (!token) return next(new Error('UNAUTHORIZED'));
     try {
-      const payload = verifyAccessToken(token);
+      const { sub: supabaseUserId } = verifySupabaseJwt(token);
       const explorer = await app.prisma.explorer.findFirst({
-        where: { id: payload.sub, deletedAt: null },
+        where: { supabaseId: supabaseUserId, deletedAt: null },
         select: { id: true },
       });
-      if (!explorer) return next(new Error('ACCOUNT_DELETED'));
-      socket.data['explorerId'] = payload.sub;
+      if (!explorer) return next(new Error('ACCOUNT_NOT_FOUND'));
+      socket.data['explorerId'] = explorer.id;
       next();
     } catch {
       next(new Error('INVALID_TOKEN'));

@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { signAccessToken } from '../lib/jwt';
+import { createTestToken } from '../lib/testHelpers';
 import { circleRoutes } from './circles';
 
 describe('POST /api/circles/:slug/join', () => {
@@ -53,7 +53,7 @@ describe('POST /api/circles/:slug/join', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/circles/alpha/join',
-      headers: { authorization: `Bearer ${signAccessToken('explorer-a')}` },
+      headers: { authorization: `Bearer ${createTestToken('explorer-a')}` },
       payload: { inviteCode: 'other-circle' },
     });
 
@@ -95,7 +95,7 @@ describe('POST /api/circles/:slug/join', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/circles/alpha',
-      headers: { authorization: `Bearer ${signAccessToken('outsider')}` },
+      headers: { authorization: `Bearer ${createTestToken('outsider')}` },
     });
 
     expect(response.statusCode).toBe(200);

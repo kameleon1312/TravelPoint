@@ -78,15 +78,15 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
     if (!containerRef.current || mapRef.current) return;
 
     let mounted = true;
+    let ro: ResizeObserver | null = null;
 
-    import('mapbox-gl').then((mod) => {
-      if (!mounted || !containerRef.current) return;
+    const initMap = (container: HTMLDivElement, Mapbox: MapboxGL) => {
+      if (!mounted) return;
 
-      const Mapbox = (mod.default ?? mod) as MapboxGL;
-      if (token) Mapbox.accessToken = token;
+      Mapbox.accessToken = token;
 
       const map = new Mapbox.Map({
-        container: containerRef.current,
+        container,
         style: MAP_STYLE,
         center: [19.5, 51.8],
         zoom: 5.2,
@@ -95,10 +95,12 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         projection: { name: 'globe' } as ProjectionSpecification,
       });
 
+      // Suppress non-critical errors (WebGL context loss during HMR/navigation)
+      map.on('error', () => {});
+
       map.on('load', () => {
         if (!mounted) return;
 
-        // Fog must be set after load — not supported in MapOptions constructor in v3.
         try {
           const fog: FogSpecification = {
             color: '#0C1014',
@@ -110,34 +112,47 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           map.setFog(fog);
         } catch { /* style may not support fog */ }
 
-        // Override map colors to match Terra Mare palette. Layer names are
-        // style-dependent; catch if they don't exist in this style variant.
-        // setPaintProperty accepts any string for layer/property — cast is safe.
         const overrides: Array<[string, string, string]> = [
           ['background', 'background-color', '#0C1014'],
           ['water',      'fill-color',       '#0F1E2A'],
           ['land',       'background-color', '#131A1F'],
         ];
         for (const [layer, prop, val] of overrides) {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            map.setPaintProperty(layer, prop as any, val);
-          } catch { /* layer absent in this style */ }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if (map.getLayer(layer)) map.setPaintProperty(layer, prop as any, val);
         }
 
         setMapReady(true);
         setLoading(false);
-        requestAnimationFrame(() => map.resize());
+        map.resize();
       });
 
+      // ResizeObserver keeps the map sized correctly after HMR / container resize
+      ro = new ResizeObserver(() => {
+        if (mapRef.current) mapRef.current.resize();
+      });
+      ro.observe(container);
+
       mapRef.current = map;
-      setTimeout(() => map.resize(), 250);
-    }).catch(() => {
-      setLoading(false);
+    };
+
+    // Defer initialization one frame so the container has settled its CSS dimensions
+    const raf = requestAnimationFrame(() => {
+      if (!mounted || !containerRef.current) return;
+
+      import('mapbox-gl').then((mod) => {
+        if (!mounted || !containerRef.current) return;
+        const Mapbox = (mod.default ?? mod) as MapboxGL;
+        initMap(containerRef.current, Mapbox);
+      }).catch(() => {
+        if (mounted) setLoading(false);
+      });
     });
 
     return () => {
       mounted = false;
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;

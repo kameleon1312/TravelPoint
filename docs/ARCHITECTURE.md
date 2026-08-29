@@ -59,8 +59,10 @@ Rationale: 2x faster, schema-first, native TypeScript support.
 ### ADR-003: Expo over bare React Native
 Rationale: OTA updates, EAS Build, faster iteration. No native modules that require ejection at MVP.
 
-### ADR-004: Mapbox over Google Maps
-Rationale: Custom cosmic dark style is core to the cinematic vibe. Google Maps cannot be styled this way.
+### ADR-004: Maps — Mapbox (web) + react-native-maps (mobile)
+- **Web (WORLD):** Mapbox GL JS — full custom Terra Mare dark style via JSON, Mapbox token required.
+- **Mobile (CORE):** `react-native-maps` — `PROVIDER_GOOGLE` on Android with custom `TERRA_MARE_STYLE` JSON overlay. Requires `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and the key injected into `AndroidManifest.xml` at EAS build time. Without the key the map tab renders a dark placeholder (geo functionality is preserved — only the visual map is hidden).
+- Revisit: consider Mapbox Native SDK for mobile (Maps SDK for React Native) in Q1 2027 for visual consistency.
 
 ### ADR-005: PostGIS for geo queries
 Rationale: ST_DWithin radius queries and H3 clustering are native to PostGIS.

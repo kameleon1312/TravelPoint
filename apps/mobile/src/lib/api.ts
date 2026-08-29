@@ -1,4 +1,4 @@
-import { tokenStorage } from './secureStorage';
+import { supabase } from './supabase';
 
 export const API_BASE_URL = (
   process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:4000'
@@ -15,48 +15,12 @@ export class ApiError extends Error {
   }
 }
 
-let isRefreshing = false;
-let refreshPromise: Promise<string | null> | null = null;
-
-async function tryRefreshToken(): Promise<string | null> {
-  if (isRefreshing) return refreshPromise;
-
-  isRefreshing = true;
-  refreshPromise = (async () => {
-    try {
-      const refresh = await tokenStorage.getRefreshToken();
-      if (!refresh) return null;
-
-      const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: refresh }),
-      });
-
-      if (!res.ok) {
-        await tokenStorage.clear();
-        return null;
-      }
-
-      const data = await res.json() as { accessToken: string; refreshToken: string };
-      await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-      return data.accessToken;
-    } catch {
-      await tokenStorage.clear();
-      return null;
-    } finally {
-      isRefreshing = false;
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
-}
-
 async function request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
-  const token = await tokenStorage.getAccessToken();
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string>),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -67,24 +31,30 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
   } catch {
     throw new ApiError(
       'NETWORK_ERROR',
-      `Nie można połączyć się z API (${API_BASE_URL}). Sprawdź, czy backend jest wdrożony i dostępny z telefonu.`,
+      `Nie można połączyć się z API (${API_BASE_URL}). Sprawdź, czy backend jest dostępny z telefonu.`,
       0,
     );
   }
 
   if (res.status === 401 && retry) {
-    const newToken = await tryRefreshToken();
-    if (newToken) {
+    // Spróbuj odświeżyć sesję Supabase i ponów żądanie
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error && data.session) {
       return request<T>(path, options, false);
     }
-    // Refresh failed — throw so AuthGate can redirect to login
-    throw new ApiError('UNAUTHORIZED', 'Session expired', 401);
+    // Refresh nie powiódł się — wyloguj
+    await supabase.auth.signOut();
+    throw new ApiError('UNAUTHORIZED', 'Sesja wygasła. Zaloguj się ponownie.', 401);
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ code: 'UNKNOWN', message: res.statusText })) as { code: string; message: string };
+    const err = await res.json().catch(() => ({ code: 'UNKNOWN', message: res.statusText })) as {
+      code: string;
+      message: string;
+    };
     throw new ApiError(err.code, err.message, res.status);
   }
+
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }

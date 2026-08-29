@@ -12,6 +12,9 @@ import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Colors, Spacing, Shadow } from '@travelpoint/theme';
+import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
+
+const MAPS_KEY = process.env['EXPO_PUBLIC_GOOGLE_MAPS_API_KEY'];
 import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import { useNearbySpots } from '@/hooks/useSpots';
@@ -21,21 +24,6 @@ import { useCreateJourney, useUpdateJourney } from '@/hooks/useJourneys';
 import { socketManager } from '@/lib/socket';
 import { api } from '@/lib/api';
 import type { SpotForViewer } from '@travelpoint/types';
-
-// ── Terra Mare map style (JSON override for Android Google Maps) ──────────────
-const TERRA_MARE_STYLE = [
-  { elementType: 'geometry',           stylers: [{ color: '#0C1014' }] },
-  { elementType: 'labels.text.fill',   stylers: [{ color: '#8A827A' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#0C1014' }] },
-  { featureType: 'administrative',     elementType: 'geometry', stylers: [{ color: '#253035' }] },
-  { featureType: 'road',               elementType: 'geometry', stylers: [{ color: '#1B2328' }] },
-  { featureType: 'road',               elementType: 'geometry.stroke', stylers: [{ color: '#131A1F' }] },
-  { featureType: 'road.highway',       elementType: 'geometry', stylers: [{ color: '#253035' }] },
-  { featureType: 'water',              elementType: 'geometry', stylers: [{ color: '#0F1E2A' }] },
-  { featureType: 'poi',                stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit',            stylers: [{ visibility: 'off' }] },
-  { featureType: 'landscape',          elementType: 'geometry', stylers: [{ color: '#131A1F' }] },
-];
 
 const ACCESS_PIN_COLORS: Record<string, string> = {
   PUBLIC:      Colors.aurora,
@@ -455,66 +443,68 @@ export default function AtlasScreen() {
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.root}>
-      <MapView
-        ref={mapRef}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        style={StyleSheet.absoluteFill}
-        initialRegion={DEFAULT_REGION}
-        showsUserLocation={locationActive}
-        showsMyLocationButton={false}
-        showsCompass={false}
-        showsScale={false}
-        showsTraffic={false}
-        showsBuildings={false}
-        mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
-        customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
-        onRegionChangeComplete={setRegion}
-      >
-        {/* Spot pins */}
-        {spots?.map((spot: SpotForViewer) => {
-          const isLocked    = 'locked' in spot ? spot.locked : false;
-          const accessLevel = 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC';
-          const color       = isLocked ? Colors.starGhost : (ACCESS_PIN_COLORS[accessLevel] ?? Colors.aurora);
-          return (
-            <Marker
-              key={spot.id}
-              coordinate={{ latitude: spot.lat, longitude: spot.lng }}
-              onPress={() => router.push(`/spot/${spot.id}`)}
-            >
-              <View style={[styles.spotPin, { backgroundColor: color, opacity: isLocked ? 0.6 : 1 }]} />
+      {MAPS_KEY ? (
+        <MapView
+          ref={mapRef}
+          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          style={StyleSheet.absoluteFill}
+          initialRegion={DEFAULT_REGION}
+          showsUserLocation={locationActive}
+          showsMyLocationButton={false}
+          showsCompass={false}
+          showsScale={false}
+          showsTraffic={false}
+          showsBuildings={false}
+          mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
+          customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
+          onRegionChangeComplete={setRegion}
+        >
+          {/* Spot pins */}
+          {spots?.map((spot: SpotForViewer) => {
+            const isLocked    = 'locked' in spot ? spot.locked : false;
+            const accessLevel = 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC';
+            const color       = isLocked ? Colors.starGhost : (ACCESS_PIN_COLORS[accessLevel] ?? Colors.aurora);
+            return (
+              <Marker
+                key={spot.id}
+                coordinate={{ latitude: spot.lat, longitude: spot.lng }}
+                onPress={() => router.push(`/spot/${spot.id}`)}
+              >
+                <View style={[styles.spotPin, { backgroundColor: color, opacity: isLocked ? 0.6 : 1 }]} />
+              </Marker>
+            );
+          })}
+
+          {/* Presence pins */}
+          {presenceActive && nearbyExplorers.map((e) => (
+            <Marker key={e.explorerId} coordinate={{ latitude: e.lat, longitude: e.lng }} anchor={{ x: 0.5, y: 0.5 }}>
+              <View style={styles.presenceOuter}>
+                <View style={styles.presenceInner} />
+              </View>
             </Marker>
-          );
-        })}
+          ))}
 
-        {/* Presence pins */}
-        {presenceActive && nearbyExplorers.map((e) => (
-          <Marker key={e.explorerId} coordinate={{ latitude: e.lat, longitude: e.lng }} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.presenceOuter}>
-              <View style={styles.presenceInner} />
-            </View>
-          </Marker>
-        ))}
-
-        {/* Live GPS trace while recording */}
-        {isRecording && points.length > 1 && (
-          <>
-            {/* Glow under route */}
-            <Polyline
-              coordinates={points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
-              strokeColor={Colors.ember + '40'}
-              strokeWidth={8}
-            />
-            {/* Route line */}
-            <Polyline
-              coordinates={points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
-              strokeColor={Colors.ember}
-              strokeWidth={3}
-              lineCap="round"
-              lineJoin="round"
-            />
-          </>
-        )}
-      </MapView>
+          {/* Live GPS trace while recording */}
+          {isRecording && points.length > 1 && (
+            <>
+              <Polyline
+                coordinates={points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
+                strokeColor={Colors.ember + '40'}
+                strokeWidth={8}
+              />
+              <Polyline
+                coordinates={points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
+                strokeColor={Colors.ember}
+                strokeWidth={3}
+                lineCap="round"
+                lineJoin="round"
+              />
+            </>
+          )}
+        </MapView>
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.mapPlaceholder]} />
+      )}
 
       {/* Top bar */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
@@ -594,6 +584,7 @@ export default function AtlasScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.abyss },
+  mapPlaceholder: { backgroundColor: Colors.abyss },
 
   // ── Top bar ──────────────────────────────────────────────────────────────────
   topBar: {

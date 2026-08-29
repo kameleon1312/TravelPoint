@@ -31,21 +31,21 @@ export const Shadow = {
     elevation: 12,
   },
   auroraGlow: {
-    shadowColor: '#3DD6C4',
+    shadowColor: '#5CB88C',   // seagrass green — Terra Mare
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 32,
     elevation: 8,
   },
   signalGlow: {
-    shadowColor: '#5B8DEF',
+    shadowColor: '#1E9AB0',   // ocean teal — Terra Mare
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 24,
     elevation: 6,
   },
   emberGlow: {
-    shadowColor: '#FF7A59',
+    shadowColor: '#C86840',   // terracotta canyon — Terra Mare
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.45,
     shadowRadius: 40,
@@ -56,7 +56,7 @@ export const Shadow = {
 // CSS box-shadow equivalents for web
 export const CssShadow = {
   card: '0 8px 32px rgba(0,0,0,0.45)',
-  auroraGlow: '0 0 32px rgba(61,214,196,0.35)',
-  signalGlow: '0 0 24px rgba(91,141,239,0.40)',
-  emberGlow: '0 0 40px rgba(255,122,89,0.45)',
+  auroraGlow: '0 0 32px rgba(92,184,140,0.35)',    // #5CB88C
+  signalGlow: '0 0 24px rgba(30,154,176,0.40)',    // #1E9AB0
+  emberGlow: '0 0 40px rgba(200,104,64,0.45)',     // #C86840
 } as const;

@@ -359,7 +359,7 @@ export function ScrollScape3D(): React.JSX.Element {
       <Canvas
         camera={{ position: [0, 600, 0], fov: 62, near: 1, far: 2500 }}
         dpr={[1, 1.25]}
-        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, alpha: false, powerPreference: 'default' }}
       >
         <SceneDriver />
         <StarField />

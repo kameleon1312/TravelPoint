@@ -49,7 +49,7 @@ export function GlobScene(): React.JSX.Element {
     <Canvas
       camera={{ position: [0, 0, 6], fov: 45 }}
       dpr={[1, 1.5]}
-      gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
+      gl={{ alpha: true, antialias: true, powerPreference: 'default' }}
       onCreated={({ gl, scene }) => {
         // R3F v9 does not auto-clear to transparent — must be set explicitly.
         gl.setClearColor(0, 0, 0, 0);

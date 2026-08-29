@@ -10,6 +10,7 @@ import { useMarkSignalsSeen, useSignals, SIGNAL_LABELS, SIGNAL_ICONS } from '@/h
 import { formatRelative } from '@travelpoint/utils';
 import { api } from '@/lib/api';
 import { socketManager } from '@/lib/socket';
+import { supabase } from '@/lib/supabase';
 
 const RANK_COLORS: Record<string, string> = {
   NEWCOMER: Colors.starGhost,
@@ -113,6 +114,126 @@ function EditProfileModal({
   );
 }
 
+// ── Change Password Modal ──────────────────────────────────────────────────────
+function ChangePasswordModal({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const [newPassword, setNewPassword]     = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving]               = useState(false);
+  const [error, setError]                 = useState('');
+
+  function reset() {
+    setNewPassword('');
+    setConfirmPassword('');
+    setError('');
+    setSaving(false);
+  }
+
+  function handleClose() {
+    reset();
+    onClose();
+  }
+
+  async function handleSave() {
+    setError('');
+    if (newPassword.length < 12) {
+      setError('Hasło musi mieć minimum 12 znaków.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Hasła nie są identyczne.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error: supabaseError } = await supabase.auth.updateUser({ password: newPassword });
+      if (supabaseError) {
+        setError(supabaseError.message);
+        return;
+      }
+      reset();
+      onClose();
+      Alert.alert('Hasło zmienione', 'Twoje nowe hasło zostało zapisane.');
+    } catch {
+      setError('Nie udało się zmienić hasła. Spróbuj ponownie.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <SafeAreaView style={editStyles.root} edges={['top', 'bottom']}>
+          <View style={editStyles.header}>
+            <Text style={editStyles.title}>Zmień hasło</Text>
+            <Pressable onPress={handleClose} style={editStyles.closeBtn}>
+              <Text style={editStyles.closeBtnText}>Anuluj</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={editStyles.scroll}>
+            <View style={editStyles.field}>
+              <Text style={editStyles.label}>Nowe hasło</Text>
+              <TextInput
+                style={editStyles.input}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="Minimum 12 znaków"
+                placeholderTextColor={Colors.starGhost}
+                secureTextEntry
+                autoComplete="new-password"
+                maxLength={128}
+              />
+            </View>
+
+            <View style={editStyles.field}>
+              <Text style={editStyles.label}>Powtórz hasło</Text>
+              <TextInput
+                style={editStyles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Wpisz ponownie"
+                placeholderTextColor={Colors.starGhost}
+                secureTextEntry
+                autoComplete="new-password"
+                maxLength={128}
+              />
+            </View>
+
+            {error ? (
+              <View style={pwStyles.errorBox}>
+                <Text style={pwStyles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            <Text style={pwStyles.hint}>
+              Hasło musi mieć co najmniej 12 znaków. Po zmianie zostaniesz zalogowany automatycznie.
+            </Text>
+          </ScrollView>
+
+          <View style={editStyles.footer}>
+            <SignalButton
+              label="Zmień hasło"
+              onPress={handleSave}
+              variant="aurora"
+              size="lg"
+              fullWidth
+              loading={saving}
+              haptic="medium"
+            />
+          </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 type ExportContent = {
   spots: unknown[];
   journeys: unknown[];
@@ -132,8 +253,9 @@ export default function IdentityScreen() {
   const { explorer, logout, setExplorer, deleteAccount } = useAuthStore();
   const { mutate: markSeen } = useMarkSignalsSeen();
   const { data: signals } = useSignals();
-  const [editVisible, setEditVisible]           = useState(false);
-  const [isExporting, setIsExporting]           = useState(false);
+  const [editVisible, setEditVisible]               = useState(false);
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+  const [isExporting, setIsExporting]               = useState(false);
   const [isDeleting, setIsDeleting]             = useState(false);
   const [presenceToggling, setPresenceToggling] = useState(false);
   const [locationToggling, setLocationToggling] = useState(false);
@@ -234,6 +356,7 @@ export default function IdentityScreen() {
             } catch (e: unknown) {
               const msg = e instanceof Error ? e.message : 'Nie udało się usunąć konta.';
               Alert.alert('Błąd', msg);
+            } finally {
               setIsDeleting(false);
             }
           },
@@ -378,7 +501,7 @@ export default function IdentityScreen() {
           </GlassCard>
         )}
 
-        {explorer.obsessions.length > 0 && (
+        {(explorer.obsessions?.length ?? 0) > 0 && (
           <GlassCard style={styles.section}>
             <Text style={styles.sectionLabel}>Obsesje</Text>
             <View style={styles.tags}>
@@ -506,6 +629,15 @@ export default function IdentityScreen() {
           haptic="light"
         />
 
+        <SignalButton
+          label="Zmień hasło"
+          onPress={() => setChangePasswordVisible(true)}
+          variant="ghost"
+          size="md"
+          fullWidth
+          haptic="light"
+        />
+
         <SignalButton label="Wyloguj" onPress={logout} variant="ghost" size="md" fullWidth />
 
         {/* Danger zone */}
@@ -536,6 +668,11 @@ export default function IdentityScreen() {
         bio={explorer.bio ?? ''}
         onClose={() => setEditVisible(false)}
         onSave={handleSaveProfile}
+      />
+
+      <ChangePasswordModal
+        visible={changePasswordVisible}
+        onClose={() => setChangePasswordVisible(false)}
       />
     </SafeAreaView>
   );
@@ -638,4 +775,27 @@ const editStyles = StyleSheet.create({
   inputMultiline: { height: 100, paddingTop: Spacing.md },
   counter: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost, textAlign: 'right' },
   footer: { padding: Spacing.xl, paddingBottom: Spacing.xl },
+});
+
+const pwStyles = StyleSheet.create({
+  errorBox: {
+    backgroundColor: Colors.ember + '18',
+    borderWidth: 1,
+    borderColor: Colors.ember + '50',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  errorText: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: FontSize.bodySm,
+    color: Colors.ember,
+    lineHeight: 20,
+  },
+  hint: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: FontSize.caption,
+    color: Colors.starGhost,
+    lineHeight: 18,
+  },
 });

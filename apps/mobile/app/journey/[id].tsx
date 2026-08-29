@@ -5,24 +5,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import MapView, { Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+
+const MAPS_KEY = process.env['EXPO_PUBLIC_GOOGLE_MAPS_API_KEY'];
+import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
 import { useJourney, useDeleteJourney } from '@/hooks/useJourneys';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { formatRelative } from '@travelpoint/utils';
 import { useAuthStore } from '@/stores/auth';
-
-const TERRA_MARE_STYLE = [
-  { elementType: 'geometry',            stylers: [{ color: '#0C1014' }] },
-  { elementType: 'labels.text.fill',    stylers: [{ color: '#8A827A' }] },
-  { elementType: 'labels.text.stroke',  stylers: [{ color: '#0C1014' }] },
-  { featureType: 'road',                elementType: 'geometry',         stylers: [{ color: '#1B2328' }] },
-  { featureType: 'road.highway',        elementType: 'geometry',         stylers: [{ color: '#253035' }] },
-  { featureType: 'water',               elementType: 'geometry',         stylers: [{ color: '#0F1E2A' }] },
-  { featureType: 'poi',                 stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit',             stylers: [{ visibility: 'off' }] },
-  { featureType: 'landscape',           elementType: 'geometry',         stylers: [{ color: '#131A1F' }] },
-];
 
 function extractPolylineCoords(geoJson: unknown): { latitude: number; longitude: number }[] {
   const features =
@@ -152,11 +143,11 @@ export default function JourneyDetailScreen() {
         {/* Route map */}
         <View style={styles.routeCard}>
           <Text style={styles.routeLabel}>Trasa ekspedycji</Text>
-          {routeCoords.length > 0 && routeRegion ? (
+          {routeCoords.length > 0 && routeRegion && MAPS_KEY ? (
             <View style={styles.routeMapContainer}>
-                <MapView
-                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-                  style={styles.routeMap}
+              <MapView
+                provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                style={styles.routeMap}
                 initialRegion={routeRegion}
                 scrollEnabled={false}
                 pitchEnabled={false}
@@ -167,13 +158,11 @@ export default function JourneyDetailScreen() {
                 mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
                 customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
               >
-                {/* Glow under route */}
                 <Polyline
                   coordinates={routeCoords}
                   strokeColor={Colors.aurora + '30'}
                   strokeWidth={10}
                 />
-                {/* Main route line */}
                 <Polyline
                   coordinates={routeCoords}
                   strokeColor={Colors.aurora}

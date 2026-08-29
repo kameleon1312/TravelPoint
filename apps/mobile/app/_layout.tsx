@@ -64,7 +64,7 @@ const queryClient = new QueryClient({
 });
 
 function AuthGate() {
-  const { rehydrate, isLoading, isAuthenticated } = useAuthStore();
+  const { rehydrate, initialize, isLoading, isAuthenticated } = useAuthStore();
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
 
   // Wire up deep-link handler: notification tap → navigate to correct screen.
@@ -95,8 +95,12 @@ function AuthGate() {
     void rehydrate();
     void recoverRecording();
     void hydrateQueryCache(queryClient);
-    const unsubscribe = subscribeQueryPersistence(queryClient);
-    return unsubscribe;
+    const unsubscribeQuery = subscribeQueryPersistence(queryClient);
+    const unsubscribeAuth = initialize();
+    return () => {
+      unsubscribeQuery();
+      unsubscribeAuth();
+    };
   }, []);
 
   useEffect(() => {

@@ -15,6 +15,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",
     "@sentry/react-native": "~7.2.0",
+    "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.45.1",
     "@travelpoint/api-client": "workspace:*",
     "@travelpoint/geo": "workspace:*",

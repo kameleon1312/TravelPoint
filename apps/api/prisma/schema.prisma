@@ -11,9 +11,10 @@ datasource db {
 
 model Explorer {
   id            String  @id @default(cuid())
+  supabaseId    String? @unique
   email         String  @unique @db.VarChar(255)
   handle        String  @unique @db.VarChar(24)
-  passwordHash  String
+  passwordHash  String?
   emailVerified Boolean @default(false)
 
   // Identity
@@ -88,6 +89,7 @@ model Explorer {
   forumReplies          ForumReply[]
   analyticsEvents       AnalyticsEvent[]
 
+  @@index([supabaseId])
   @@index([handle])
   @@index([deletedAt])
   @@index([purgeAt])

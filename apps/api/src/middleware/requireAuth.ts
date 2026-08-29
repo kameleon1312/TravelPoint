@@ -1,32 +1,46 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { verifyAccessToken } from '../lib/jwt';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
+
+interface SupabaseJwtPayload {
+  sub: string;
+  email?: string;
+  role?: string;
+}
+
+export function verifySupabaseJwt(token: string): SupabaseJwtPayload {
+  const payload = jwt.verify(token, env.supabaseJwtSecret) as SupabaseJwtPayload;
+  if (payload.role !== 'authenticated') throw new Error('Unauthorized role');
+  return payload;
+}
 
 export async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
   const auth = req.headers['authorization'];
   if (!auth?.startsWith('Bearer ')) {
     return reply.status(401).send({ code: 'UNAUTHORIZED', message: 'Missing token' });
   }
+
+  let supabaseUserId: string;
   try {
-    const payload = verifyAccessToken(auth.slice(7));
-
-    // Block deleted accounts — every authenticated request checks DB.
-    // Access tokens are 15 min so the exposure window is minimal anyway,
-    // but GDPR requires immediate invalidation on erasure.
-    const active = await req.server.prisma.explorer.findFirst({
-      where: { id: payload.sub, deletedAt: null },
-      select: { id: true, suspendedAt: true },
-    });
-    if (!active) {
-      return reply.status(401).send({ code: 'ACCOUNT_DELETED', message: 'Account no longer exists' });
-    }
-    if (active.suspendedAt) {
-      return reply.status(403).send({ code: 'ACCOUNT_SUSPENDED', message: 'Account is suspended' });
-    }
-
-    req.explorerId = payload.sub;
+    const payload = verifySupabaseJwt(auth.slice(7));
+    supabaseUserId = payload.sub;
   } catch {
     return reply.status(401).send({ code: 'UNAUTHORIZED', message: 'Invalid or expired token' });
   }
+
+  const explorer = await req.server.prisma.explorer.findFirst({
+    where: { supabaseId: supabaseUserId, deletedAt: null },
+    select: { id: true, suspendedAt: true },
+  });
+
+  if (!explorer) {
+    return reply.status(401).send({ code: 'ACCOUNT_NOT_FOUND', message: 'Explorer profile not found. Complete signup first.' });
+  }
+  if (explorer.suspendedAt) {
+    return reply.status(403).send({ code: 'ACCOUNT_SUSPENDED', message: 'Account is suspended' });
+  }
+
+  req.explorerId = explorer.id;
 }
 
 export async function requireModerator(req: FastifyRequest, reply: FastifyReply) {

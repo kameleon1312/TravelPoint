@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { requireAuth } from '../middleware/requireAuth';
-import { hashPassword } from '../lib/crypto';
 import { auditAccess } from '../middleware/auditLog';
 import { logger } from '../lib/logger';
+import { env } from '../config/env';
 import { decrypt, encrypt } from '@travelpoint/utils';
-import { HomeBaseSchema } from '@travelpoint/validation';
+import { HomeBaseSchema, ProfileUpdateSchema } from '@travelpoint/validation';
 
 function decryptHomeBase(value: string | null): { lat: number; lng: number } | null {
   if (!value) return null;
@@ -65,20 +65,16 @@ export async function explorerRoutes(app: FastifyInstance) {
 
   // ─── PATCH /api/explorers/me ───────────────────────────────────────────────
   app.patch('/api/explorers/me', { preHandler: [requireAuth] }, async (req, reply) => {
-    const body = req.body as Record<string, unknown>;
+    const parsed = ProfileUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
 
-    // Profile fields anyone can update
-    const profileFields = ['displayName', 'bio', 'obsessions', 'archetype', 'territories'];
+    const { locationConsent, presenceConsent, ...profileData } = parsed.data;
 
-    // Consent fields — each change is audit-logged for GDPR compliance
-    const consentFields = ['presenceConsent', 'locationConsent'];
-
-    const profileData = Object.fromEntries(
-      Object.entries(body).filter(([k]) => profileFields.includes(k)),
-    );
-    const consentData = Object.fromEntries(
-      Object.entries(body).filter(([k]) => consentFields.includes(k)),
-    );
+    const consentData: Record<string, boolean> = {};
+    if (locationConsent !== undefined) consentData['locationConsent'] = locationConsent;
+    if (presenceConsent !== undefined) consentData['presenceConsent'] = presenceConsent;
 
     const data = { ...profileData, ...consentData };
     if (Object.keys(data).length === 0) {
@@ -112,30 +108,33 @@ export async function explorerRoutes(app: FastifyInstance) {
     const now = new Date();
     const explorerId = req.explorerId;
 
-    // Anonymize handle with entropy so the unique constraint never conflicts
-    const anonHandle  = `deleted_${crypto.randomBytes(8).toString('hex')}`;
-    const anonEmail   = `deleted_${explorerId}@travelpoint.deleted`;
-    // Zero-out the password with a random unhashable value
-    const anonPwHash  = await hashPassword(crypto.randomBytes(32).toString('hex'));
+    const explorerRecord = await app.prisma.explorer.findUnique({
+      where: { id: explorerId },
+      select: { supabaseId: true },
+    });
+
+    const anonHandle = `deleted_${crypto.randomBytes(8).toString('hex')}`;
+    const anonEmail  = `deleted_${explorerId}@travelpoint.deleted`;
 
     await app.prisma.$transaction([
       // 1. Anonymize all PII fields in place — keeps relational integrity
       app.prisma.explorer.update({
         where: { id: explorerId },
         data: {
-          deletedAt:      now,
-          purgeAt:        new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
-          email:          anonEmail,
-          handle:         anonHandle,
-          displayName:    null,
-          bio:            null,
-          homeBaseEnc:    null,
-          pushToken:      null,
-          passwordHash:   anonPwHash,
-          obsessions:     [],
-          territories:    [],
-          locationConsent:  false,
-          presenceConsent:  false,
+          deletedAt:       now,
+          purgeAt:         new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+          supabaseId:      null,
+          email:           anonEmail,
+          handle:          anonHandle,
+          displayName:     null,
+          bio:             null,
+          homeBaseEnc:     null,
+          pushToken:       null,
+          passwordHash:    null,
+          obsessions:      [],
+          territories:     [],
+          locationConsent: false,
+          presenceConsent: false,
         },
       }),
 
@@ -158,6 +157,17 @@ export async function explorerRoutes(app: FastifyInstance) {
         },
       }),
     ]);
+
+    // Delete from Supabase Auth so the account cannot be reused
+    if (explorerRecord?.supabaseId && env.supabaseUrl && env.supabaseServiceRoleKey) {
+      void fetch(`${env.supabaseUrl}/auth/v1/admin/users/${explorerRecord.supabaseId}`, {
+        method: 'DELETE',
+        headers: {
+          apikey: env.supabaseServiceRoleKey,
+          Authorization: `Bearer ${env.supabaseServiceRoleKey}`,
+        },
+      }).catch((err) => logger.warn({ err }, 'Failed to delete Supabase Auth user — will be purged later'));
+    }
 
     logger.info({ explorerId }, 'GDPR: account anonymized and tokens revoked');
     return reply.status(204).send();
