@@ -1,6 +1,7 @@
-import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Linking } from 'react-native';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
@@ -11,6 +12,7 @@ import { formatRelative } from '@travelpoint/utils';
 import { api } from '@/lib/api';
 import { socketManager } from '@/lib/socket';
 import { supabase } from '@/lib/supabase';
+import type { Signal } from '@travelpoint/types';
 
 const RANK_COLORS: Record<string, string> = {
   NEWCOMER: Colors.starGhost,
@@ -19,6 +21,54 @@ const RANK_COLORS: Record<string, string> = {
   INSIDER: Colors.aurora,
   LEGEND: Colors.ember,
 };
+
+const NAVIGABLE_SIGNAL_TYPES = new Set([
+  'SPOT_UNLOCKED', 'SECRET_DROP', 'JOURNEY_LIKE', 'TRANSMISSION', 'CIRCLE_INVITE',
+]);
+
+function SignalRow({ sig }: { sig: Signal }) {
+  function handlePress() {
+    const p = sig.payload as Record<string, unknown>;
+    switch (sig.type) {
+      case 'SPOT_UNLOCKED':
+      case 'SECRET_DROP':
+        router.push(`/spot/${String(p['spotId'] ?? p['id'] ?? '')}`);
+        break;
+      case 'JOURNEY_LIKE':
+        router.push(`/journey/${String(p['journeyId'] ?? p['id'] ?? '')}`);
+        break;
+      case 'TRANSMISSION':
+        router.push('/modals/transmissions');
+        break;
+      case 'CIRCLE_INVITE':
+        router.push('/(tabs)/circles');
+        break;
+      default:
+        break;
+    }
+  }
+
+  const navigable = NAVIGABLE_SIGNAL_TYPES.has(sig.type);
+
+  return (
+    <Pressable
+      onPress={navigable ? handlePress : undefined}
+      style={[styles.signalRow, !sig.seenAt && styles.signalRowUnseen]}
+    >
+      <Text style={[styles.signalIcon, !sig.seenAt && { color: Colors.aurora }]}>
+        {SIGNAL_ICONS[sig.type] ?? '◎'}
+      </Text>
+      <View style={styles.signalBody}>
+        <Text style={[styles.signalLabel, !sig.seenAt && { color: Colors.starlight }]}>
+          {SIGNAL_LABELS[sig.type] ?? sig.type}
+        </Text>
+        <Text style={styles.signalTime}>{formatRelative(sig.createdAt)}</Text>
+      </View>
+      {!sig.seenAt && <View style={styles.signalDot} />}
+      {navigable && <Text style={styles.signalChevron}>›</Text>}
+    </Pressable>
+  );
+}
 
 function EditProfileModal({
   visible,
@@ -287,6 +337,15 @@ export default function IdentityScreen() {
     setExplorer(updated);
   }
 
+  async function handleBillingUpgrade() {
+    try {
+      const { url } = await api.post<{ url: string }>('/api/billing/checkout', { tier: 'PRO' });
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Plan Explorer', 'Przejdź do ustawień konta na travelpointapp.com, aby zarządzać subskrypcją.');
+    }
+  }
+
   function handleExportData() {
     Alert.alert(
       'Eksport danych',
@@ -518,24 +577,37 @@ export default function IdentityScreen() {
           <GlassCard style={styles.section}>
             <Text style={styles.sectionLabel}>Sygnały</Text>
             {signals.slice(0, 8).map((sig) => (
-              <View
-                key={sig.id}
-                style={[styles.signalRow, !sig.seenAt && styles.signalRowUnseen]}
-              >
-                <Text style={[styles.signalIcon, !sig.seenAt && { color: Colors.aurora }]}>
-                  {SIGNAL_ICONS[sig.type] ?? '◎'}
-                </Text>
-                <View style={styles.signalBody}>
-                  <Text style={[styles.signalLabel, !sig.seenAt && { color: Colors.starlight }]}>
-                    {SIGNAL_LABELS[sig.type] ?? sig.type}
-                  </Text>
-                  <Text style={styles.signalTime}>{formatRelative(sig.createdAt)}</Text>
-                </View>
-                {!sig.seenAt && <View style={styles.signalDot} />}
-              </View>
+              <SignalRow key={sig.id} sig={sig} />
             ))}
           </GlassCard>
         )}
+
+        {/* Billing / Tier section */}
+        <GlassCard style={styles.section}>
+          <Text style={styles.sectionLabel}>Plan Explorer</Text>
+          <View style={styles.billingRow}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.billingTier}>{explorer.tier}</Text>
+              {explorer.tierExpiresAt && (
+                <Text style={styles.billingSub}>
+                  Wygasa {new Date(explorer.tierExpiresAt).toLocaleDateString('pl-PL')}
+                </Text>
+              )}
+              {explorer.tier === 'FREE' && (
+                <Text style={styles.billingSub}>Odblokuj więcej spotów i funkcji</Text>
+              )}
+            </View>
+            {explorer.tier === 'FREE' && (
+              <SignalButton
+                label="Upgrade"
+                onPress={() => void handleBillingUpgrade()}
+                variant="signal"
+                size="sm"
+                haptic="light"
+              />
+            )}
+          </View>
+        </GlassCard>
 
         {/* Privacy & Data — GDPR */}
         <GlassCard style={styles.section}>
@@ -721,6 +793,12 @@ const styles = StyleSheet.create({
   signalLabel: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star },
   signalTime: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost },
   signalDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.aurora },
+  signalChevron: { fontFamily: 'GeneralSans-Regular', fontSize: 18, color: Colors.starGhost },
+
+  // Billing
+  billingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  billingTier: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.bodyLg, color: Colors.starlight },
+  billingSub: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
 
   // Consent & GDPR
   consentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },

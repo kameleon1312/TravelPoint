@@ -17,6 +17,7 @@ import {
 } from '@/hooks/useCircles';
 import { useAuthStore } from '@/stores/auth';
 import { formatRelative } from '@travelpoint/utils';
+import { useBlockExplorer } from '@/hooks/useExplorers';
 
 // ─── Extended API response type ───────────────────────────────────────────────
 type CircleMemberEntry = {
@@ -68,10 +69,38 @@ function PulsingDot({ color }: { color: string }) {
   return <Animated.View style={[styles.dot, { backgroundColor: color }, style]} />;
 }
 
-function MemberRow({ entry }: { entry: CircleMemberEntry }) {
+function MemberRow({ entry, viewerExplorerId }: { entry: CircleMemberEntry; viewerExplorerId: string | undefined }) {
   const roleColor = ROLE_COLORS[entry.role] ?? Colors.signal;
+  const blockExplorer = useBlockExplorer();
+  const isSelf = entry.explorer.id === viewerExplorerId;
+
+  function handleLongPress() {
+    if (isSelf) return;
+    Alert.alert(
+      `@${entry.explorer.handle}`,
+      'Co chcesz zrobić?',
+      [
+        {
+          text: 'Zablokuj explorera',
+          style: 'destructive',
+          onPress: () => {
+            blockExplorer.mutate(entry.explorer.id, {
+              onSuccess: () => Alert.alert('Zablokowano', `@${entry.explorer.handle} został zablokowany.`),
+              onError: () => Alert.alert('Błąd', 'Nie udało się zablokować explorera.'),
+            });
+          },
+        },
+        { text: 'Anuluj', style: 'cancel' },
+      ],
+    );
+  }
+
   return (
-    <View style={styles.memberRow}>
+    <Pressable
+      onLongPress={isSelf ? undefined : handleLongPress}
+      style={styles.memberRow}
+      delayLongPress={400}
+    >
       <View style={[styles.memberAvatar, { borderColor: roleColor }]}>
         <Text style={[styles.memberAvatarLetter, { color: roleColor }]}>
           {entry.explorer.handle[0]?.toUpperCase() ?? '?'}
@@ -88,7 +117,7 @@ function MemberRow({ entry }: { entry: CircleMemberEntry }) {
           {ROLE_ICONS[entry.role] ?? '○'} {ROLE_LABELS[entry.role] ?? entry.role}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -316,7 +345,7 @@ export default function CircleDetailScreen() {
             {members.map((m, i) => (
               <View key={m.explorer.id}>
                 {i > 0 && <View style={styles.divider} />}
-                <MemberRow entry={m} />
+                <MemberRow entry={m} viewerExplorerId={explorer?.id} />
               </View>
             ))}
           </GlassCard>

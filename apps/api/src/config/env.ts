@@ -100,7 +100,7 @@ function databaseUrl(
 function allowedOrigins(value: string | undefined, isProduction: boolean): string[] {
   const origins = (value ?? 'http://localhost:3000')
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
   if (origins.length === 0) throw new Error('ALLOWED_ORIGINS must not be empty');

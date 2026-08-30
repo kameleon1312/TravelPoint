@@ -1,6 +1,7 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   ActivityIndicator, Image, Dimensions, Alert, TextInput,
+  Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -18,7 +19,7 @@ import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import {
   useSpot, useSaveSpot, useUnsaveSpot,
-  useSpotPhotos, useUploadSpotPhoto, useDeleteSpotPhoto, useDeleteSpot,
+  useSpotPhotos, useUploadSpotPhoto, useDeleteSpotPhoto, useDeleteSpot, useUpdateSpot,
 } from '@/hooks/useSpots';
 import { useAuthStore } from '@/stores/auth';
 
@@ -228,6 +229,129 @@ function AddPhotoPanel({
   );
 }
 
+// ─── Edit spot modal ──────────────────────────────────────────────────────────
+const ACCESS_EDIT_OPTIONS = ['PUBLIC', 'TRUSTED', 'CIRCLE_ONLY', 'SECRET_DROP'] as const;
+
+function EditSpotModal({
+  visible, spotId, initialTitle, initialStory, initialAccess, onClose, onSaved,
+}: {
+  visible: boolean;
+  spotId: string;
+  initialTitle: string;
+  initialStory: string;
+  initialAccess: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [title, setTitle]   = useState(initialTitle);
+  const [story, setStory]   = useState(initialStory);
+  const [access, setAccess] = useState(initialAccess);
+  const [saving, setSaving] = useState(false);
+  const updateSpot = useUpdateSpot();
+
+  useEffect(() => {
+    if (visible) {
+      setTitle(initialTitle);
+      setStory(initialStory);
+      setAccess(initialAccess);
+    }
+  }, [visible]);
+
+  async function handleSave() {
+    if (!title.trim()) { Alert.alert('Błąd', 'Tytuł nie może być pusty.'); return; }
+    setSaving(true);
+    try {
+      await updateSpot.mutateAsync({
+        id: spotId,
+        title: title.trim(),
+        story: story.trim() || undefined,
+        accessLevel: access,
+      });
+      onSaved();
+      onClose();
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zapisać zmian.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <SafeAreaView style={editSpotStyles.root} edges={['top', 'bottom']}>
+          <View style={editSpotStyles.header}>
+            <Text style={editSpotStyles.title}>Edytuj spot</Text>
+            <Pressable onPress={onClose} style={editSpotStyles.closeBtn}>
+              <Text style={editSpotStyles.closeBtnText}>Anuluj</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={editSpotStyles.scroll}>
+            <View style={editSpotStyles.field}>
+              <Text style={editSpotStyles.label}>Tytuł</Text>
+              <TextInput
+                style={editSpotStyles.input}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Nazwa miejsca"
+                placeholderTextColor={Colors.starGhost}
+                maxLength={120}
+              />
+              <Text style={editSpotStyles.counter}>{title.length}/120</Text>
+            </View>
+
+            <View style={editSpotStyles.field}>
+              <Text style={editSpotStyles.label}>Historia miejsca</Text>
+              <TextInput
+                style={[editSpotStyles.input, editSpotStyles.inputMultiline]}
+                value={story}
+                onChangeText={setStory}
+                placeholder="Opowiedz o tym miejscu..."
+                placeholderTextColor={Colors.starGhost}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                maxLength={2000}
+              />
+              <Text style={editSpotStyles.counter}>{story.length}/2000</Text>
+            </View>
+
+            <View style={editSpotStyles.field}>
+              <Text style={editSpotStyles.label}>Poziom dostępu</Text>
+              <View style={editSpotStyles.accessOptions}>
+                {ACCESS_EDIT_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt}
+                    style={[editSpotStyles.accessOption, access === opt && editSpotStyles.accessOptionActive]}
+                    onPress={() => setAccess(opt)}
+                  >
+                    <Text style={[editSpotStyles.accessOptionText, access === opt && editSpotStyles.accessOptionTextActive]}>
+                      {ACCESS_LABELS[opt] ?? opt}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={editSpotStyles.footer}>
+            <SignalButton
+              label="Zapisz zmiany"
+              onPress={handleSave}
+              variant="aurora"
+              size="lg"
+              fullWidth
+              loading={saving}
+              haptic="medium"
+            />
+          </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SpotDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -239,6 +363,7 @@ export default function SpotDetailScreen() {
   const deleteSpot = useDeleteSpot();
   const [saved, setSaved]             = useState(false);
   const [addingPhoto, setAddingPhoto] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
 
   function handleDelete() {
     Alert.alert(
@@ -430,23 +555,42 @@ export default function SpotDetailScreen() {
                     <Text style={styles.ownerLabel}>Twój spot</Text>
                     <Text style={styles.ownerSub}>Jesteś autorem tego miejsca.</Text>
                   </View>
-                  <Pressable
-                    style={styles.deleteBtn}
-                    onPress={handleDelete}
-                    disabled={deleteSpot.isPending}
-                    hitSlop={8}
-                  >
-                    {deleteSpot.isPending
-                      ? <ActivityIndicator size="small" color={Colors.ember} />
-                      : <Text style={styles.deleteBtnText}>Usuń</Text>
-                    }
-                  </Pressable>
+                  <View style={styles.ownerActions}>
+                    <Pressable
+                      style={styles.editBtn}
+                      onPress={() => setEditVisible(true)}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.editBtnText}>Edytuj</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.deleteBtn}
+                      onPress={handleDelete}
+                      disabled={deleteSpot.isPending}
+                      hitSlop={8}
+                    >
+                      {deleteSpot.isPending
+                        ? <ActivityIndicator size="small" color={Colors.ember} />
+                        : <Text style={styles.deleteBtnText}>Usuń</Text>
+                      }
+                    </Pressable>
+                  </View>
                 </View>
               </GlassCard>
             )}
           </View>
         )}
       </ScrollView>
+
+      <EditSpotModal
+        visible={editVisible}
+        spotId={id ?? ''}
+        initialTitle={title}
+        initialStory={story ?? ''}
+        initialAccess={access}
+        onClose={() => setEditVisible(false)}
+        onSaved={() => setEditVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -551,7 +695,41 @@ const styles = StyleSheet.create({
   ownerRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   ownerLabel: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.aurora, textTransform: 'uppercase', letterSpacing: 1 },
   ownerSub:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
+  ownerActions: { flexDirection: 'row', gap: Spacing.sm },
+  editBtn:    { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.signal + '60' },
+  editBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.signal },
   deleteBtn:  { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.ember + '60' },
   deleteBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.ember },
   errorText:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.ember },
+});
+
+const editSpotStyles = StyleSheet.create({
+  root:   { flex: 1, backgroundColor: Colors.abyss },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg,
+    borderBottomWidth: 1, borderBottomColor: Colors.steel,
+  },
+  title:        { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight },
+  closeBtn:     { padding: Spacing.sm },
+  closeBtnText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.starFaint },
+  scroll:  { padding: Spacing.xl, gap: Spacing.xl },
+  field:   { gap: Spacing.sm },
+  label:   { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
+  input: {
+    backgroundColor: Colors.graphite, borderWidth: 1, borderColor: Colors.steel,
+    borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.starlight,
+  },
+  inputMultiline: { height: 140, paddingTop: Spacing.md },
+  counter: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost, textAlign: 'right' },
+  accessOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  accessOption: {
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.steel,
+  },
+  accessOptionActive: { borderColor: Colors.aurora, backgroundColor: Colors.aurora + '15' },
+  accessOptionText:   { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starFaint, textTransform: 'uppercase' },
+  accessOptionTextActive: { color: Colors.aurora },
+  footer: { padding: Spacing.xl },
 });

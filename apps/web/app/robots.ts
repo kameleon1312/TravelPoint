@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/journal', '/journal/', '/map', '/explorer/'],
+        allow: ['/', '/journal', '/journal/', '/map', '/explorer/', '/forum', '/forum/', '/explorers', '/explorers/'],
         disallow: ['/api/', '/rodo', '/regulamin', '/polityka-prywatnosci'],
       },
       // Block AI training scrapers

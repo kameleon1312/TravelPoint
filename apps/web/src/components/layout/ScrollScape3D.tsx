@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useRef, useEffect, Suspense, useMemo } from 'react';
+import { useRef, useEffect, Suspense, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -353,13 +353,26 @@ function SceneDriver() {
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export function ScrollScape3D(): React.JSX.Element {
+  const [contextLost, setContextLost] = useState(false);
   useScrollSync();
   return (
-    <div className="fixed inset-0 -z-10 pointer-events-none">
+    <div
+      className="fixed inset-0 -z-10 pointer-events-none"
+      style={{ opacity: contextLost ? 0 : 1, transition: 'opacity 0.6s' }}
+    >
       <Canvas
         camera={{ position: [0, 600, 0], fov: 62, near: 1, far: 2500 }}
         dpr={[1, 1.25]}
-        gl={{ antialias: true, alpha: false, powerPreference: 'default' }}
+        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+        onCreated={({ gl }) => {
+          gl.domElement.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault();
+            setContextLost(true);
+          }, false);
+          gl.domElement.addEventListener('webglcontextrestored', () => {
+            setContextLost(false);
+          }, false);
+        }}
       >
         <SceneDriver />
         <StarField />

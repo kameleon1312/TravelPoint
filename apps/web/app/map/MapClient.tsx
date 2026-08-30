@@ -25,5 +25,9 @@ interface Props {
 }
 
 export function MapClient({ token }: Props): React.JSX.Element {
-  return <DiscoveryMap token={token} />;
+  return (
+    <div style={{ width: '100%', height: '100%' }}>
+      <DiscoveryMap token={token} />
+    </div>
+  );
 }

@@ -250,6 +250,46 @@ export async function spotsRoutes(app: FastifyInstance) {
     return reply.send(resolved);
   });
 
+  // PATCH /api/spots/:id — owner edits title, story, accessLevel, dropExpiresAt
+  app.patch('/api/spots/:id', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const spot = await app.prisma.spot.findUnique({ where: { id } });
+    if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (spot.ownerId !== req.explorerId) return reply.status(403).send({ code: 'FORBIDDEN' });
+
+    const body = req.body as {
+      title?: string;
+      story?: string;
+      accessLevel?: string;
+      dropExpiresAt?: string | null;
+    };
+
+    const data: Record<string, unknown> = {};
+    if (typeof body.title === 'string' && body.title.trim().length > 0) {
+      data['title'] = body.title.trim().slice(0, 120);
+    }
+    if (typeof body.story === 'string') {
+      data['story'] = body.story.trim().slice(0, 2000) || null;
+    }
+    if (['PUBLIC', 'TRUSTED', 'CIRCLE_ONLY', 'SECRET_DROP'].includes(body.accessLevel ?? '')) {
+      data['accessLevel'] = body.accessLevel;
+    }
+    if (body.dropExpiresAt === null) {
+      data['dropExpiresAt'] = null;
+    } else if (typeof body.dropExpiresAt === 'string') {
+      const d = new Date(body.dropExpiresAt);
+      if (!isNaN(d.getTime())) data['dropExpiresAt'] = d;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'No updatable fields' });
+    }
+
+    const updated = await app.prisma.spot.update({ where: { id }, data });
+    const resolved = await resolveForExplorer({ ...updated, photos: [] }, req.explorerId);
+    return reply.send(resolved ?? updated);
+  });
+
   // POST /api/spots
   app.post('/api/spots', { preHandler: [requireAuth] }, async (req, reply) => {
     const parsed = CreateSpotSchema.safeParse(req.body);

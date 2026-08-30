@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useRef, useEffect, Suspense } from 'react';
+import { useRef, useEffect, Suspense, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Sphere, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -45,18 +45,29 @@ function EarthGlobe() {
 }
 
 export function GlobScene(): React.JSX.Element {
+  const [contextLost, setContextLost] = useState(false);
+
   return (
     <Canvas
       camera={{ position: [0, 0, 6], fov: 45 }}
       dpr={[1, 1.5]}
-      gl={{ alpha: true, antialias: true, powerPreference: 'default' }}
+      gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
       onCreated={({ gl, scene }) => {
-        // R3F v9 does not auto-clear to transparent — must be set explicitly.
         gl.setClearColor(0, 0, 0, 0);
         scene.background = null;
+        gl.domElement.addEventListener('webglcontextlost', (e) => {
+          e.preventDefault();
+          setContextLost(true);
+        }, false);
+        gl.domElement.addEventListener('webglcontextrestored', () => {
+          setContextLost(false);
+        }, false);
       }}
       resize={{ debounce: 0, scroll: false }}
-      style={{ background: 'transparent', width: '100%', height: '100%', display: 'block' }}
+      style={{
+        background: 'transparent', width: '100%', height: '100%', display: 'block',
+        opacity: contextLost ? 0 : 1, transition: 'opacity 0.4s',
+      }}
     >
       <CameraResponsive />
       <ambientLight intensity={0.15} color={Colors.star} />

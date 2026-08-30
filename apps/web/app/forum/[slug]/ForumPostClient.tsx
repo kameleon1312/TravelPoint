@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactElement } from 'react';
 import Link from 'next/link';
 import { ForumAuthProvider, useForumAuth, SignInModal } from '@/components/forum/ForumAuth';
@@ -37,11 +37,22 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 function PostClientInner({ post: initial }: { post: Post }): ReactElement {
   const { token } = useForumAuth();
-  const [post] = useState(initial);
+  const [post, setPost] = useState(initial);
   const [replies, setReplies] = useState<Reply[]>(initial.replies);
   const [showSignIn, setShowSignIn] = useState(false);
   const [reportSent, setReportSent] = useState(false);
   const [reportError, setReportError] = useState('');
+  const [isModerator, setIsModerator] = useState(false);
+  const [modWorking, setModWorking] = useState(false);
+
+  useEffect(() => {
+    if (!token) { setIsModerator(false); return; }
+    void apiFetch<{ role?: string }>('/api/explorers/me')
+      .then((me) => {
+        setIsModerator(me.role === 'MODERATOR' || me.role === 'ADMIN');
+      })
+      .catch(() => setIsModerator(false));
+  }, [token]);
 
   function onReplied(reply: Reply) {
     setReplies((prev) => [...prev, reply]);
@@ -57,6 +68,36 @@ function PostClientInner({ post: initial }: { post: Post }): ReactElement {
       setReportSent(true);
     } catch (err) {
       setReportError(err instanceof Error ? err.message : 'Błąd zgłoszenia');
+    }
+  }
+
+  async function toggleLock() {
+    setModWorking(true);
+    try {
+      await apiFetch(`/api/admin/forum/posts/${post.slug}/lock`, {
+        method: 'PATCH',
+        body: JSON.stringify({ locked: !post.lockedAt }),
+      });
+      setPost((p) => ({ ...p, lockedAt: p.lockedAt ? null : new Date().toISOString() }));
+    } catch {
+      // swallow — error visible via no state change
+    } finally {
+      setModWorking(false);
+    }
+  }
+
+  async function togglePin() {
+    setModWorking(true);
+    try {
+      await apiFetch(`/api/admin/forum/posts/${post.slug}/pin`, {
+        method: 'PATCH',
+        body: JSON.stringify({ pinned: !post.isPinned }),
+      });
+      setPost((p) => ({ ...p, isPinned: !p.isPinned }));
+    } catch {
+      // swallow
+    } finally {
+      setModWorking(false);
     }
   }
 
@@ -87,11 +128,32 @@ function PostClientInner({ post: initial }: { post: Post }): ReactElement {
             <h1 className="font-display text-4xl md:text-5xl font-bold text-starlight tracking-tight leading-tight mb-5">
               {post.title}
             </h1>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="font-mono text-xs text-starGhost">
                 @{post.author.handle} · {new Date(post.createdAt).toLocaleDateString('pl-PL')}
               </p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Moderator controls */}
+                {isModerator && (
+                  <div className="flex items-center gap-2 border-r border-steel pr-3">
+                    <button
+                      type="button"
+                      onClick={() => void toggleLock()}
+                      disabled={modWorking}
+                      className="font-mono text-[10px] uppercase tracking-wider text-signal hover:text-starlight transition disabled:opacity-40 border border-signal/40 rounded-full px-2.5 py-1"
+                    >
+                      {locked ? 'Odblokuj' : 'Zablokuj'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void togglePin()}
+                      disabled={modWorking}
+                      className="font-mono text-[10px] uppercase tracking-wider text-violet hover:text-starlight transition disabled:opacity-40 border border-violet/40 rounded-full px-2.5 py-1"
+                    >
+                      {post.isPinned ? 'Odepnij' : 'Przypnij'}
+                    </button>
+                  </div>
+                )}
                 {reportSent ? (
                   <span className="font-mono text-xs text-aurora">Zgłoszono</span>
                 ) : (

@@ -25,7 +25,7 @@ export async function explorerRoutes(app: FastifyInstance) {
       select: {
         id: true, handle: true, displayName: true, archetype: true,
         bio: true, obsessions: true, territories: true, trustScore: true,
-        rank: true, tier: true, tierExpiresAt: true, emailVerified: true,
+        rank: true, role: true, tier: true, tierExpiresAt: true, emailVerified: true,
         locationConsent: true, presenceConsent: true,
         homeBaseEnc: true,
         consentTerms: true, consentPrivacy: true,
@@ -273,7 +273,56 @@ export async function explorerRoutes(app: FastifyInstance) {
     return reply.status(204).send();
   });
 
+  // ─── GET /api/explorers/search?q= — find explorers by handle/displayName ──
+  app.get('/api/explorers/search', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { q } = req.query as { q?: string };
+    const term = (q ?? '').trim();
+    if (term.length < 2) return reply.send([]);
+
+    const explorers = await app.prisma.explorer.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { handle: { contains: term, mode: 'insensitive' } },
+          { displayName: { contains: term, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true, handle: true, displayName: true, rank: true, archetype: true },
+      take: 20,
+      orderBy: { trustScore: 'desc' },
+    });
+
+    return reply.send(explorers);
+  });
+
+  // ─── POST /api/explorers/:id/block ────────────────────────────────────────
+  app.post('/api/explorers/:id/block', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (id === req.explorerId) {
+      return reply.status(400).send({ code: 'CANNOT_BLOCK_SELF' });
+    }
+    const target = await app.prisma.explorer.findFirst({ where: { id, deletedAt: null } });
+    if (!target) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    await app.prisma.block.upsert({
+      where: { blockerId_blockedId: { blockerId: req.explorerId, blockedId: id } },
+      create: { blockerId: req.explorerId, blockedId: id },
+      update: {},
+    });
+    return reply.status(204).send();
+  });
+
+  // ─── DELETE /api/explorers/:id/block ─────────────────────────────────────
+  app.delete('/api/explorers/:id/block', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await app.prisma.block.deleteMany({
+      where: { blockerId: req.explorerId, blockedId: id },
+    });
+    return reply.status(204).send();
+  });
+
   // ─── GET /api/explorers/:handle — public profile ──────────────────────────
+  // IMPORTANT: must come after /search and /me/... routes to avoid collisions
   app.get('/api/explorers/:handle', async (req, reply) => {
     const { handle } = req.params as { handle: string };
     const explorer = await app.prisma.explorer.findFirst({

@@ -107,6 +107,25 @@ export function useUploadSpotPhoto() {
   });
 }
 
+export function useUpdateSpot() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      title?: string;
+      story?: string;
+      accessLevel?: string;
+      dropExpiresAt?: string | null;
+    }) => api.patch<SpotForViewer>(`/api/spots/${id}`, body),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: ['spots', id] });
+    },
+  });
+}
+
 export function useDeleteSpot() {
   const qc = useQueryClient();
   return useMutation({
