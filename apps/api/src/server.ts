@@ -21,6 +21,7 @@ import { billingRoutes } from './routes/billing';
 import { forumRoutes } from './routes/forum';
 import { analyticsRoutes } from './routes/analytics';
 import { journalRoutes } from './routes/journal';
+import { feedRoutes } from './routes/feed';
 import { logger } from './lib/logger';
 import { env } from './config/env';
 import { getRedis } from './lib/redis';
@@ -48,6 +49,7 @@ async function bootstrap() {
   await app.register(forumRoutes);
   await app.register(analyticsRoutes);
   await app.register(journalRoutes);
+  await app.register(feedRoutes);
 
   // Health check — used by Railway / uptime monitors
   app.get('/health', async (_request, reply) => {

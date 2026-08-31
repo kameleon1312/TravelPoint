@@ -1,11 +1,33 @@
 export type SignalType =
   | 'NEARBY_EXPLORER'
+  | 'NEARBY_SPOT'
   | 'SPOT_UNLOCKED'
+  | 'SPOT_COMMENT'
   | 'CIRCLE_INVITE'
   | 'SECRET_DROP'
   | 'JOURNEY_LIKE'
   | 'TRANSMISSION'
   | 'FORUM_REPLY';
+
+export interface SpotComment {
+  id: string;
+  spotId: string;
+  explorerId: string;
+  explorerHandle: string;
+  explorerAvatarUrl?: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface FeedItem {
+  id: string;
+  type: 'SPOT_CREATED' | 'JOURNEY_PUBLISHED' | 'SPOT_COMMENT' | 'REACTION_RECEIVED' | 'CIRCLE_ACTIVITY';
+  actorHandle: string;
+  actorAvatarUrl?: string;
+  actorRank: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
 
 export interface Signal {
   id: string;

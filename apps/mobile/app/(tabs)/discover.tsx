@@ -1,6 +1,10 @@
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import {
+  View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
+} from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
@@ -8,7 +12,9 @@ import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { useNearbySpots } from '@/hooks/useSpots';
-import type { SpotForViewer } from '@travelpoint/types';
+import { useFeed } from '@/hooks/useFeed';
+import { formatRelative } from '@travelpoint/utils';
+import type { SpotForViewer, FeedItem } from '@travelpoint/types';
 
 const ACCESS_COLORS: Record<string, string> = {
   PUBLIC:      Colors.aurora,
@@ -23,6 +29,31 @@ const ACCESS_ICONS: Record<string, string> = {
   SECRET_DROP: '◉',
   CIRCLE_ONLY: '◑',
 };
+
+const CATEGORIES = ['ABANDONED', 'CAFE', 'BEACH', 'ROUTE', 'UNDERGROUND', 'VIEWPOINT', 'CAMP'] as const;
+
+const CATEGORY_PL: Record<string, string> = {
+  ABANDONED: 'Opuszczone', CAFE: 'Kawiarnia', BEACH: 'Plaża',
+  ROUTE: 'Trasa', UNDERGROUND: 'Podziemia', VIEWPOINT: 'Widok', CAMP: 'Baza',
+};
+
+const FEED_TYPE_LABELS: Record<string, string> = {
+  SPOT_CREATED:       'dropnął spot',
+  JOURNEY_PUBLISHED:  'opublikował journey',
+  SPOT_COMMENT:       'skomentował spot',
+  REACTION_RECEIVED:  'zareagował',
+  CIRCLE_ACTIVITY:    'aktywność w circle',
+};
+
+const FEED_TYPE_ICONS: Record<string, string> = {
+  SPOT_CREATED:      '◉',
+  JOURNEY_PUBLISHED: '◎',
+  SPOT_COMMENT:      '◇',
+  REACTION_RECEIVED: '♥',
+  CIRCLE_ACTIVITY:   '◑',
+};
+
+// ── Spot card ─────────────────────────────────────────────────────────────────
 
 function SpotCard({ spot }: { spot: SpotForViewer }) {
   const pulse = useSharedValue(1);
@@ -45,7 +76,7 @@ function SpotCard({ spot }: { spot: SpotForViewer }) {
   }));
 
   const accentColor = ACCESS_COLORS[accessLevel] ?? Colors.starFaint;
-  const icon = ACCESS_ICONS[accessLevel] ?? '◎';
+  const icon        = ACCESS_ICONS[accessLevel]  ?? '◎';
 
   return (
     <Pressable onPress={() => router.push(`/spot/${spot.id}`)}>
@@ -71,7 +102,7 @@ function SpotCard({ spot }: { spot: SpotForViewer }) {
           )}
         </View>
 
-        <Text style={[styles.title, isLocked && styles.titleLocked]}>
+        <Text style={[styles.cardTitle, isLocked && styles.titleLocked]}>
           {'title' in spot ? (spot as { title: string }).title : '???'}
         </Text>
 
@@ -81,13 +112,68 @@ function SpotCard({ spot }: { spot: SpotForViewer }) {
   );
 }
 
+// ── Feed card ─────────────────────────────────────────────────────────────────
+
+function FeedCard({ item }: { item: FeedItem }) {
+  function handlePress() {
+    const p = item.payload;
+    if (item.type === 'SPOT_CREATED' || item.type === 'SPOT_COMMENT') {
+      router.push(`/spot/${String(p['spotId'] ?? '')}`);
+    } else if (item.type === 'JOURNEY_PUBLISHED') {
+      router.push(`/journey/${String(p['journeyId'] ?? '')}`);
+    }
+  }
+
+  const icon  = FEED_TYPE_ICONS[item.type]  ?? '◎';
+  const label = FEED_TYPE_LABELS[item.type] ?? item.type;
+
+  return (
+    <Pressable onPress={handlePress}>
+      <GlassCard style={styles.feedCard}>
+        <View style={styles.feedHeader}>
+          <Text style={styles.feedIcon}>{icon}</Text>
+          <View style={styles.feedMeta}>
+            <Text style={styles.feedActor}>
+              <Text style={styles.feedHandle}>@{item.actorHandle}</Text>
+              {' '}{label}
+            </Text>
+            <Text style={styles.feedTime}>{formatRelative(item.createdAt)}</Text>
+          </View>
+        </View>
+        {item.type === 'SPOT_CREATED' && (
+          <Text style={styles.feedTitle} numberOfLines={2}>
+            {String(item.payload['title'] ?? '')}
+          </Text>
+        )}
+        {item.type === 'JOURNEY_PUBLISHED' && (
+          <Text style={styles.feedTitle} numberOfLines={2}>
+            {String(item.payload['title'] ?? '')}
+          </Text>
+        )}
+        {item.type === 'SPOT_COMMENT' && (
+          <>
+            <Text style={styles.feedSpotRef} numberOfLines={1}>
+              → {String(item.payload['spotTitle'] ?? '')}
+            </Text>
+            <Text style={styles.feedCommentBody} numberOfLines={2}>
+              "{String(item.payload['body'] ?? '')}"
+            </Text>
+          </>
+        )}
+      </GlassCard>
+    </Pressable>
+  );
+}
+
+// ── No location ───────────────────────────────────────────────────────────────
+
 function NoLocation({ onRequest }: { onRequest: () => void }) {
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyIcon}>◎</Text>
       <Text style={styles.emptyTitle}>Lokalizacja wyłączona</Text>
       <Text style={styles.emptySub}>
-        Odkrywaj spoty w pobliżu — włącz lokalizację żeby zobaczyć ukryte miejsca.
+        Odkrywaj spoty w pobliżu — włącz lokalizację.
       </Text>
       <Pressable style={styles.enableBtn} onPress={onRequest}>
         <Text style={styles.enableBtnText}>Włącz lokalizację</Text>
@@ -96,14 +182,26 @@ function NoLocation({ onRequest }: { onRequest: () => void }) {
   );
 }
 
-export default function DiscoverScreen() {
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationDenied, setLocationDenied] = useState(false);
+// ── Main screen ───────────────────────────────────────────────────────────────
 
-  const { data: spots, isLoading, error } = useNearbySpots(
-    coords?.lat ?? null,
-    coords?.lng ?? null,
+type Segment = 'feed' | 'discover';
+
+export default function DiscoverScreen() {
+  const [segment, setSegment]           = useState<Segment>('feed');
+  const [coords, setCoords]             = useState<{ lat: number; lng: number } | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const { data: feedItems, isLoading: feedLoading } = useFeed();
+
+  const { data: spots, isLoading: spotsLoading, error: spotsError } = useNearbySpots(
+    segment === 'discover' ? (coords?.lat ?? null) : null,
+    segment === 'discover' ? (coords?.lng ?? null) : null,
   );
+
+  const filteredSpots = activeCategory
+    ? spots?.filter((s) => 'category' in s && (s as { category: string }).category === activeCategory)
+    : spots;
 
   async function requestLocation() {
     setLocationDenied(false);
@@ -117,65 +215,132 @@ export default function DiscoverScreen() {
   }
 
   useEffect(() => {
-    void requestLocation();
-  }, []);
+    if (segment === 'discover' && !coords) void requestLocation();
+  }, [segment]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Hidden Layer</Text>
         <Text style={styles.heading}>Odkrywaj</Text>
-        <Text style={styles.sub}>Spoty w pobliżu, posortowane według Twojego ranku.</Text>
       </View>
 
-      {/* Location denied */}
-      {locationDenied && !isLoading && (
-        <NoLocation onRequest={requestLocation} />
-      )}
-
-      {/* Loading */}
-      {isLoading && (
-        <View style={styles.center}>
-          <ActivityIndicator color={Colors.aurora} size="large" />
-        </View>
-      )}
-
-      {/* Error */}
-      {error && !isLoading && (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>◈</Text>
-          <Text style={styles.emptyTitle}>Błąd ładowania</Text>
-          <Text style={styles.emptySub}>
-            {error instanceof Error ? error.message : 'Sprawdź połączenie z siecią i spróbuj ponownie.'}
+      {/* Segment switcher */}
+      <View style={styles.segments}>
+        <Pressable
+          style={[styles.segBtn, segment === 'feed' && styles.segBtnActive]}
+          onPress={() => setSegment('feed')}
+        >
+          <Text style={[styles.segLabel, segment === 'feed' && styles.segLabelActive]}>
+            Feed
           </Text>
-          <Pressable
-            style={styles.enableBtn}
-            onPress={() => void requestLocation()}
+        </Pressable>
+        <Pressable
+          style={[styles.segBtn, segment === 'discover' && styles.segBtnActive]}
+          onPress={() => setSegment('discover')}
+        >
+          <Text style={[styles.segLabel, segment === 'discover' && styles.segLabelActive]}>
+            W pobliżu
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* FEED segment */}
+      {segment === 'feed' && (
+        <>
+          {feedLoading && (
+            <View style={styles.center}>
+              <ActivityIndicator color={Colors.aurora} size="large" />
+            </View>
+          )}
+          {!feedLoading && (!feedItems || feedItems.length === 0) && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>◐</Text>
+              <Text style={styles.emptyTitle}>Feed jest cichy</Text>
+              <Text style={styles.emptySub}>
+                Dołącz do circles albo odkryj spoty, żeby zobaczyć co się dzieje w Twojej sieci.
+              </Text>
+            </View>
+          )}
+          {!feedLoading && feedItems && feedItems.length > 0 && (
+            <FlatList
+              data={feedItems}
+              keyExtractor={(i) => i.id}
+              renderItem={({ item }) => <FeedCard item={item} />}
+              contentContainerStyle={styles.list}
+              ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </>
+      )}
+
+      {/* DISCOVER segment */}
+      {segment === 'discover' && (
+        <>
+          {/* Category filter chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterRow}
           >
-            <Text style={styles.enableBtnText}>Spróbuj ponownie</Text>
-          </Pressable>
-        </View>
-      )}
+            <Pressable
+              style={[styles.filterChip, !activeCategory && styles.filterChipActive]}
+              onPress={() => setActiveCategory(null)}
+            >
+              <Text style={[styles.filterChipText, !activeCategory && styles.filterChipTextActive]}>
+                Wszystkie
+              </Text>
+            </Pressable>
+            {CATEGORIES.map((cat) => (
+              <Pressable
+                key={cat}
+                style={[styles.filterChip, activeCategory === cat && styles.filterChipActive]}
+                onPress={() => setActiveCategory(activeCategory === cat ? null : cat)}
+              >
+                <Text style={[styles.filterChipText, activeCategory === cat && styles.filterChipTextActive]}>
+                  {CATEGORY_PL[cat] ?? cat}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
 
-      {/* Empty state */}
-      {!isLoading && !error && !locationDenied && spots?.length === 0 && (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>◎</Text>
-          <Text style={styles.emptyTitle}>Brak spotów w pobliżu</Text>
-          <Text style={styles.emptySub}>Nikt jeszcze nie odkrył tego miejsca. Bądź pierwszy.</Text>
-        </View>
-      )}
-
-      {/* Spots list */}
-      {!isLoading && !error && (spots?.length ?? 0) > 0 && (
-        <FlatList
-          data={spots}
-          keyExtractor={(s) => s.id}
-          renderItem={({ item }) => <SpotCard spot={item} />}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
-          showsVerticalScrollIndicator={false}
-        />
+          {locationDenied && !spotsLoading && (
+            <NoLocation onRequest={requestLocation} />
+          )}
+          {spotsLoading && (
+            <View style={styles.center}>
+              <ActivityIndicator color={Colors.aurora} size="large" />
+            </View>
+          )}
+          {spotsError && !spotsLoading && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>◈</Text>
+              <Text style={styles.emptyTitle}>Błąd ładowania</Text>
+              <Pressable style={styles.enableBtn} onPress={() => void requestLocation()}>
+                <Text style={styles.enableBtnText}>Spróbuj ponownie</Text>
+              </Pressable>
+            </View>
+          )}
+          {!spotsLoading && !spotsError && !locationDenied && (filteredSpots?.length ?? 0) === 0 && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>◎</Text>
+              <Text style={styles.emptyTitle}>Brak spotów w pobliżu</Text>
+              <Text style={styles.emptySub}>Nikt jeszcze nie odkrył tego miejsca. Bądź pierwszy.</Text>
+            </View>
+          )}
+          {!spotsLoading && !spotsError && (filteredSpots?.length ?? 0) > 0 && (
+            <FlatList
+              data={filteredSpots}
+              keyExtractor={(s) => s.id}
+              renderItem={({ item }) => <SpotCard spot={item} />}
+              contentContainerStyle={styles.list}
+              ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </>
       )}
     </SafeAreaView>
   );
@@ -186,8 +351,8 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
-    gap: Spacing.xs,
+    paddingBottom: Spacing.sm,
+    gap: 2,
   },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
@@ -198,75 +363,69 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontFamily: 'ClashDisplay-Bold',
-    fontSize: FontSize.h2,
+    fontSize: FontSize.h3,
     color: Colors.starlight,
   },
-  sub: {
-    fontFamily: 'GeneralSans-Regular',
-    fontSize: FontSize.bodySm,
-    color: Colors.star,
-  },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.xl,
-    gap: Spacing.lg,
-  },
-  emptyIcon: { fontSize: 40, color: Colors.starGhost },
-  emptyTitle: {
-    fontFamily: 'ClashDisplay-Bold',
-    fontSize: FontSize.h4,
-    color: Colors.starlight,
-    textAlign: 'center',
-  },
-  emptySub: {
-    fontFamily: 'GeneralSans-Regular',
-    fontSize: FontSize.bodySm,
-    color: Colors.star,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  enableBtn: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
+  segments: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.graphite,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.aurora,
+    borderColor: Colors.steel,
+    overflow: 'hidden',
   },
-  enableBtnText: {
-    fontFamily: 'GeneralSans-Semibold',
-    fontSize: FontSize.bodySm,
-    color: Colors.aurora,
+  segBtn: {
+    flex: 1, paddingVertical: Spacing.sm, alignItems: 'center',
   },
-  list: { padding: Spacing.xl },
-  card: { gap: Spacing.sm },
+  segBtnActive: { backgroundColor: Colors.graphiteSoft },
+  segLabel: {
+    fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starFaint,
+  },
+  segLabelActive: { color: Colors.aurora },
+  filterRow: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.md, gap: Spacing.sm },
+  filterChip: {
+    paddingHorizontal: Spacing.md, paddingVertical: 6,
+    borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.steel,
+    backgroundColor: Colors.graphite,
+  },
+  filterChipActive: { borderColor: Colors.aurora + '70', backgroundColor: Colors.aurora + '15' },
+  filterChipText: {
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
+    color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  filterChipTextActive: { color: Colors.aurora },
+  center:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    padding: Spacing.xl, gap: Spacing.lg,
+  },
+  emptyIcon:  { fontSize: 40, color: Colors.starGhost },
+  emptyTitle: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, textAlign: 'center' },
+  emptySub:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, textAlign: 'center', lineHeight: 22 },
+  enableBtn:  { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.xl, borderWidth: 1, borderColor: Colors.aurora },
+  enableBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.aurora },
+  list:    { padding: Spacing.xl },
+  card:    { gap: Spacing.sm },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   category: {
-    fontFamily: 'SpaceMono-Regular',
-    fontSize: FontSize.micro,
-    color: Colors.starFaint,
-    flex: 1,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
+    color: Colors.starFaint, flex: 1, textTransform: 'uppercase', letterSpacing: 1,
   },
-  badge: {
-    borderWidth: 1,
-    borderRadius: BorderRadius.pill,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-  },
-  badgeText: {
-    fontFamily: 'SpaceMono-Regular',
-    fontSize: FontSize.micro,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  title: {
-    fontFamily: 'ClashDisplay-Bold',
-    fontSize: FontSize.h4,
-    color: Colors.starlight,
-  },
+  badge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+  badgeText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, textTransform: 'uppercase', letterSpacing: 0.5 },
+  cardTitle: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight },
   titleLocked: { color: Colors.starGhost },
+  // Feed
+  feedCard:   { gap: Spacing.sm },
+  feedHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
+  feedIcon:   { fontSize: 16, color: Colors.aurora, marginTop: 2 },
+  feedMeta:   { flex: 1, gap: 2 },
+  feedActor:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, flexWrap: 'wrap' },
+  feedHandle: { fontFamily: 'GeneralSans-Semibold', color: Colors.starlight },
+  feedTime:   { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost },
+  feedTitle:  { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, lineHeight: 24 },
+  feedSpotRef:{ fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.signal, textTransform: 'uppercase', letterSpacing: 0.5 },
+  feedCommentBody: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, fontStyle: 'italic', lineHeight: 20 },
 });

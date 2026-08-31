@@ -19,6 +19,7 @@ model Explorer {
 
   // Identity
   displayName String?   @db.VarChar(60)
+  avatarUrl   String?   @db.VarChar(500)
   archetype   Archetype @default(WANDERER)
   bio         String?   @db.VarChar(500)
   obsessions  String[]
@@ -75,6 +76,7 @@ model Explorer {
   trustEvents          TrustEvent[]
   tierEvents           TierEvent[]
   reactions            Reaction[]
+  comments             SpotComment[]
   journeyLikes         JourneyLike[]      @relation("JourneyLiker")
   journeyLikesReceived JourneyLike[]      @relation("JourneyAuthor")
   verifications        SpotVerification[]
@@ -116,6 +118,7 @@ model Spot {
   saves         SpotSave[]
   auditLogs     AuditLog[]
   reactions     Reaction[]
+  comments      SpotComment[]
   verifications SpotVerification[]
   reports       Report[]
   createdAt     DateTime           @default(now())
@@ -419,6 +422,19 @@ model AnalyticsEvent {
   @@index([explorerId, createdAt])
 }
 
+model SpotComment {
+  id         String   @id @default(cuid())
+  spotId     String
+  spot       Spot     @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  explorerId String
+  explorer   Explorer @relation(fields: [explorerId], references: [id], onDelete: Cascade)
+  body       String   @db.VarChar(500)
+  createdAt  DateTime @default(now())
+
+  @@index([spotId, createdAt])
+  @@index([explorerId])
+}
+
 model Reaction {
   id         String       @id @default(cuid())
   spotId     String
@@ -589,7 +605,9 @@ enum CircleRole {
 
 enum SignalType {
   NEARBY_EXPLORER
+  NEARBY_SPOT
   SPOT_UNLOCKED
+  SPOT_COMMENT
   CIRCLE_INVITE
   SECRET_DROP
   JOURNEY_LIKE

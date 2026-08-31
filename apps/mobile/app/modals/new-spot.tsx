@@ -213,6 +213,9 @@ export default function NewSpotModal() {
                           if (lvl !== 'SECRET_DROP') {
                             setValue('dropExpiresAt', undefined);
                             setSelectedDropPreset(null);
+                          } else {
+                            // Default to 24h for Secret Drop
+                            selectDropPreset(DROP_PRESETS[0].hours, 0);
                           }
                           if (lvl !== 'CIRCLE_ONLY') {
                             setValue('circleId', undefined);

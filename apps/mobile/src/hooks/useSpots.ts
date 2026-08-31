@@ -38,6 +38,14 @@ export function useCreateSpot() {
   });
 }
 
+export function useSavedSpots() {
+  return useQuery({
+    queryKey: ['spots', 'saved'],
+    queryFn:  () => api.get<SpotForViewer[]>('/api/spots/saved'),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 export function useSaveSpot() {
   const qc = useQueryClient();
   return useMutation({

@@ -27,6 +27,7 @@ import {
   useSpotVerifications, useVerifySpot, useCanVerify,
   type ReactionType,
 } from '@/hooks/useReactions';
+import { useSpotComments, useAddComment } from '@/hooks/useComments';
 import { useAuthStore } from '@/stores/auth';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -466,6 +467,73 @@ function VerificationPanel({ spotId, isOwner, isLocked }: {
   );
 }
 
+// ─── Comments section ─────────────────────────────────────────────────────────
+function CommentsSection({ spotId }: { spotId: string }) {
+  const { data: comments, isLoading } = useSpotComments(spotId);
+  const addComment = useAddComment(spotId);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  async function handleSend() {
+    const body = text.trim();
+    if (!body || body.length > 500) return;
+    setSending(true);
+    try {
+      await addComment.mutateAsync(body);
+      setText('');
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się wysłać komentarza.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <GlassCard style={cmtStyles.card}>
+      <Text style={cmtStyles.label}>Komentarze{comments && comments.length > 0 ? ` (${comments.length})` : ''}</Text>
+      {isLoading && <ActivityIndicator color={Colors.aurora} size="small" style={{ marginVertical: 8 }} />}
+      {!isLoading && comments && comments.length > 0 && (
+        <View style={cmtStyles.list}>
+          {comments.map((c) => (
+            <View key={c.id} style={cmtStyles.row}>
+              <View style={cmtStyles.authorBubble}>
+                <Text style={cmtStyles.authorInitial}>{c.explorerHandle[0]?.toUpperCase() ?? '?'}</Text>
+              </View>
+              <View style={cmtStyles.bubble}>
+                <Text style={cmtStyles.handle}>@{c.explorerHandle}</Text>
+                <Text style={cmtStyles.body}>{c.body}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+      {!isLoading && (!comments || comments.length === 0) && (
+        <Text style={cmtStyles.empty}>Brak komentarzy. Bądź pierwszy.</Text>
+      )}
+      <View style={cmtStyles.inputRow}>
+        <TextInput
+          style={cmtStyles.input}
+          value={text}
+          onChangeText={setText}
+          placeholder="Dodaj komentarz..."
+          placeholderTextColor={Colors.starGhost}
+          maxLength={500}
+          multiline
+        />
+        <Pressable
+          style={[cmtStyles.sendBtn, (!text.trim() || sending) && cmtStyles.sendBtnDisabled]}
+          onPress={() => void handleSend()}
+          disabled={!text.trim() || sending}
+        >
+          <Text style={cmtStyles.sendBtnText}>↑</Text>
+        </Pressable>
+      </View>
+      <Text style={cmtStyles.counter}>{text.length}/500</Text>
+    </GlassCard>
+  );
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SpotDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -601,6 +669,9 @@ export default function SpotDetailScreen() {
 
             {/* Verification — TRUSTED+ non-owners only */}
             <VerificationPanel spotId={id ?? ''} isOwner={isOwner} isLocked={isLocked} />
+
+            {/* Comments */}
+            <CommentsSection spotId={id ?? ''} />
 
             {/* Photos section */}
             <View style={styles.photosSection}>
@@ -861,6 +932,39 @@ const vStyles = StyleSheet.create({
   voted:         { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, textAlign: 'center' },
   votedConfirmed: { color: Colors.aurora },
   votedRejected:  { color: Colors.ember },
+});
+
+const cmtStyles = StyleSheet.create({
+  card:  { gap: Spacing.md },
+  label: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
+  list:  { gap: Spacing.md },
+  row:   { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  authorBubble: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: Colors.cosmicBlue, alignItems: 'center', justifyContent: 'center',
+  },
+  authorInitial: { fontFamily: 'ClashDisplay-Bold', fontSize: 11, color: Colors.aurora },
+  bubble: {
+    flex: 1, backgroundColor: Colors.graphiteSoft,
+    borderRadius: BorderRadius.lg, padding: Spacing.md, gap: 2,
+  },
+  handle: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.signal },
+  body:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, lineHeight: 20 },
+  empty:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starGhost, fontStyle: 'italic' },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm },
+  input: {
+    flex: 1, backgroundColor: Colors.graphiteSoft, borderWidth: 1, borderColor: Colors.steel,
+    borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starlight,
+    maxHeight: 100,
+  },
+  sendBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.aurora, alignItems: 'center', justifyContent: 'center',
+  },
+  sendBtnDisabled: { backgroundColor: Colors.steel },
+  sendBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: 16, color: Colors.void },
+  counter: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost, textAlign: 'right' },
 });
 
 const editSpotStyles = StyleSheet.create({

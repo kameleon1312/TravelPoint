@@ -157,6 +157,38 @@ export async function spotsRoutes(app: FastifyInstance) {
     return resolved && !resolved.locked ? resolved : null;
   }
 
+  // GET /api/spots/saved — saved worlds for current explorer
+  app.get('/api/spots/saved', { preHandler: [requireAuth] }, async (req, reply) => {
+    const saves = await app.prisma.spotSave.findMany({
+      where: { explorerId: req.explorerId },
+      include: { spot: { include: { photos: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    const explorer = await app.prisma.explorer.findUnique({
+      where: { id: req.explorerId },
+      include: { memberships: { select: { circleId: true } } },
+    });
+    if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const sessionSeed = generateSessionSeed();
+    const circleIds   = explorer.memberships.map((m: { circleId: string }) => m.circleId);
+
+    const resolved = await Promise.all(
+      saves.map(({ spot }) =>
+        resolveSpotForViewer(
+          spot,
+          { id: explorer.id, rank: explorer.rank, circleIds, tier: explorer.tier },
+          sessionSeed,
+          async () => {},
+        ),
+      ),
+    );
+
+    return reply.send(resolved.filter((s): s is NonNullable<typeof s> => s !== null));
+  });
+
   // ── GET /api/spots/public ─────────────────────────────────────────────────
   // Public endpoint — no auth, returns fuzzed PUBLIC spots for the world map.
   // Coords fuzzed ≥500m with daily-per-spot seed (stable within day, shifts daily).
@@ -329,6 +361,37 @@ export async function spotsRoutes(app: FastifyInstance) {
         );
       }
     }
+
+    // Push NEARBY_SPOT signal to circle members of the spot owner
+    void (async () => {
+      try {
+        const ownerCircles = await app.prisma.circleMember.findMany({
+          where: { explorerId: req.explorerId },
+          select: { circleId: true },
+        });
+        if (ownerCircles.length === 0) return;
+        const recipients = await app.prisma.circleMember.findMany({
+          where: {
+            circleId:   { in: ownerCircles.map((m) => m.circleId) },
+            explorerId: { not: req.explorerId },
+          },
+          distinct: ['explorerId'],
+          select: { explorerId: true },
+        });
+        for (const r of recipients) {
+          if (spot.accessLevel === 'SECRET_DROP') continue; // already handled above
+          void pushSignal(
+            app,
+            r.explorerId,
+            'NEARBY_SPOT',
+            { spotId: spot.id, title: spot.title, category: spot.category },
+            `nearby-spot:${spot.id}:${r.explorerId}`,
+          );
+        }
+      } catch {
+        // Never block spot creation for notification errors
+      }
+    })();
 
     return reply.status(201).send({ ...spot, locked: false });
   });
@@ -575,5 +638,86 @@ export async function spotsRoutes(app: FastifyInstance) {
     }
     await app.prisma.spot.update({ where: { id }, data: { deletedAt: new Date() } });
     return reply.status(204).send();
+  });
+
+  // GET /api/spots/:id/comments
+  app.get('/api/spots/:id/comments', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const spot = await app.prisma.spot.findFirst({ where: { id, deletedAt: null } });
+    if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+    const comments = await app.prisma.spotComment.findMany({
+      where: { spotId: id },
+      orderBy: { createdAt: 'asc' },
+      include: { explorer: { select: { handle: true, avatarUrl: true, rank: true } } },
+      take: 100,
+    });
+    return reply.send(
+      comments.map((c) => ({
+        id:               c.id,
+        spotId:           c.spotId,
+        explorerId:       c.explorerId,
+        explorerHandle:   c.explorer.handle,
+        explorerAvatarUrl: c.explorer.avatarUrl ?? undefined,
+        body:             c.body,
+        createdAt:        c.createdAt.toISOString(),
+      })),
+    );
+  });
+
+  // POST /api/spots/:id/comments
+  app.post('/api/spots/:id/comments', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { body } = req.body as { body?: string };
+    if (!body || body.trim().length === 0 || body.trim().length > 500) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'body must be 1-500 chars' });
+    }
+    const spot = await app.prisma.spot.findFirst({ where: { id, deletedAt: null } });
+    if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+
+    // NEWCOMER rate limit: max 3 comments per 24h
+    const explorer = await app.prisma.explorer.findUnique({
+      where: { id: req.explorerId },
+      select: { rank: true, handle: true, avatarUrl: true },
+    });
+    if (explorer?.rank === 'NEWCOMER') {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const recentCount = await app.prisma.spotComment.count({
+        where: { explorerId: req.explorerId, createdAt: { gte: oneDayAgo } },
+      });
+      if (recentCount >= 3) {
+        return reply.status(429).send({ code: 'RATE_LIMITED', message: 'NEWCOMER: max 3 comments per 24h' });
+      }
+    }
+
+    const comment = await app.prisma.spotComment.create({
+      data: { spotId: id, explorerId: req.explorerId, body: body.trim() },
+    });
+
+    // Signal to spot owner (not self-comment)
+    if (spot.ownerId !== req.explorerId) {
+      void pushSignal(
+        app,
+        spot.ownerId,
+        'SPOT_COMMENT',
+        { commentId: comment.id, spotId: id, spotTitle: spot.title, authorHandle: explorer?.handle ?? '' },
+        `spot-comment:${comment.id}`,
+      );
+    }
+
+    return reply.status(201).send({
+      id:               comment.id,
+      spotId:           comment.spotId,
+      explorerId:       comment.explorerId,
+      explorerHandle:   explorer?.handle ?? '',
+      explorerAvatarUrl: explorer?.avatarUrl ?? undefined,
+      body:             comment.body,
+      createdAt:        comment.createdAt.toISOString(),
+    });
   });
 }

@@ -6,6 +6,7 @@ import { logger } from '../lib/logger';
 import { env } from '../config/env';
 import { decrypt, encrypt } from '@travelpoint/utils';
 import { HomeBaseSchema, ProfileUpdateSchema } from '@travelpoint/validation';
+import { createPhotoUpload, finalizePhoto, validatePhoto } from '../services/storage';
 
 function decryptHomeBase(value: string | null): { lat: number; lng: number } | null {
   if (!value) return null;
@@ -23,7 +24,7 @@ export async function explorerRoutes(app: FastifyInstance) {
     const explorer = await app.prisma.explorer.findUnique({
       where: { id: req.explorerId },
       select: {
-        id: true, handle: true, displayName: true, archetype: true,
+        id: true, handle: true, displayName: true, avatarUrl: true, archetype: true,
         bio: true, obsessions: true, territories: true, trustScore: true,
         rank: true, role: true, tier: true, tierExpiresAt: true, emailVerified: true,
         locationConsent: true, presenceConsent: true,
@@ -61,6 +62,46 @@ export async function explorerRoutes(app: FastifyInstance) {
     });
     await auditAccess(app.prisma, req.explorerId, 'HOME_BASE_REMOVED');
     return reply.status(204).send();
+  });
+
+  // ─── POST /api/explorers/me/avatar/upload-url ────────────────────────────
+  app.post('/api/explorers/me/avatar/upload-url', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { mimeType, sizeBytes } = req.body as { mimeType?: string; sizeBytes?: number };
+    try {
+      validatePhoto(mimeType ?? '', sizeBytes ?? 0);
+      const upload = await createPhotoUpload(req.explorerId, mimeType!, sizeBytes!);
+      return reply.send(upload);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'UPLOAD_FAILED';
+      const status = code === 'STORAGE_NOT_CONFIGURED' ? 503
+        : code === 'UNSUPPORTED_MEDIA_TYPE' ? 415
+          : code === 'PHOTO_TOO_LARGE' ? 413 : 400;
+      return reply.status(status).send({ code });
+    }
+  });
+
+  // ─── POST /api/explorers/me/avatar/complete ───────────────────────────────
+  app.post('/api/explorers/me/avatar/complete', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { objectKey, mimeType, sizeBytes } = req.body as {
+      objectKey?: string; mimeType?: string; sizeBytes?: number;
+    };
+    if (!objectKey?.startsWith(`photos/${req.explorerId}/`)) {
+      return reply.status(400).send({ code: 'INVALID_OBJECT_KEY' });
+    }
+    let stored;
+    try {
+      stored = await finalizePhoto(objectKey, mimeType ?? '', sizeBytes ?? 0);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'UPLOAD_FAILED';
+      return reply.status(code === 'STORAGE_NOT_CONFIGURED' ? 503 : 400).send({ code });
+    }
+    const updated = await app.prisma.explorer.update({
+      where: { id: req.explorerId },
+      data: { avatarUrl: stored.url },
+      select: { avatarUrl: true },
+    });
+    await auditAccess(app.prisma, req.explorerId, 'AVATAR_UPDATED');
+    return reply.send({ avatarUrl: updated.avatarUrl });
   });
 
   // ─── PATCH /api/explorers/me ───────────────────────────────────────────────

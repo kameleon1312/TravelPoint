@@ -12,6 +12,7 @@ export interface Explorer {
   email: string;
   handle: string;
   displayName?: string;
+  avatarUrl?: string;
   archetype: Archetype;
   bio?: string;
   obsessions: string[];

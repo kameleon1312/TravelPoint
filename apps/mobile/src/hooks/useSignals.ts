@@ -6,7 +6,9 @@ import type { Signal, SignalType } from '@travelpoint/types';
 
 const SIGNAL_LABELS: Record<SignalType, string> = {
   NEARBY_EXPLORER: 'Explorer w pobliżu',
+  NEARBY_SPOT:     'Nowy spot w pobliżu',
   SPOT_UNLOCKED:   'Spot odblokowany',
+  SPOT_COMMENT:    'Komentarz do spotu',
   CIRCLE_INVITE:   'Zaproszenie do circle',
   SECRET_DROP:     'Secret drop aktywny',
   JOURNEY_LIKE:    'Reakcja na journey',
@@ -16,7 +18,9 @@ const SIGNAL_LABELS: Record<SignalType, string> = {
 
 const SIGNAL_ICONS: Record<SignalType, string> = {
   NEARBY_EXPLORER: '◎',
+  NEARBY_SPOT:     '◉',
   SPOT_UNLOCKED:   '◈',
+  SPOT_COMMENT:    '◇',
   CIRCLE_INVITE:   '◑',
   SECRET_DROP:     '◉',
   JOURNEY_LIKE:    '◎',

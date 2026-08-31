@@ -1,5 +1,6 @@
-import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Linking, Image } from 'react-native';
 import { useEffect, useState } from 'react';
+import * as ImagePickerTypes from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
@@ -13,17 +14,34 @@ import { api } from '@/lib/api';
 import { socketManager } from '@/lib/socket';
 import { supabase } from '@/lib/supabase';
 import type { Signal } from '@travelpoint/types';
+import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 
 const RANK_COLORS: Record<string, string> = {
   NEWCOMER: Colors.starGhost,
   EXPLORER: Colors.star,
-  TRUSTED: Colors.signal,
-  INSIDER: Colors.aurora,
-  LEGEND: Colors.ember,
+  TRUSTED:  Colors.signal,
+  INSIDER:  Colors.aurora,
+  LEGEND:   Colors.ember,
+};
+
+const RANK_THRESHOLDS: Record<string, { next: string | null; required: number }> = {
+  NEWCOMER: { next: 'EXPLORER', required: 50 },
+  EXPLORER: { next: 'TRUSTED',  required: 200 },
+  TRUSTED:  { next: 'INSIDER',  required: 500 },
+  INSIDER:  { next: 'LEGEND',   required: 1000 },
+  LEGEND:   { next: null,        required: 1000 },
+};
+
+const RANK_START: Record<string, number> = {
+  NEWCOMER: 0,
+  EXPLORER: 50,
+  TRUSTED:  200,
+  INSIDER:  500,
+  LEGEND:   1000,
 };
 
 const NAVIGABLE_SIGNAL_TYPES = new Set([
-  'SPOT_UNLOCKED', 'SECRET_DROP', 'JOURNEY_LIKE', 'TRANSMISSION', 'CIRCLE_INVITE',
+  'SPOT_UNLOCKED', 'SECRET_DROP', 'JOURNEY_LIKE', 'TRANSMISSION', 'CIRCLE_INVITE', 'SPOT_COMMENT', 'NEARBY_SPOT',
 ]);
 
 function SignalRow({ sig }: { sig: Signal }) {
@@ -32,6 +50,8 @@ function SignalRow({ sig }: { sig: Signal }) {
     switch (sig.type) {
       case 'SPOT_UNLOCKED':
       case 'SECRET_DROP':
+      case 'NEARBY_SPOT':
+      case 'SPOT_COMMENT':
         router.push(`/spot/${String(p['spotId'] ?? p['id'] ?? '')}`);
         break;
       case 'JOURNEY_LIKE':
@@ -303,6 +323,7 @@ export default function IdentityScreen() {
   const { explorer, logout, setExplorer, deleteAccount } = useAuthStore();
   const { mutate: markSeen } = useMarkSignalsSeen();
   const { data: signals } = useSignals();
+  const avatarUpload = useAvatarUpload();
   const [editVisible, setEditVisible]               = useState(false);
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
   const [isExporting, setIsExporting]               = useState(false);
@@ -335,6 +356,29 @@ export default function IdentityScreen() {
   async function handleSaveProfile(displayName: string, bio: string) {
     const updated = await api.patch<typeof explorer>('/api/explorers/me', { displayName, bio });
     setExplorer(updated);
+  }
+
+  async function handleAvatarPick() {
+    try {
+      const perm = await ImagePickerTypes.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Uprawnienie wymagane', 'Zezwól na dostęp do galerii zdjęć.');
+        return;
+      }
+      const result = await ImagePickerTypes.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.82,
+        exif: false,
+        selectionLimit: 1,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      await avatarUpload.mutateAsync({ uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' });
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zaktualizować awatara.');
+    }
   }
 
   async function handleBillingUpgrade() {
@@ -514,13 +558,24 @@ export default function IdentityScreen() {
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Explorer Identity</Text>
 
-          <View style={[styles.avatarRing, { borderColor: rankColor, shadowColor: rankColor }]}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarLetter}>
-                {explorer.handle[0]?.toUpperCase() ?? '?'}
-              </Text>
+          <Pressable
+            onPress={() => void handleAvatarPick()}
+            style={[styles.avatarRing, { borderColor: rankColor, shadowColor: rankColor }]}
+            disabled={avatarUpload.isPending}
+          >
+            {explorer.avatarUrl ? (
+              <Image source={{ uri: explorer.avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarLetter}>
+                  {explorer.handle[0]?.toUpperCase() ?? '?'}
+                </Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Text style={styles.avatarEditIcon}>{avatarUpload.isPending ? '…' : '+'}</Text>
             </View>
-          </View>
+          </Pressable>
 
           <Text style={styles.handle}>@{explorer.handle}</Text>
           {explorer.displayName && (
@@ -530,6 +585,25 @@ export default function IdentityScreen() {
           <View style={[styles.rankBadge, { borderColor: rankColor }]}>
             <Text style={[styles.rankText, { color: rankColor }]}>{explorer.rank}</Text>
           </View>
+
+          {/* Rank progress bar */}
+          {RANK_THRESHOLDS[explorer.rank]?.next && (() => {
+            const threshold = RANK_THRESHOLDS[explorer.rank]!;
+            const start   = RANK_START[explorer.rank] ?? 0;
+            const end     = threshold.required;
+            const progress = Math.min(1, Math.max(0, (explorer.trustScore - start) / (end - start)));
+            const remaining = Math.max(0, end - explorer.trustScore);
+            return (
+              <View style={styles.rankProgress}>
+                <View style={styles.rankProgressBar}>
+                  <View style={[styles.rankProgressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: rankColor }]} />
+                </View>
+                <Text style={styles.rankProgressLabel}>
+                  {remaining} pkt do {threshold.next}
+                </Text>
+              </View>
+            );
+          })()}
 
           <SignalButton
             label="Edytuj tożsamość"
@@ -551,6 +625,15 @@ export default function IdentityScreen() {
               <Text style={styles.statLabel}>{stat.label}</Text>
             </GlassCard>
           ))}
+        </View>
+
+        {/* Quick access links */}
+        <View style={styles.quickLinks}>
+          <Pressable style={styles.quickLink} onPress={() => router.push('/saved')}>
+            <Text style={styles.quickLinkIcon}>◎</Text>
+            <Text style={styles.quickLinkLabel}>Saved Worlds</Text>
+            <Text style={styles.quickLinkChevron}>›</Text>
+          </Pressable>
         </View>
 
         {explorer.bio && (
@@ -766,12 +849,31 @@ const styles = StyleSheet.create({
     width: 88, height: 88, borderRadius: 44, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+    position: 'relative',
   },
   avatar: {
     width: 76, height: 76, borderRadius: 38,
     backgroundColor: Colors.cosmicBlue, alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
   },
   avatarLetter: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h2, color: Colors.aurora },
+  avatarEditBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: Colors.graphite, borderWidth: 1, borderColor: Colors.steel,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarEditIcon: { fontFamily: 'GeneralSans-Regular', fontSize: 12, color: Colors.aurora, lineHeight: 14 },
+  rankProgress: { width: '80%', gap: 4, alignItems: 'center' },
+  rankProgressBar: {
+    width: '100%', height: 3, borderRadius: 2,
+    backgroundColor: Colors.steel, overflow: 'hidden',
+  },
+  rankProgressFill: { height: '100%', borderRadius: 2 },
+  rankProgressLabel: {
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
+    color: Colors.starGhost, letterSpacing: 0.5,
+  },
   handle: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodyLg, color: Colors.starlight },
   displayName: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star },
   rankBadge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs },
@@ -830,6 +932,17 @@ const styles = StyleSheet.create({
     fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption,
     color: Colors.starGhost, textAlign: 'center', lineHeight: 18,
   },
+  quickLinks: {
+    backgroundColor: Colors.graphite, borderWidth: 1, borderColor: Colors.steel,
+    borderRadius: 14, overflow: 'hidden',
+  },
+  quickLink: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    padding: Spacing.lg, borderBottomWidth: 0,
+  },
+  quickLinkIcon:    { fontSize: 16, color: Colors.aurora },
+  quickLinkLabel:   { flex: 1, fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starlight },
+  quickLinkChevron: { fontFamily: 'GeneralSans-Regular', fontSize: 18, color: Colors.starGhost },
 });
 
 const editStyles = StyleSheet.create({

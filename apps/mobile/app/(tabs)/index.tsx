@@ -46,6 +46,14 @@ interface NearbyExplorer {
   lng: number;
 }
 
+function formatDropCountdown(expiresAt: string): string {
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (ms <= 0) return '';
+  const h = Math.floor(ms / 3_600_000);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
+
 // ── Presence indicator ────────────────────────────────────────────────────────
 function PresenceToggle({ active, onToggle }: { active: boolean; onToggle: () => void }) {
   const scale = useSharedValue(1);
@@ -466,13 +474,22 @@ export default function AtlasScreen() {
             const isLocked    = 'locked' in spot ? spot.locked : false;
             const accessLevel = 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC';
             const color       = isLocked ? Colors.starGhost : (ACCESS_PIN_COLORS[accessLevel] ?? Colors.aurora);
+            const countdown   = spot.dropExpiresAt ? formatDropCountdown(spot.dropExpiresAt) : '';
             return (
               <Marker
                 key={spot.id}
                 coordinate={{ latitude: spot.lat, longitude: spot.lng }}
                 onPress={() => setPreviewSpot(spot)}
+                anchor={{ x: 0.5, y: countdown ? 1 : 0.5 }}
               >
-                <View style={[styles.spotPin, { backgroundColor: color, opacity: isLocked ? 0.6 : 1 }]} />
+                <View style={styles.pinWrapper}>
+                  <View style={[styles.spotPin, { backgroundColor: color, opacity: isLocked ? 0.6 : 1 }]} />
+                  {countdown !== '' && (
+                    <View style={[styles.ephemeralBadge, { borderColor: color }]}>
+                      <Text style={[styles.ephemeralText, { color }]}>{countdown}</Text>
+                    </View>
+                  )}
+                </View>
               </Marker>
             );
           })}
@@ -663,6 +680,15 @@ const styles = StyleSheet.create({
 
   // ── Map pins ─────────────────────────────────────────────────────────────────
   spotPin: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: Colors.abyss },
+  pinWrapper: { alignItems: 'center', gap: 2 },
+  ephemeralBadge: {
+    paddingHorizontal: 4, paddingVertical: 1,
+    borderRadius: 4, borderWidth: 1,
+    backgroundColor: Colors.abyss + 'CC',
+  },
+  ephemeralText: {
+    fontFamily: 'SpaceMono-Regular', fontSize: 8, fontVariant: ['tabular-nums'],
+  },
   presenceOuter: {
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: Colors.aurora + '25', alignItems: 'center', justifyContent: 'center',
