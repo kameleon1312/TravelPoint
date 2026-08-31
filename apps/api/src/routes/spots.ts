@@ -455,6 +455,29 @@ export async function spotsRoutes(app: FastifyInstance) {
     return reply.status(204).send();
   });
 
+  // GET /api/spots/:id/reactions
+  app.get('/api/spots/:id/reactions', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const spot = await app.prisma.spot.findFirst({ where: { id, deletedAt: null } });
+    if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+    const reactions = await app.prisma.reaction.groupBy({
+      by: ['type'],
+      where: { spotId: id },
+      _count: { type: true },
+    });
+    const counts: Record<string, number> = { LIKE: 0, INSIGHTFUL: 0, HIDDEN_GEM: 0 };
+    for (const row of reactions) counts[row.type] = row._count.type;
+
+    const mine = await app.prisma.reaction.findUnique({
+      where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
+    });
+    return reply.send({ counts, myReaction: mine?.type ?? null });
+  });
+
+  // POST /api/spots/:id/reactions — toggles: same type removes, different type switches
   app.post('/api/spots/:id/reactions', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const { type } = req.body as { type?: 'LIKE' | 'INSIGHTFUL' | 'HIDDEN_GEM' };
@@ -466,15 +489,22 @@ export async function spotsRoutes(app: FastifyInstance) {
     if (!await requireExactSpotAccess(spot, req.explorerId)) {
       return reply.status(404).send({ code: 'NOT_FOUND' });
     }
-    const previous = await app.prisma.reaction.findUnique({
+    const existing = await app.prisma.reaction.findUnique({
       where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
     });
+    if (existing?.type === type) {
+      // Same type tapped again — remove reaction
+      await app.prisma.reaction.delete({
+        where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
+      });
+      return reply.status(200).send({ myReaction: null });
+    }
     const reaction = await app.prisma.reaction.upsert({
       where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
       create: { spotId: id, explorerId: req.explorerId, type },
       update: { type },
     });
-    if (!previous && spot.ownerId !== req.explorerId) {
+    if (!existing && spot.ownerId !== req.explorerId) {
       void addTrustPoints(
         app.prisma,
         spot.ownerId,
@@ -483,7 +513,25 @@ export async function spotsRoutes(app: FastifyInstance) {
         reaction.id,
       );
     }
-    return reply.status(previous ? 200 : 201).send(reaction);
+    return reply.status(existing ? 200 : 201).send({ myReaction: type });
+  });
+
+  // GET /api/spots/:id/verifications
+  app.get('/api/spots/:id/verifications', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const spot = await app.prisma.spot.findFirst({ where: { id, deletedAt: null } });
+    if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!await requireExactSpotAccess(spot, req.explorerId)) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+    const [confirmedCount, rejectedCount, mine] = await Promise.all([
+      app.prisma.spotVerification.count({ where: { spotId: id, decision: 'CONFIRMED' } }),
+      app.prisma.spotVerification.count({ where: { spotId: id, decision: 'REJECTED' } }),
+      app.prisma.spotVerification.findUnique({
+        where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
+      }),
+    ]);
+    return reply.send({ confirmedCount, rejectedCount, myDecision: mine?.decision ?? null });
   });
 
   app.post('/api/spots/:id/verify', { preHandler: [requireAuth] }, async (req, reply) => {

@@ -47,3 +47,49 @@ export function useDeleteJourney() {
     onSuccess:  () => qc.invalidateQueries({ queryKey: ['journeys'] }),
   });
 }
+
+export function useLikeJourney() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<unknown>(`/api/journeys/${id}/like`, {}),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['journeys', id] });
+      const prev = qc.getQueryData<Journey>(['journeys', id]);
+      if (prev) {
+        qc.setQueryData<Journey>(['journeys', id], {
+          ...prev,
+          liked: true,
+          likeCount: (prev.likeCount ?? 0) + 1,
+        });
+      }
+      return { prev };
+    },
+    onError: (_err, id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['journeys', id], ctx.prev);
+    },
+    onSettled: (_data, _err, id) => qc.invalidateQueries({ queryKey: ['journeys', id] }),
+  });
+}
+
+export function useUnlikeJourney() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/api/journeys/${id}/like`),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['journeys', id] });
+      const prev = qc.getQueryData<Journey>(['journeys', id]);
+      if (prev) {
+        qc.setQueryData<Journey>(['journeys', id], {
+          ...prev,
+          liked: false,
+          likeCount: Math.max(0, (prev.likeCount ?? 0) - 1),
+        });
+      }
+      return { prev };
+    },
+    onError: (_err, id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['journeys', id], ctx.prev);
+    },
+    onSettled: (_data, _err, id) => qc.invalidateQueries({ queryKey: ['journeys', id] }),
+  });
+}

@@ -5,10 +5,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import MapView, { Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import * as Haptics from 'expo-haptics';
 
 const MAPS_KEY = process.env['EXPO_PUBLIC_GOOGLE_MAPS_API_KEY'];
 import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
-import { useJourney, useDeleteJourney } from '@/hooks/useJourneys';
+import { useJourney, useDeleteJourney, useLikeJourney, useUnlikeJourney } from '@/hooks/useJourneys';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
@@ -67,8 +68,20 @@ export default function JourneyDetailScreen() {
   const { explorer } = useAuthStore();
   const { data: journey, isLoading } = useJourney(id ?? '');
   const { mutateAsync: deleteJourney, isPending: isDeleting } = useDeleteJourney();
+  const likeJourney   = useLikeJourney();
+  const unlikeJourney = useUnlikeJourney();
 
   const isOwner = !!journey && journey.explorerId === explorer?.id;
+
+  async function handleLikeToggle() {
+    if (!journey) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (journey.liked) {
+      unlikeJourney.mutate(journey.id);
+    } else {
+      likeJourney.mutate(journey.id);
+    }
+  }
 
   function confirmDelete() {
     Alert.alert(
@@ -218,6 +231,30 @@ export default function JourneyDetailScreen() {
             </View>
           )}
         </GlassCard>
+
+        {/* Like — non-owners only */}
+        {!isOwner && (
+          <Pressable
+            style={[styles.likeBtn, journey.liked && styles.likeBtnActive]}
+            onPress={() => void handleLikeToggle()}
+            disabled={likeJourney.isPending || unlikeJourney.isPending}
+          >
+            <Text style={[styles.likeIcon, journey.liked && styles.likeIconActive]}>♥</Text>
+            <Text style={[styles.likeLabel, journey.liked && styles.likeLabelActive]}>
+              {journey.liked ? 'Polubiłeś' : 'Lubię tę journey'}
+            </Text>
+            {(journey.likeCount ?? 0) > 0 && (
+              <Text style={styles.likeCount}>{journey.likeCount}</Text>
+            )}
+          </Pressable>
+        )}
+
+        {/* Like count for owners */}
+        {isOwner && (journey.likeCount ?? 0) > 0 && (
+          <View style={styles.ownerLikeRow}>
+            <Text style={styles.ownerLikeText}>♥ {journey.likeCount} explorers polubiło tę journey</Text>
+          </View>
+        )}
 
         {/* Delete — owner only */}
         {isOwner && (
@@ -378,5 +415,33 @@ const styles = StyleSheet.create({
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.body,
     color: Colors.ember,
+  },
+
+  likeBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1, borderColor: Colors.steel,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.graphite,
+  },
+  likeBtnActive: {
+    borderColor: Colors.aurora + '60',
+    backgroundColor: Colors.aurora + '12',
+  },
+  likeIcon:  { fontFamily: 'GeneralSans-Regular', fontSize: 18, color: Colors.starGhost },
+  likeIconActive: { color: Colors.aurora },
+  likeLabel: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starFaint },
+  likeLabelActive: { color: Colors.aurora },
+  likeCount: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, color: Colors.aurora },
+
+  ownerLikeRow: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  ownerLikeText: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: FontSize.caption,
+    color: Colors.aurora,
   },
 });

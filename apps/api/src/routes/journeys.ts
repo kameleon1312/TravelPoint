@@ -23,14 +23,34 @@ export async function journeyRoutes(app: FastifyInstance) {
   // GET /api/journeys/:id
   app.get('/api/journeys/:id', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const journey = await app.prisma.journey.findUnique({ where: { id } });
+    const journey = await app.prisma.journey.findUnique({
+      where: { id },
+      include: { _count: { select: { likes: true } } },
+    });
     if (!journey) return reply.status(404).send({ code: 'NOT_FOUND' });
 
-    // Private journeys only visible to owner
     if (journey.isPrivate && journey.explorerId !== req.explorerId) {
       return reply.status(403).send({ code: 'FORBIDDEN' });
     }
-    return reply.send(journey);
+
+    const liked = await app.prisma.journeyLike.findUnique({
+      where: { journeyId_explorerId: { journeyId: id, explorerId: req.explorerId } },
+    });
+
+    return reply.send({
+      ...journey,
+      likeCount: journey._count.likes,
+      liked: !!liked,
+    });
+  });
+
+  // DELETE /api/journeys/:id/like — unlike
+  app.delete('/api/journeys/:id/like', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await app.prisma.journeyLike.deleteMany({
+      where: { journeyId: id, explorerId: req.explorerId },
+    });
+    return reply.status(204).send();
   });
 
   // POST /api/journeys

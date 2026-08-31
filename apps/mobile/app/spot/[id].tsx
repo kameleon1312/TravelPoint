@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import * as ImagePickerTypes from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
@@ -21,6 +22,11 @@ import {
   useSpot, useSaveSpot, useUnsaveSpot,
   useSpotPhotos, useUploadSpotPhoto, useDeleteSpotPhoto, useDeleteSpot, useUpdateSpot,
 } from '@/hooks/useSpots';
+import {
+  useSpotReactions, useToggleReaction,
+  useSpotVerifications, useVerifySpot, useCanVerify,
+  type ReactionType,
+} from '@/hooks/useReactions';
 import { useAuthStore } from '@/stores/auth';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -352,6 +358,114 @@ function EditSpotModal({
   );
 }
 
+// ─── Reactions row ────────────────────────────────────────────────────────────
+const REACTION_META: { type: ReactionType; icon: string; label: string }[] = [
+  { type: 'LIKE',        icon: '♥', label: 'Lubię' },
+  { type: 'INSIGHTFUL',  icon: '◈', label: 'Ciekawe' },
+  { type: 'HIDDEN_GEM',  icon: '◉', label: 'Klejnot' },
+];
+
+function ReactionsRow({ spotId }: { spotId: string }) {
+  const { data } = useSpotReactions(spotId);
+  const toggle   = useToggleReaction(spotId);
+
+  async function handleToggle(type: ReactionType) {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toggle.mutate(type);
+  }
+
+  return (
+    <View style={rxStyles.row}>
+      {REACTION_META.map(({ type, icon, label }) => {
+        const active = data?.myReaction === type;
+        const count  = data?.counts?.[type] ?? 0;
+        return (
+          <Pressable
+            key={type}
+            style={[rxStyles.btn, active && rxStyles.btnActive]}
+            onPress={() => void handleToggle(type)}
+            disabled={toggle.isPending}
+          >
+            <Text style={[rxStyles.icon, active && rxStyles.iconActive]}>{icon}</Text>
+            <Text style={[rxStyles.label, active && rxStyles.labelActive]}>{label}</Text>
+            {count > 0 && (
+              <View style={rxStyles.countBadge}>
+                <Text style={rxStyles.countText}>{count}</Text>
+              </View>
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+// ─── Verification panel ───────────────────────────────────────────────────────
+function VerificationPanel({ spotId, isOwner, isLocked }: {
+  spotId: string; isOwner: boolean; isLocked: boolean;
+}) {
+  const canVerify = useCanVerify(isOwner, isLocked);
+  const { data }  = useSpotVerifications(spotId);
+  const verify    = useVerifySpot(spotId);
+  const [sending, setSending] = useState(false);
+
+  if (!canVerify) return null;
+
+  async function handleDecision(decision: 'CONFIRMED' | 'REJECTED') {
+    if (data?.myDecision) return;
+    setSending(true);
+    try {
+      await verify.mutateAsync({ decision });
+      await Haptics.notificationAsync(
+        decision === 'CONFIRMED'
+          ? Haptics.NotificationFeedbackType.Success
+          : Haptics.NotificationFeedbackType.Warning,
+      );
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zapisać weryfikacji.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const myDecision = data?.myDecision;
+
+  return (
+    <GlassCard style={vStyles.card}>
+      <Text style={vStyles.label}>Weryfikacja spotu</Text>
+      <View style={vStyles.counts}>
+        <Text style={vStyles.confirmed}>✓ {data?.confirmedCount ?? 0} potwierdzone</Text>
+        <Text style={vStyles.rejected}>✕ {data?.rejectedCount ?? 0} odrzucone</Text>
+      </View>
+      {myDecision ? (
+        <Text style={[
+          vStyles.voted,
+          myDecision === 'CONFIRMED' ? vStyles.votedConfirmed : vStyles.votedRejected,
+        ]}>
+          {myDecision === 'CONFIRMED' ? '✓ Potwierdziłeś ten spot' : '✕ Odrzuciłeś ten spot'}
+        </Text>
+      ) : (
+        <View style={vStyles.actions}>
+          <Pressable
+            style={[vStyles.btn, vStyles.confirmBtn]}
+            onPress={() => void handleDecision('CONFIRMED')}
+            disabled={sending}
+          >
+            <Text style={vStyles.confirmText}>✓ Potwierdź</Text>
+          </Pressable>
+          <Pressable
+            style={[vStyles.btn, vStyles.rejectBtn]}
+            onPress={() => void handleDecision('REJECTED')}
+            disabled={sending}
+          >
+            <Text style={vStyles.rejectText}>✕ Odrzuć</Text>
+          </Pressable>
+        </View>
+      )}
+    </GlassCard>
+  );
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SpotDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -481,6 +595,12 @@ export default function SpotDetailScreen() {
                 <Text style={styles.storyText}>{story}</Text>
               </GlassCard>
             )}
+
+            {/* Reactions */}
+            <ReactionsRow spotId={id ?? ''} />
+
+            {/* Verification — TRUSTED+ non-owners only */}
+            <VerificationPanel spotId={id ?? ''} isOwner={isOwner} isLocked={isLocked} />
 
             {/* Photos section */}
             <View style={styles.photosSection}>
@@ -701,6 +821,46 @@ const styles = StyleSheet.create({
   deleteBtn:  { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.ember + '60' },
   deleteBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.ember },
   errorText:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.ember },
+});
+
+const rxStyles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: Spacing.sm },
+  btn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 5, paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.xl, borderWidth: 1, borderColor: Colors.steel,
+    backgroundColor: Colors.graphite,
+  },
+  btnActive: { borderColor: Colors.aurora + '60', backgroundColor: Colors.aurora + '12' },
+  icon:       { fontFamily: 'GeneralSans-Regular', fontSize: 16, color: Colors.starGhost },
+  iconActive: { color: Colors.aurora },
+  label:      { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint },
+  labelActive: { color: Colors.aurora },
+  countBadge: {
+    backgroundColor: Colors.aurora + '30', borderRadius: 999,
+    paddingHorizontal: 5, paddingVertical: 1,
+  },
+  countText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.aurora },
+});
+
+const vStyles = StyleSheet.create({
+  card:    { gap: Spacing.sm },
+  label:   { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
+  counts:  { flexDirection: 'row', gap: Spacing.lg },
+  confirmed: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, color: Colors.aurora },
+  rejected:  { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, color: Colors.ember },
+  actions: { flexDirection: 'row', gap: Spacing.sm },
+  btn: {
+    flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.xl,
+    borderWidth: 1, alignItems: 'center',
+  },
+  confirmBtn:    { borderColor: Colors.aurora + '60', backgroundColor: Colors.aurora + '10' },
+  confirmText:   { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.aurora },
+  rejectBtn:     { borderColor: Colors.ember + '60', backgroundColor: Colors.ember + '10' },
+  rejectText:    { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.ember },
+  voted:         { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, textAlign: 'center' },
+  votedConfirmed: { color: Colors.aurora },
+  votedRejected:  { color: Colors.ember },
 });
 
 const editSpotStyles = StyleSheet.create({

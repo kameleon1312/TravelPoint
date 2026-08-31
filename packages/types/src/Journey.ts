@@ -13,6 +13,8 @@ export interface Journey {
   soundtrack?: string;
   routeGeoJson?: GeoJSON;
   isPrivate: boolean;
+  likeCount?: number;
+  liked?: boolean;
   createdAt: string;
   updatedAt?: string;
 }

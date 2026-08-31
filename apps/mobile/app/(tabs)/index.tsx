@@ -16,6 +16,7 @@ import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
 
 const MAPS_KEY = process.env['EXPO_PUBLIC_GOOGLE_MAPS_API_KEY'];
 import { SignalButton } from '@/components/ui/SignalButton';
+import { SpotPreviewSheet } from '@/components/map/SpotPreviewSheet';
 import { pl } from '@/i18n/pl';
 import { useNearbySpots } from '@/hooks/useSpots';
 import { useAuthStore } from '@/stores/auth';
@@ -231,6 +232,7 @@ export default function AtlasScreen() {
   const [locationGranted, setLocationGranted] = useState(false);
   const [nearbyExplorers, setNearbyExplorers] = useState<NearbyExplorer[]>([]);
   const [showStartModal, setShowStartModal] = useState(false);
+  const [previewSpot, setPreviewSpot]       = useState<SpotForViewer | null>(null);
 
   const mapRef = useRef<MapView>(null);
 
@@ -468,7 +470,7 @@ export default function AtlasScreen() {
               <Marker
                 key={spot.id}
                 coordinate={{ latitude: spot.lat, longitude: spot.lng }}
-                onPress={() => router.push(`/spot/${spot.id}`)}
+                onPress={() => setPreviewSpot(spot)}
               >
                 <View style={[styles.spotPin, { backgroundColor: color, opacity: isLocked ? 0.6 : 1 }]} />
               </Marker>
@@ -575,6 +577,12 @@ export default function AtlasScreen() {
         visible={showStartModal}
         onClose={() => setShowStartModal(false)}
         onStart={handleStartJourney}
+      />
+
+      {/* Spot preview sheet — slides up on pin tap */}
+      <SpotPreviewSheet
+        spot={previewSpot}
+        onDismiss={() => setPreviewSpot(null)}
       />
     </View>
   );
