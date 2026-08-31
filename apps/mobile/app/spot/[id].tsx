@@ -29,6 +29,7 @@ import {
 } from '@/hooks/useReactions';
 import { useSpotComments, useAddComment } from '@/hooks/useComments';
 import { useAuthStore } from '@/stores/auth';
+import { PaywallModal } from '@/components/ui/PaywallModal';
 
 const SCREEN_W = Dimensions.get('window').width;
 const PHOTO_W  = SCREEN_W * 0.72;
@@ -52,8 +53,16 @@ const ACCESS_LABELS: Record<string, string> = {
 };
 
 // ─── Locked overlay ───────────────────────────────────────────────────────────
-function LockedOverlay({ requiredAccess }: { requiredAccess: string }) {
+function LockedOverlay({
+  requiredAccess,
+  explorerTier,
+}: {
+  requiredAccess: string;
+  explorerTier?: string;
+}) {
+  const [paywallVisible, setPaywallVisible] = useState(false);
   const pulse = useSharedValue(1);
+
   useEffect(() => {
     pulse.value = withRepeat(
       withSequence(withTiming(1.1, { duration: 800 }), withTiming(1, { duration: 800 })),
@@ -62,14 +71,37 @@ function LockedOverlay({ requiredAccess }: { requiredAccess: string }) {
   }, []);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
+  const requiredTier: 'PRO' | 'EXPEDITION' | null =
+    requiredAccess === 'SECRET_DROP' ? 'EXPEDITION' :
+    requiredAccess === 'TRUSTED' && explorerTier === 'FREE' ? 'PRO' :
+    null;
+
   return (
     <GlassCard style={styles.lockedCard}>
       <Animated.Text style={[styles.lockIcon, style]}>◈</Animated.Text>
       <Text style={styles.lockTitle}>Zablokowane</Text>
       <Text style={styles.lockDesc}>{ACCESS_LABELS[requiredAccess] ?? requiredAccess}</Text>
       <Text style={styles.lockHint}>
-        Zwiększ swój rank lub dołącz do odpowiedniego circle żeby odblokować ten spot.
+        {requiredAccess === 'CIRCLE_ONLY'
+          ? 'Dołącz do odpowiedniego circle żeby odblokować ten spot.'
+          : 'Zwiększ swój rank lub odblokuj wyższy plan dostępu.'}
       </Text>
+      {requiredTier && (
+        <Pressable
+          style={styles.lockUpgradeBtn}
+          onPress={() => setPaywallVisible(true)}
+        >
+          <Text style={styles.lockUpgradeBtnText}>
+            Odblokuj z planem {requiredTier === 'PRO' ? 'Explorer PRO' : 'Expedition'}
+          </Text>
+        </Pressable>
+      )}
+      <PaywallModal
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+        requiredTier={requiredTier ?? 'PRO'}
+        featureLabel={requiredAccess === 'SECRET_DROP' ? 'Secret Drop' : 'spot TRUSTED'}
+      />
     </GlassCard>
   );
 }
@@ -653,7 +685,10 @@ export default function SpotDetailScreen() {
         </View>
 
         {isLocked ? (
-          <LockedOverlay requiredAccess={(spot as { requiredAccess: string }).requiredAccess} />
+          <LockedOverlay
+            requiredAccess={(spot as { requiredAccess: string }).requiredAccess}
+            explorerTier={explorer?.tier}
+          />
         ) : (
           <View style={styles.content}>
             {/* Story */}
@@ -812,6 +847,21 @@ const styles = StyleSheet.create({
   lockTitle:  { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h3, color: Colors.starlight },
   lockDesc:   { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, color: Colors.ember, textTransform: 'uppercase', letterSpacing: 1 },
   lockHint:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, textAlign: 'center', lineHeight: 22 },
+  lockUpgradeBtn: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.signal + '22',
+    borderWidth: 1,
+    borderColor: Colors.signal + '50',
+  },
+  lockUpgradeBtnText: {
+    fontFamily: 'ClashDisplay-Bold',
+    fontSize: FontSize.bodySm,
+    color: Colors.signal,
+    textAlign: 'center',
+  },
 
   content:    { gap: Spacing.lg },
   storyCard:  { gap: Spacing.sm },

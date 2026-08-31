@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Linking, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Image } from 'react-native';
 import { useEffect, useState } from 'react';
 import * as ImagePickerTypes from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -381,15 +381,6 @@ export default function IdentityScreen() {
     }
   }
 
-  async function handleBillingUpgrade() {
-    try {
-      const { url } = await api.post<{ url: string }>('/api/billing/checkout', { tier: 'PRO' });
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert('Plan Explorer', 'Przejdź do ustawień konta na travelpointapp.com, aby zarządzać subskrypcją.');
-    }
-  }
-
   function handleExportData() {
     Alert.alert(
       'Eksport danych',
@@ -666,31 +657,34 @@ export default function IdentityScreen() {
         )}
 
         {/* Billing / Tier section */}
-        <GlassCard style={styles.section}>
-          <Text style={styles.sectionLabel}>Plan Explorer</Text>
-          <View style={styles.billingRow}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.billingTier}>{explorer.tier}</Text>
+        <Pressable style={styles.planCard} onPress={() => router.push('/plans')}>
+          <View style={styles.planCardLeft}>
+            <Text style={styles.sectionLabel}>Plan Explorer</Text>
+            <View style={styles.billingRow}>
+              <View style={[
+                styles.planBadge,
+                { borderColor: explorer.tier === 'FREE' ? Colors.starGhost + '60' : explorer.tier === 'PRO' ? Colors.signal + '60' : Colors.ember + '60' },
+                { backgroundColor: explorer.tier === 'FREE' ? 'transparent' : explorer.tier === 'PRO' ? Colors.signal + '18' : Colors.ember + '18' },
+              ]}>
+                <Text style={[
+                  styles.planBadgeText,
+                  { color: explorer.tier === 'FREE' ? Colors.starFaint : explorer.tier === 'PRO' ? Colors.signal : Colors.ember },
+                ]}>
+                  {explorer.tier === 'FREE' ? 'Free Explorer' : explorer.tier === 'PRO' ? 'Explorer PRO' : 'Expedition'}
+                </Text>
+              </View>
               {explorer.tierExpiresAt && (
                 <Text style={styles.billingSub}>
                   Wygasa {new Date(explorer.tierExpiresAt).toLocaleDateString('pl-PL')}
                 </Text>
               )}
               {explorer.tier === 'FREE' && (
-                <Text style={styles.billingSub}>Odblokuj więcej spotów i funkcji</Text>
+                <Text style={styles.billingSub}>Odblokuj spoty TRUSTED i Secret Drops</Text>
               )}
             </View>
-            {explorer.tier === 'FREE' && (
-              <SignalButton
-                label="Upgrade"
-                onPress={() => void handleBillingUpgrade()}
-                variant="signal"
-                size="sm"
-                haptic="light"
-              />
-            )}
           </View>
-        </GlassCard>
+          <Text style={styles.planChevron}>›</Text>
+        </Pressable>
 
         {/* Privacy & Data — GDPR */}
         <GlassCard style={styles.section}>
@@ -898,9 +892,29 @@ const styles = StyleSheet.create({
   signalChevron: { fontFamily: 'GeneralSans-Regular', fontSize: 18, color: Colors.starGhost },
 
   // Billing
-  billingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  billingRow: { gap: Spacing.xs },
   billingTier: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.bodyLg, color: Colors.starlight },
   billingSub: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
+  planCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.graphite,
+    borderRadius: BorderRadius.lg, borderWidth: 1, borderColor: Colors.steel,
+    padding: Spacing.xl, gap: Spacing.md,
+  },
+  planCardLeft: { flex: 1, gap: Spacing.sm },
+  planBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.md, paddingVertical: 4,
+    borderRadius: BorderRadius.pill, borderWidth: 1,
+  },
+  planBadgeText: {
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  planChevron: {
+    fontFamily: 'GeneralSans-Regular', fontSize: 22,
+    color: Colors.starGhost,
+  },
 
   // Consent & GDPR
   consentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },

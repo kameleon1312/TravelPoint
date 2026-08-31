@@ -12,6 +12,7 @@ import {
 
 const CheckoutSchema = z.object({
   tier: z.enum(['PRO', 'EXPEDITION']),
+  billingPeriod: z.enum(['MONTHLY', 'ANNUAL']).default('MONTHLY'),
 });
 
 export async function billingRoutes(app: FastifyInstance) {
@@ -40,7 +41,7 @@ export async function billingRoutes(app: FastifyInstance) {
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_ERROR' });
     try {
       return reply.status(201).send(
-        await createCheckoutSession(app.prisma, req.explorerId, parsed.data.tier),
+        await createCheckoutSession(app.prisma, req.explorerId, parsed.data.tier, parsed.data.billingPeriod),
       );
     } catch (error) {
       if (error instanceof Error && error.message === 'BILLING_NOT_CONFIGURED') {

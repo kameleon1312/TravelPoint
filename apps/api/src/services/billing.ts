@@ -17,7 +17,11 @@ export function isBillingConfigured(): boolean {
   );
 }
 
-export function priceIdForTier(tier: PaidTier): string | undefined {
+export function priceIdForTier(tier: PaidTier, period: 'MONTHLY' | 'ANNUAL' = 'MONTHLY'): string | undefined {
+  if (period === 'ANNUAL') {
+    const annual = tier === 'PRO' ? env.stripe.proAnnualPriceId : env.stripe.expeditionAnnualPriceId;
+    if (annual) return annual;
+  }
   return tier === 'PRO' ? env.stripe.proPriceId : env.stripe.expeditionPriceId;
 }
 
@@ -25,6 +29,7 @@ export async function createCheckoutSession(
   prisma: PrismaClient,
   explorerId: string,
   tier: PaidTier,
+  billingPeriod: 'MONTHLY' | 'ANNUAL' = 'MONTHLY',
 ): Promise<{ url: string }> {
   if (!isBillingConfigured()) throw new Error('BILLING_NOT_CONFIGURED');
 
@@ -34,8 +39,10 @@ export async function createCheckoutSession(
   });
   if (!explorer) throw new Error('EXPLORER_NOT_FOUND');
 
-  const priceId = priceIdForTier(tier);
+  const priceId = priceIdForTier(tier, billingPeriod);
   if (!priceId) throw new Error('PRICE_NOT_CONFIGURED');
+
+  const isNewCustomer = !explorer.stripeCustomerId;
 
   const params = new URLSearchParams({
     mode: 'subscription',
@@ -50,6 +57,11 @@ export async function createCheckoutSession(
     'subscription_data[metadata][tier]': tier,
     allow_promotion_codes: 'true',
   });
+
+  // 7-day free trial for first-time subscribers
+  if (isNewCustomer) {
+    params.set('subscription_data[trial_period_days]', '7');
+  }
   if (explorer.stripeCustomerId) {
     params.set('customer', explorer.stripeCustomerId);
   } else {
