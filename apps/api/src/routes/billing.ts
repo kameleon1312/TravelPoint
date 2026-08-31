@@ -61,12 +61,25 @@ export async function billingRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post('/api/billing/webhook', async (req, reply) => {
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? {});
-    if (!verifyStripeSignature(rawBody, req.headers['stripe-signature'] as string | undefined)) {
-      return reply.status(401).send({ code: 'INVALID_SIGNATURE' });
-    }
-    await applyStripeEvent(app.prisma, JSON.parse(rawBody) as StripeEvent);
-    return reply.status(204).send();
+  // Stripe requires the exact original raw bytes for signature verification.
+  // Registering the webhook in an isolated plugin scope gives it its own
+  // content-type parser that hands us a string instead of a parsed object.
+  await app.register(async (raw) => {
+    raw.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+      done(null, body);
+    });
+
+    raw.post('/api/billing/webhook', async (req, reply) => {
+      const rawBody = req.body as string;
+      if (!verifyStripeSignature(rawBody, req.headers['stripe-signature'] as string | undefined)) {
+        return reply.status(401).send({ code: 'INVALID_SIGNATURE' });
+      }
+      try {
+        await applyStripeEvent(app.prisma, JSON.parse(rawBody) as StripeEvent);
+      } catch {
+        // Ack to Stripe regardless — retry storms do more harm than a failed handler
+      }
+      return reply.status(204).send();
+    });
   });
 }

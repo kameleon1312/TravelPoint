@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Minimal env so Next.js build doesn't crash on missing vars
-      NEXT_PUBLIC_API_URL: https://api.travelpoint.app
+      NEXT_PUBLIC_API_URL: https://travelpointapi-production.up.railway.app
       NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
       NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
