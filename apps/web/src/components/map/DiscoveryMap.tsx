@@ -8,7 +8,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 type MapboxGL = typeof mapboxgl;
 
-// ── Category filter config ────────────────────────────────────────────────────
 const CATEGORIES = [
   { value: '',            label: 'Wszystkie' },
   { value: 'ABANDONED',  label: 'Opuszczone' },
@@ -29,15 +28,26 @@ const CATEGORY_COLORS: Record<string, string> = {
   CAMP:        '#4A8A6A',
 };
 
-const MAP_STYLE    = 'mapbox://styles/mapbox/dark-v11';
-const FALLBACK_ZOOM  = 5;
+const MAP_STYLE     = 'mapbox://styles/mapbox/dark-v11';
+const FALLBACK_ZOOM = 5;
 const FALLBACK_CENTER = { lng: 19.5, lat: 51.8 };
-const TILE_SIZE    = 256;
-const MAX_RETRIES  = 2;
+const TILE_SIZE     = 256;
+const MAX_RETRIES   = 2;
 
-interface Props {
-  token?: string;
-}
+// Largest sphere that fits nicely in the viewport below the nav.
+// CSS min() with 3 values keeps it from overflowing on any device.
+const GLOBE_SIZE = 'min(80vw, calc(100vh - 160px), 680px)';
+
+// Layered box-shadow creates a glowing ocean-depth halo around the globe.
+const GLOBE_SHADOW = [
+  '0 0 0 1px rgba(92,184,140,0.10)',
+  '0 0 0 4px rgba(7,10,12,0.96)',
+  '0 0 50px rgba(30,154,176,0.20)',
+  '0 0 120px rgba(30,154,176,0.10)',
+  '0 0 240px rgba(92,184,140,0.05)',
+].join(', ');
+
+interface Props { token?: string }
 
 export function DiscoveryMap({ token }: Props): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -56,7 +66,6 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
   useEffect(() => {
     const params = new URLSearchParams();
     if (category) params.set('category', category);
-
     fetch(`/api/spots?${params.toString()}`)
       .then((r) => r.json())
       .then((data: unknown) => {
@@ -68,10 +77,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
 
   // ── Init Mapbox ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!token) {
-      setMapReady(true);
-      return;
-    }
+    if (!token) { setMapReady(true); return; }
     if (!containerRef.current || mapRef.current) return;
 
     let mounted = true;
@@ -84,7 +90,6 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
 
     const initMap = (container: HTMLDivElement, Mapbox: MapboxGL) => {
       if (!mounted || mapRef.current) return;
-
       Mapbox.accessToken = token;
 
       let map: mapboxgl.Map;
@@ -93,14 +98,13 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           container,
           style: MAP_STYLE,
           center: [19.5, 51.8],
-          zoom: 5.2,
-          minZoom: 2,
+          zoom: 3.5,
+          minZoom: 1,
           maxZoom: 16,
           projection: { name: 'globe' } as ProjectionSpecification,
           attributionControl: false,
         });
       } catch {
-        // WebGL context creation failed — retry if budget allows
         scheduleRetry(Mapbox, container, 800);
         return;
       }
@@ -108,39 +112,25 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
       mapRef.current = map;
       let isLoaded = false;
 
-      // ── WebGL context loss ─────────────────────────────────────────────────
       const canvas = map.getCanvas();
-      canvas.addEventListener('webglcontextlost', (e) => {
-        e.preventDefault();
-      }, false);
+      canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); }, false);
       canvas.addEventListener('webglcontextrestored', () => {
         if (!mounted) return;
-        if (isLoaded && mapRef.current) {
-          // Map was up — just repaint
-          mapRef.current.resize();
-          mapRef.current.triggerRepaint();
-        } else {
-          // Context lost before map finished loading — reinit
+        if (isLoaded && mapRef.current) { mapRef.current.resize(); mapRef.current.triggerRepaint(); }
+        else {
           if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
           scheduleRetry(Mapbox, container, 400);
         }
       }, false);
 
-      // ── Error handler ──────────────────────────────────────────────────────
       map.on('error', (e) => {
-        if ((e as unknown as Record<string, unknown>).tile) return; // ignore tile errors
+        if ((e as unknown as Record<string, unknown>).tile) return;
         const status = (e?.error as { status?: number } | undefined)?.status;
         if (!mounted) return;
-        if (status === 401 || status === 403) {
-          setMapError(true);
-        }
-        // Fatal pre-load error: stop waiting
-        if (!isLoaded) {
-          if (loadTimeoutId) { clearTimeout(loadTimeoutId); loadTimeoutId = null; }
-        }
+        if (status === 401 || status === 403) setMapError(true);
+        if (!isLoaded && loadTimeoutId) { clearTimeout(loadTimeoutId); loadTimeoutId = null; }
       });
 
-      // ── Load event ─────────────────────────────────────────────────────────
       map.on('load', () => {
         isLoaded = true;
         if (loadTimeoutId) { clearTimeout(loadTimeoutId); loadTimeoutId = null; }
@@ -148,11 +138,8 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
 
         try {
           map.setFog({
-            color: '#0C1014',
-            'high-color': '#0F1E2A',
-            'horizon-blend': 0.04,
-            'space-color': '#070A0C',
-            'star-intensity': 0.12,
+            color: '#0C1014', 'high-color': '#0F1E2A',
+            'horizon-blend': 0.04, 'space-color': '#070A0C', 'star-intensity': 0.18,
           } as FogSpecification);
         } catch { /* style may not support fog */ }
 
@@ -167,24 +154,16 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           } catch { /* layer absent */ }
         }
 
-        // Attribution text in bottom-left (logo stays in bottom-right per Mapbox ToS)
         map.addControl(new Mapbox.AttributionControl({ compact: true }), 'bottom-left');
-
         setMapReady(true);
         map.resize();
       });
 
-      // Safety net: 8 s to load, then give up
       loadTimeoutId = setTimeout(() => {
-        if (mounted && !isLoaded) {
-          setMapError(true);
-        }
+        if (mounted && !isLoaded) setMapError(true);
       }, 8000);
 
-      // Keep map sized to its container
-      ro = new ResizeObserver(() => {
-        if (mapRef.current) mapRef.current.resize();
-      });
+      ro = new ResizeObserver(() => { if (mapRef.current) mapRef.current.resize(); });
       ro.observe(container);
     };
 
@@ -208,7 +187,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           if (!mounted || !containerRef.current) return;
           initMap(containerRef.current!, Mapbox);
         })
-        .catch(() => { /* import failed — map simply won't load */ });
+        .catch(() => { /* import failed */ });
     }, 700);
 
     return () => {
@@ -225,38 +204,33 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
   // ── Render markers ──────────────────────────────────────────────────────────
   const renderMarkers = useCallback(() => {
     if (!token || !mapRef.current || !mapReady) return;
-
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
     import('mapbox-gl').then((mod) => {
       const Mapbox = (mod.default ?? mod) as MapboxGL;
-
       spots.forEach((spot) => {
         const el = document.createElement('div');
         const color = CATEGORY_COLORS[spot.category] ?? '#5CB88C';
         const rgb = hexToRgb(color);
         el.style.cssText = `
-          width: 10px; height: 10px; border-radius: 50%;
-          background: ${color};
-          box-shadow: 0 0 0 2px rgba(${rgb}, 0.3), 0 0 8px rgba(${rgb}, 0.5);
-          cursor: pointer;
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          width:10px;height:10px;border-radius:50%;background:${color};
+          box-shadow:0 0 0 2px rgba(${rgb},0.3),0 0 8px rgba(${rgb},0.5);
+          cursor:pointer;transition:transform .15s ease,box-shadow .15s ease;
         `;
         el.addEventListener('mouseenter', () => {
           el.style.transform = 'scale(1.8)';
-          el.style.boxShadow = `0 0 0 3px rgba(${rgb}, 0.4), 0 0 16px rgba(${rgb}, 0.7)`;
+          el.style.boxShadow = `0 0 0 3px rgba(${rgb},0.4),0 0 16px rgba(${rgb},0.7)`;
         });
         el.addEventListener('mouseleave', () => {
           el.style.transform = 'scale(1)';
-          el.style.boxShadow = `0 0 0 2px rgba(${rgb}, 0.3), 0 0 8px rgba(${rgb}, 0.5)`;
+          el.style.boxShadow = `0 0 0 2px rgba(${rgb},0.3),0 0 8px rgba(${rgb},0.5)`;
         });
         el.addEventListener('click', () => setSelected(spot));
 
         const marker = new Mapbox.Marker({ element: el, anchor: 'center' })
           .setLngLat([spot.lng, spot.lat])
           .addTo(mapRef.current!);
-
         markersRef.current.push(marker);
       });
     });
@@ -266,80 +240,118 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
     if (mapReady && spotsLoaded) renderMarkers();
   }, [mapReady, spotsLoaded, renderMarkers]);
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="relative w-full h-full">
-      {/* ── Map container — Mapbox when token is valid, CartoCDN fallback otherwise ── */}
-      {token && !mapError ? (
-        <div ref={containerRef} className="absolute inset-0" />
-      ) : (
-        <FreeTileMap spots={spots} onSelect={setSelected} />
-      )}
+    <div
+      className="relative w-full h-full flex items-center justify-center"
+      style={{ paddingTop: '68px' }}
+    >
 
-      {/* ── Small corner spinner while Mapbox initializes ── */}
-      {token && !mapReady && !mapError && (
-        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-steel/60 bg-abyss/80 px-3 py-1.5 backdrop-blur">
-          <div className="h-3.5 w-3.5 animate-spin rounded-full border border-aurora/30 border-t-aurora" />
-          <span className="font-mono text-[9px] uppercase tracking-widest text-starGhost">
-            Ładowanie...
-          </span>
+      {/* ─── Globe ──────────────────────────────────────────────────────────── */}
+      <div
+        className="relative rounded-full overflow-hidden flex-shrink-0"
+        style={{ width: GLOBE_SIZE, height: GLOBE_SIZE, boxShadow: GLOBE_SHADOW }}
+      >
+        {token && !mapError ? (
+          <div ref={containerRef} className="absolute inset-0" />
+        ) : (
+          <FreeTileMap spots={spots} onSelect={setSelected} />
+        )}
+
+        {/* Edge vignette — fades the globe rim into deep ocean dark */}
+        <div
+          className="pointer-events-none absolute inset-0 z-10"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 50%, transparent 50%, rgba(7,10,12,0.50) 76%, rgba(7,10,12,0.92) 100%)',
+          }}
+        />
+
+        {/* Loading spinner (corner-positioned inside globe) */}
+        {token && !mapReady && !mapError && (
+          <div className="absolute right-[19%] top-[13%] z-20 flex items-center gap-2 rounded-full border border-steel/60 bg-abyss/80 px-3 py-1.5 backdrop-blur">
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border border-aurora/30 border-t-aurora" />
+            <span className="font-mono text-[9px] uppercase tracking-widest text-starGhost">
+              Ładowanie...
+            </span>
+          </div>
+        )}
+
+        {/* Mapbox attribution — repositioned inside the circular clip area */}
+        <style>{`
+          .mapboxgl-ctrl-bottom-right { bottom: 22% !important; right: 20% !important; }
+          .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-logo {
+            filter: brightness(0.4) contrast(0.7);
+            opacity: 0.5;
+          }
+          .mapboxgl-ctrl-bottom-left { left: 22% !important; bottom: 20% !important; }
+          .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib {
+            background: rgba(12,16,20,0.70);
+            border-radius: 6px;
+            font-size: 8px;
+            color: #5A5550;
+          }
+          .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib a { color: #5A5550; }
+          .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib-button { display: none; }
+        `}</style>
+      </div>
+
+      {/* ─── Category filters (below globe, centered) ───────────────────────── */}
+      <div className="absolute bottom-4 left-0 right-0 z-10 flex justify-center px-4">
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.value}
+              onClick={() => { setCategory(cat.value); setSelected(null); }}
+              className={`rounded-full border px-3 py-1.5 font-mono text-[9px] uppercase tracking-wide transition-all duration-150 ${
+                category === cat.value
+                  ? 'border-aurora bg-aurora text-void shadow-[0_0_12px_rgba(92,184,140,0.22)]'
+                  : 'border-steel/60 bg-abyss/70 text-starFaint hover:border-starGhost hover:text-star'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* ── Viewport HUD — always visible (filters work even before map loads) ── */}
-      <div className="absolute left-4 right-4 top-24 z-10 md:left-8 md:right-auto md:top-28 md:w-[390px] pointer-events-auto">
-        <div className="rounded-[28px] border border-steel/70 bg-abyss/82 p-4 shadow-2xl shadow-void/40 backdrop-blur-xl">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-aurora/20 bg-aurora/10">
-                <span className="h-2.5 w-2.5 rounded-full bg-aurora shadow-[0_0_18px_rgba(92,184,140,0.75)]" />
-              </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-starGhost">
-                  World Map
-                </p>
-                <h1 className="font-display text-lg font-bold leading-none text-starlight">
-                  Discovery
-                </h1>
-              </div>
+      {/* ─── HUD overlay (floats top-left, overlaps globe rim) ──────────────── */}
+      <div className="absolute left-4 top-[4.75rem] z-10 w-52 pointer-events-auto md:left-6 md:top-20 md:w-60">
+        <div className="rounded-2xl border border-steel/60 bg-abyss/90 p-3.5 shadow-2xl shadow-void/60 backdrop-blur-xl">
+
+          <div className="mb-2.5 flex items-center gap-2.5">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-aurora/20 bg-aurora/10">
+              <span className="h-2 w-2 rounded-full bg-aurora shadow-[0_0_12px_rgba(92,184,140,0.75)]" />
             </div>
-            <div className="rounded-full border border-steel/70 bg-graphite/60 px-2.5 py-1">
-              <p className="font-mono text-[10px] text-starGhost">
-                {token ? 'Mapbox GL' : 'OpenStreetMap'}
+            <div className="min-w-0">
+              <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-starGhost">
+                World Map
+              </p>
+              <h1 className="font-display text-sm font-bold leading-none text-starlight">
+                Discovery
+              </h1>
+            </div>
+            <div className="ml-auto rounded-full border border-steel/60 bg-graphite/60 px-2 py-0.5">
+              <p className="font-mono text-[8px] text-starGhost">
+                {token ? 'GL' : 'OSM'}
               </p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-steel/50 bg-void/30 px-3 py-2">
-            <p className="font-sans text-xs leading-relaxed text-starFaint">
-              Lokalizacje są przybliżone ±500m.{' '}
-              <span className="text-aurora">Geo-prywatność</span> zostaje aktywna
-              także na publicznej mapie.
+          <div className="mb-2.5 rounded-xl border border-steel/40 bg-void/30 px-2.5 py-1.5">
+            <p className="font-sans text-[10px] leading-relaxed text-starFaint">
+              Lokalizacje ±500m.{' '}
+              <span className="text-aurora">Geo-prywatność</span> aktywna.
             </p>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.value}
-                onClick={() => { setCategory(cat.value); setSelected(null); }}
-                className={`rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide transition-all duration-150 ${
-                  category === cat.value
-                    ? 'border-aurora bg-aurora text-void shadow-[0_0_18px_rgba(92,184,140,0.22)]'
-                    : 'border-steel bg-abyss/70 text-starFaint hover:border-starGhost hover:text-star'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4 flex items-center justify-between border-t border-steel/50 pt-3">
-            <p className="font-mono text-[10px] text-starGhost">
-              <span className="text-aurora">{spots.length}</span> odkryć na mapie
+          <div className="flex items-center justify-between border-t border-steel/40 pt-2.5">
+            <p className="font-mono text-[9px] text-starGhost">
+              <span className="text-aurora">{spots.length}</span> odkryć
             </p>
             <Link
               href="/#join"
-              className="rounded-full bg-aurora px-3.5 py-2 font-sans text-xs font-semibold text-void transition-all hover:brightness-110"
+              className="rounded-full bg-aurora px-3 py-1.5 font-sans text-[10px] font-semibold text-void transition-all hover:brightness-110"
             >
               Dołącz →
             </Link>
@@ -347,9 +359,9 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         </div>
       </div>
 
-      {/* ── Auth/token error (corner badge) ── */}
+      {/* ─── Token error badge ───────────────────────────────────────────────── */}
       {mapError && token && (
-        <div className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
+        <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
           <div className="rounded-2xl border border-ember/40 bg-graphite/95 px-4 py-3 text-center backdrop-blur">
             <p className="font-mono text-[10px] uppercase tracking-widest text-ember">
               Błąd tokenu Mapbox
@@ -360,24 +372,6 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           </div>
         </div>
       )}
-
-      {/* Mapbox attribution — logo kept visible (Mapbox ToS), styled to match Terra Mare */}
-      <style>{`
-        .mapboxgl-ctrl-bottom-right { bottom: 8px !important; right: 8px !important; }
-        .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-logo {
-          filter: brightness(0.45) contrast(0.75);
-          opacity: 0.55;
-        }
-        .mapboxgl-ctrl-bottom-left { left: 18px !important; bottom: 14px !important; }
-        .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib {
-          background: rgba(12,16,20,0.72);
-          border-radius: 6px;
-          font-size: 9px;
-          color: #5A5550;
-        }
-        .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib a { color: #5A5550; }
-        .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib-button { display: none; }
-      `}</style>
 
       <SpotPanel spot={selected} onClose={() => setSelected(null)} />
     </div>
@@ -393,7 +387,7 @@ function FreeTileMap({
   onSelect: (spot: PublicSpot) => void;
 }): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 1280, height: 720 });
+  const [size, setSize] = useState({ width: 680, height: 680 });
 
   useEffect(() => {
     if (!ref.current) return;
@@ -419,9 +413,9 @@ function FreeTileMap({
       if (x < 0 || y < 0) continue;
       tiles.push({
         x, y,
-        left: size.width / 2 + (x - center.x) * TILE_SIZE,
+        left: size.width  / 2 + (x - center.x) * TILE_SIZE,
         top:  size.height / 2 + (y - center.y) * TILE_SIZE,
-        url: `https://${['a', 'b', 'c'][Math.abs(x + y) % 3]}.basemaps.cartocdn.com/dark_all/${FALLBACK_ZOOM}/${x}/${y}.png`,
+        url: `https://${['a','b','c'][Math.abs(x+y)%3]}.basemaps.cartocdn.com/dark_all/${FALLBACK_ZOOM}/${x}/${y}.png`,
       });
     }
   }
@@ -443,11 +437,10 @@ function FreeTileMap({
         ))}
       </div>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_44%,transparent_0%,rgba(7,10,12,0.18)_48%,rgba(7,10,12,0.74)_100%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,10,12,0.42),transparent_28%,rgba(7,10,12,0.48))]" />
 
       {spots.map((spot) => {
         const point = lonLatToWorld(spot.lng, spot.lat, FALLBACK_ZOOM);
-        const left = size.width / 2 + (point.x - center.x) * TILE_SIZE;
+        const left = size.width  / 2 + (point.x - center.x) * TILE_SIZE;
         const top  = size.height / 2 + (point.y - center.y) * TILE_SIZE;
         if (left < -20 || top < -20 || left > size.width + 20 || top > size.height + 20) return null;
         const color = CATEGORY_COLORS[spot.category] ?? '#5CB88C';
@@ -462,12 +455,6 @@ function FreeTileMap({
           />
         );
       })}
-
-      <div className="absolute bottom-4 left-5 rounded-lg border border-steel/60 bg-abyss/70 px-2 py-1 backdrop-blur">
-        <p className="font-mono text-[9px] text-starGhost">
-          © OpenStreetMap contributors © CARTO
-        </p>
-      </div>
     </div>
   );
 }

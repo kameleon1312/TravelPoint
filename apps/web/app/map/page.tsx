@@ -20,9 +20,16 @@ export default function MapPage(): React.JSX.Element {
     <>
       <WorldNav />
 
-      {/* fixed inset-0 is the only layout that reliably gives the Mapbox canvas
-          its full-viewport dimensions across all Next.js SSR/hydration scenarios. */}
-      <div className="fixed inset-0 bg-abyss">
+      {/* fixed inset-0 gives Mapbox reliable full-viewport dimensions.
+          The radial gradient creates an ocean-floor vignette around the floating globe. */}
+      <div
+        className="fixed inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 70% 70% at 50% 54%, #0C1014 30%, #070A0C 100%)
+          `,
+        }}
+      >
         <MapClient token={hasToken ? token : undefined} />
       </div>
     </>

@@ -26,7 +26,7 @@ interface Props {
 
 export function MapClient({ token }: Props): React.JSX.Element {
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div className="absolute inset-0">
       <DiscoveryMap token={token} />
     </div>
   );
