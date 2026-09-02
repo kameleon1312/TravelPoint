@@ -20,13 +20,10 @@ export default function MapPage(): React.JSX.Element {
     <>
       <WorldNav />
 
-      {/* Full-height map layout */}
-      <div className="fixed inset-0 bg-abyss flex flex-col">
-
-        {/* Map */}
-        <div className="flex-1 relative overflow-hidden">
-          <MapClient token={hasToken ? token : undefined} />
-        </div>
+      {/* fixed inset-0 is the only layout that reliably gives the Mapbox canvas
+          its full-viewport dimensions across all Next.js SSR/hydration scenarios. */}
+      <div className="fixed inset-0 bg-abyss">
+        <MapClient token={hasToken ? token : undefined} />
       </div>
     </>
   );

@@ -5,6 +5,13 @@ const isDev = process.env.NODE_ENV === 'development';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   distDir: isDev ? '.next-dev' : '.next',
+  experimental: {
+    // false = combine CSS per-entry-point (Next 14 behaviour).
+    // Avoids the "preloaded but not used" browser warning caused by Next 15's
+    // default 'strict' mode which splits CSS into per-segment chunks that can
+    // arrive after the browser's preload timeout.
+    cssChunking: false,
+  },
   // Tell Next.js the monorepo root so it doesn't mistake a stale package-lock.json
   // in the user's home directory for the workspace root.
   outputFileTracingRoot: path.resolve(__dirname, '../../'),
@@ -25,6 +32,14 @@ const nextConfig = {
       '@travelpoint/validation': path.join(pkgRoot, 'validation/src/index.ts'),
       '@travelpoint/api-client': path.join(pkgRoot, 'api-client/src/index.ts'),
     };
+    // @sentry/nextjs + @opentelemetry/instrumentation use dynamic require() internally.
+    // Webpack can't statically analyse them and emits "Critical dependency" warnings
+    // that are harmless — suppress them to keep the terminal clean.
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings ?? []),
+      { module: /@opentelemetry\/instrumentation/ },
+      { module: /require-in-the-middle/ },
+    ];
     return config;
   },
   images: {

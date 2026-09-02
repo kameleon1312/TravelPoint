@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ViewportHeight } from '@/components/layout/ViewportHeight';
+import { ConsoleFilter } from './ConsoleFilter';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -43,8 +44,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <html lang="pl" className="dark">
+    <html lang="pl" className="dark" data-scroll-behavior="smooth">
       <body>
+        <ConsoleFilter />
         <ViewportHeight />
         {children}
       </body>

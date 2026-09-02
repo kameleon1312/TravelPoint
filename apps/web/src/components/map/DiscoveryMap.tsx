@@ -97,6 +97,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           minZoom: 2,
           maxZoom: 16,
           projection: { name: 'globe' } as ProjectionSpecification,
+          attributionControl: false,
         });
       } catch {
         // WebGL context creation failed — retry if budget allows
@@ -166,6 +167,9 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           } catch { /* layer absent */ }
         }
 
+        // Attribution text in bottom-left (logo stays in bottom-right per Mapbox ToS)
+        map.addControl(new Mapbox.AttributionControl({ compact: true }), 'bottom-left');
+
         setMapReady(true);
         map.resize();
       });
@@ -196,7 +200,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
       }, delay);
     };
 
-    // Give GPU 400ms to settle after any Three.js canvas teardown from navigation
+    // Give GPU 700ms to settle after Three.js forceContextLoss on navigation
     const initTimerId = setTimeout(() => {
       if (!mounted || !containerRef.current) return;
       loadMapbox()
@@ -205,7 +209,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           initMap(containerRef.current!, Mapbox);
         })
         .catch(() => { /* import failed — map simply won't load */ });
-    }, 400);
+    }, 700);
 
     return () => {
       mounted = false;
@@ -264,8 +268,8 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
 
   return (
     <div className="relative w-full h-full">
-      {/* ── Map container (always in DOM, Mapbox renders here) ── */}
-      {token ? (
+      {/* ── Map container — Mapbox when token is valid, CartoCDN fallback otherwise ── */}
+      {token && !mapError ? (
         <div ref={containerRef} className="absolute inset-0" />
       ) : (
         <FreeTileMap spots={spots} onSelect={setSelected} />
@@ -357,17 +361,22 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         </div>
       )}
 
-      {/* Mapbox attribution override */}
+      {/* Mapbox attribution — logo kept visible (Mapbox ToS), styled to match Terra Mare */}
       <style>{`
-        .mapboxgl-ctrl-bottom-right { display: none; }
-        .mapboxgl-ctrl-bottom-left { left: 18px; bottom: 14px; }
+        .mapboxgl-ctrl-bottom-right { bottom: 8px !important; right: 8px !important; }
+        .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-logo {
+          filter: brightness(0.45) contrast(0.75);
+          opacity: 0.55;
+        }
+        .mapboxgl-ctrl-bottom-left { left: 18px !important; bottom: 14px !important; }
         .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib {
-          background: rgba(12,16,20,0.7);
+          background: rgba(12,16,20,0.72);
           border-radius: 6px;
           font-size: 9px;
           color: #5A5550;
         }
         .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib a { color: #5A5550; }
+        .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib-button { display: none; }
       `}</style>
 
       <SpotPanel spot={selected} onClose={() => setSelected(null)} />
@@ -428,7 +437,6 @@ function FreeTileMap({
             alt=""
             draggable={false}
             crossOrigin="anonymous"
-            referrerPolicy="no-referrer"
             className="absolute select-none"
             style={{ left: tile.left, top: tile.top, width: TILE_SIZE, height: TILE_SIZE }}
           />
