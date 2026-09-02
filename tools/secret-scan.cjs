@@ -21,6 +21,9 @@ const allowlistedFiles = new Set([
   // EXPO_PUBLIC_ vars are intentionally embedded in the app bundle (public by design).
   // Supabase anon key grants only anonymous DB access. Google Maps key is bundle-ID restricted.
   'apps/mobile/eas.json',
+  // NEXT_PUBLIC_ vars are baked into the client JS bundle at build time — inherently public.
+  // Google Maps key is HTTP-referrer-restricted to io.travelpoint.app in Google Console.
+  'apps/web/.env.production',
 ]);
 
 let failed = false;
