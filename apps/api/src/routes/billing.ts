@@ -53,7 +53,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
   app.post('/api/billing/portal', { preHandler: [requireAuth] }, async (req, reply) => {
     try {
-      return reply.status(201).send(await createCustomerPortalSession(app.prisma, req.explorerId));
+      return reply.status(200).send(await createCustomerPortalSession(app.prisma, req.explorerId));
     } catch (error) {
       if (error instanceof Error && ['BILLING_NOT_CONFIGURED', 'CUSTOMER_NOT_FOUND'].includes(error.message)) {
         return reply.status(503).send({ code: error.message });

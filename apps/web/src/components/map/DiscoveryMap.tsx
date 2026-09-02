@@ -156,7 +156,12 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
 
         map.addControl(new Mapbox.AttributionControl({ compact: true }), 'bottom-left');
         setMapReady(true);
+        // Force canvas resize at multiple points: CSS layout may not be
+        // fully computed on the first frame, especially inside a CSS min() container.
         map.resize();
+        requestAnimationFrame(() => { if (mapRef.current) mapRef.current.resize(); });
+        setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 150);
+        setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 500);
       });
 
       loadTimeoutId = setTimeout(() => {
@@ -179,7 +184,9 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
       }, delay);
     };
 
-    // Give GPU 700ms to settle after Three.js forceContextLoss on navigation
+    // Give Three.js canvas time to be removed from DOM and GPU context to settle.
+    // R3F calls gl.dispose() on Canvas unmount — the context is then GC'd naturally.
+    // 1200ms is sufficient for the browser to release GPU resources after navigation.
     const initTimerId = setTimeout(() => {
       if (!mounted || !containerRef.current) return;
       loadMapbox()
@@ -188,7 +195,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           initMap(containerRef.current!, Mapbox);
         })
         .catch(() => { /* import failed */ });
-    }, 700);
+    }, 1200);
 
     return () => {
       mounted = false;
@@ -430,7 +437,6 @@ function FreeTileMap({
             src={tile.url}
             alt=""
             draggable={false}
-            crossOrigin="anonymous"
             className="absolute select-none"
             style={{ left: tile.left, top: tile.top, width: TILE_SIZE, height: TILE_SIZE }}
           />

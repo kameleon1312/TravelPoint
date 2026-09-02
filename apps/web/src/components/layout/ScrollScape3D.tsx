@@ -352,22 +352,6 @@ function SceneDriver() {
   );
 }
 
-// ─── Context killer — frees the WebGL context on unmount ─────────────────────
-// When navigating away from the landing page, R3F calls renderer.dispose() but
-// the browser may not immediately release GPU resources. Calling forceContextLoss()
-// triggers the WEBGL_lose_context extension which forces the browser to reclaim
-// the context immediately, so Mapbox (on /map) can create its own WebGL canvas
-// without hitting a silent failure due to GPU resource exhaustion.
-function ContextKiller() {
-  const { gl } = useThree();
-  useEffect(() => {
-    return () => {
-      try { gl.forceContextLoss(); } catch { /* extension may be absent */ }
-    };
-  }, [gl]);
-  return null;
-}
-
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export function ScrollScape3D(): React.JSX.Element {
   const [contextLost, setContextLost] = useState(false);
@@ -391,7 +375,6 @@ export function ScrollScape3D(): React.JSX.Element {
           }, false);
         }}
       >
-        <ContextKiller />
         <SceneDriver />
         <StarField />
         <Suspense fallback={<FallbackTerrain />}>
