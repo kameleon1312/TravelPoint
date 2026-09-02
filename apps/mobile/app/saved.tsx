@@ -4,7 +4,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { SignalButton } from '@/components/ui/SignalButton';

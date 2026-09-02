@@ -474,7 +474,7 @@ export default function AtlasScreen() {
             const isLocked    = 'locked' in spot ? spot.locked : false;
             const accessLevel = 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC';
             const color       = isLocked ? Colors.starGhost : (ACCESS_PIN_COLORS[accessLevel] ?? Colors.aurora);
-            const countdown   = spot.dropExpiresAt ? formatDropCountdown(spot.dropExpiresAt) : '';
+            const countdown   = 'dropExpiresAt' in spot && spot.dropExpiresAt ? formatDropCountdown(spot.dropExpiresAt) : '';
             return (
               <Marker
                 key={spot.id}
