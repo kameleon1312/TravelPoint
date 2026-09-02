@@ -35,10 +35,8 @@ const TILE_SIZE     = 256;
 const MAX_RETRIES   = 2;
 
 // Largest sphere that fits nicely in the viewport below the nav.
-// CSS min() with 3 values keeps it from overflowing on any device.
 const GLOBE_SIZE = 'min(80vw, calc(100vh - 160px), 680px)';
 
-// Layered box-shadow creates a glowing ocean-depth halo around the globe.
 const GLOBE_SHADOW = [
   '0 0 0 1px rgba(92,184,140,0.10)',
   '0 0 0 4px rgba(7,10,12,0.96)',
@@ -59,6 +57,8 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
   const [spots, setSpots]             = useState<PublicSpot[]>([]);
   const [category, setCategory]       = useState('');
   const [mapReady, setMapReady]       = useState(false);
+  // mapboxActive: Mapbox loaded successfully — switch from FreeTileMap to Mapbox
+  const [mapboxActive, setMapboxActive] = useState(false);
   const [spotsLoaded, setSpotsLoaded] = useState(false);
   const [mapError, setMapError]       = useState(false);
 
@@ -77,7 +77,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
 
   // ── Init Mapbox ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!token) { setMapReady(true); return; }
+    if (!token) return;
     if (!containerRef.current || mapRef.current) return;
 
     let mounted = true;
@@ -90,6 +90,13 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
 
     const initMap = (container: HTMLDivElement, Mapbox: MapboxGL) => {
       if (!mounted || mapRef.current) return;
+
+      // Skip Mapbox entirely on browsers without WebGL support
+      if (!Mapbox.supported()) {
+        if (mounted) setMapError(true);
+        return;
+      }
+
       Mapbox.accessToken = token;
 
       let map: mapboxgl.Map;
@@ -103,6 +110,8 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           maxZoom: 16,
           projection: { name: 'globe' } as ProjectionSpecification,
           attributionControl: false,
+          // Prevent canvas alpha so the background doesn't bleed through on init
+          preserveDrawingBuffer: false,
         });
       } catch {
         scheduleRetry(Mapbox, container, 800);
@@ -155,18 +164,22 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         }
 
         map.addControl(new Mapbox.AttributionControl({ compact: true }), 'bottom-left');
+
+        // Make Mapbox canvas visible and enable markers
         setMapReady(true);
-        // Force canvas resize at multiple points: CSS layout may not be
-        // fully computed on the first frame, especially inside a CSS min() container.
+        setMapboxActive(true);
+
+        // Cascade resize so the globe container's computed dimensions are applied
         map.resize();
         requestAnimationFrame(() => { if (mapRef.current) mapRef.current.resize(); });
         setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 150);
         setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 500);
       });
 
+      // If map.on('load') never fires within 10 s, stay with FreeTileMap
       loadTimeoutId = setTimeout(() => {
         if (mounted && !isLoaded) setMapError(true);
-      }, 8000);
+      }, 10000);
 
       ro = new ResizeObserver(() => { if (mapRef.current) mapRef.current.resize(); });
       ro.observe(container);
@@ -208,7 +221,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
     };
   }, [token]);
 
-  // ── Render markers ──────────────────────────────────────────────────────────
+  // ── Render markers (only when Mapbox is active) ─────────────────────────────
   const renderMarkers = useCallback(() => {
     if (!token || !mapRef.current || !mapReady) return;
     markersRef.current.forEach((m) => m.remove());
@@ -259,27 +272,41 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         className="relative rounded-full overflow-hidden flex-shrink-0"
         style={{ width: GLOBE_SIZE, height: GLOBE_SIZE, boxShadow: GLOBE_SHADOW }}
       >
-        {token && !mapError ? (
-          <div ref={containerRef} className="absolute inset-0" />
-        ) : (
+        {/* FreeTileMap — always rendered as immediate content.
+            Fades out once Mapbox finishes loading and activates. */}
+        <div
+          className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+          style={{ opacity: mapboxActive ? 0 : 1, pointerEvents: mapboxActive ? 'none' : 'auto' }}
+        >
           <FreeTileMap spots={spots} onSelect={setSelected} />
+        </div>
+
+        {/* Mapbox container — always in DOM so initialisation can proceed.
+            Transparent (z-0) until loaded, then fades in above FreeTileMap. */}
+        {token && !mapError && (
+          <div
+            ref={containerRef}
+            className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+            style={{ opacity: mapboxActive ? 1 : 0, zIndex: mapboxActive ? 1 : 0 }}
+          />
         )}
 
         {/* Edge vignette — fades the globe rim into deep ocean dark */}
         <div
-          className="pointer-events-none absolute inset-0 z-10"
+          className="pointer-events-none absolute inset-0"
           style={{
+            zIndex: 10,
             background:
               'radial-gradient(circle at 50% 50%, transparent 50%, rgba(7,10,12,0.50) 76%, rgba(7,10,12,0.92) 100%)',
           }}
         />
 
-        {/* Loading spinner (corner-positioned inside globe) */}
-        {token && !mapReady && !mapError && (
+        {/* Loading indicator — shows while Mapbox is initialising in background */}
+        {token && !mapboxActive && !mapError && (
           <div className="absolute right-[19%] top-[13%] z-20 flex items-center gap-2 rounded-full border border-steel/60 bg-abyss/80 px-3 py-1.5 backdrop-blur">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border border-aurora/30 border-t-aurora" />
             <span className="font-mono text-[9px] uppercase tracking-widest text-starGhost">
-              Ładowanie...
+              GL
             </span>
           </div>
         )}
@@ -340,7 +367,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
             </div>
             <div className="ml-auto rounded-full border border-steel/60 bg-graphite/60 px-2 py-0.5">
               <p className="font-mono text-[8px] text-starGhost">
-                {token ? 'GL' : 'OSM'}
+                {mapboxActive ? 'GL' : 'OSM'}
               </p>
             </div>
           </div>
