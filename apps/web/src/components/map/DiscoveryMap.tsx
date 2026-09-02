@@ -1,12 +1,8 @@
+/// <reference types="@types/google.maps" />
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import type mapboxgl from 'mapbox-gl';
-import type { ProjectionSpecification, FogSpecification } from 'mapbox-gl';
 import { SpotPanel, type PublicSpot } from './SpotPanel';
-import 'mapbox-gl/dist/mapbox-gl.css';
-
-type MapboxGL = typeof mapboxgl;
 
 const CATEGORIES = [
   { value: '',            label: 'Wszystkie' },
@@ -28,15 +24,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   CAMP:        '#4A8A6A',
 };
 
-const MAP_STYLE     = 'mapbox://styles/mapbox/dark-v11';
 const FALLBACK_ZOOM = 5;
 const FALLBACK_CENTER = { lng: 19.5, lat: 51.8 };
-const TILE_SIZE     = 256;
-const MAX_RETRIES   = 2;
+const TILE_SIZE = 256;
 
-// Largest sphere that fits nicely in the viewport below the nav.
-const GLOBE_SIZE = 'min(80vw, calc(100vh - 160px), 680px)';
-
+const GLOBE_SIZE   = 'min(80vw, calc(100vh - 160px), 680px)';
 const GLOBE_SHADOW = [
   '0 0 0 1px rgba(92,184,140,0.10)',
   '0 0 0 4px rgba(7,10,12,0.96)',
@@ -45,22 +37,52 @@ const GLOBE_SHADOW = [
   '0 0 240px rgba(92,184,140,0.05)',
 ].join(', ');
 
+// Terra Mare dark style for Google Maps — ocean floor palette, no default look
+const TERRA_MARE_STYLE: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry',                  stylers: [{ color: '#131A1F' }] },
+  { elementType: 'labels.text.stroke',        stylers: [{ color: '#0C1014' }] },
+  { elementType: 'labels.text.fill',          stylers: [{ color: '#5A5550' }] },
+
+  { featureType: 'administrative',               elementType: 'geometry',        stylers: [{ color: '#253035' }] },
+  { featureType: 'administrative.country',       elementType: 'geometry.stroke', stylers: [{ color: '#253035' }] },
+  { featureType: 'administrative.province',      elementType: 'geometry.stroke', stylers: [{ color: '#1B2328' }] },
+  { featureType: 'administrative.locality',      elementType: 'labels.text.fill',stylers: [{ color: '#8A827A' }] },
+  { featureType: 'administrative.land_parcel',   stylers:                        [{ visibility: 'off' }] },
+  { featureType: 'administrative.neighborhood',  stylers:                        [{ visibility: 'off' }] },
+
+  { featureType: 'landscape',           elementType: 'geometry', stylers: [{ color: '#131A1F' }] },
+  { featureType: 'landscape.natural',   elementType: 'geometry', stylers: [{ color: '#0C1014' }] },
+  { featureType: 'landscape.man_made',  elementType: 'geometry', stylers: [{ color: '#131A1F' }] },
+
+  { featureType: 'poi',   stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+
+  { featureType: 'road',          elementType: 'geometry',        stylers: [{ color: '#1B2328' }] },
+  { featureType: 'road',          elementType: 'geometry.stroke', stylers: [{ color: '#131A1F' }] },
+  { featureType: 'road',          elementType: 'labels',          stylers: [{ visibility: 'off' }] },
+  { featureType: 'road.highway',  elementType: 'geometry',        stylers: [{ color: '#253035' }] },
+  { featureType: 'road.highway',  elementType: 'geometry.stroke', stylers: [{ color: '#1B2328' }] },
+  { featureType: 'road.local',    elementType: 'labels',          stylers: [{ visibility: 'off' }] },
+
+  { featureType: 'water', elementType: 'geometry',        stylers: [{ color: '#0F1E2A' }] },
+  { featureType: 'water', elementType: 'labels.text.fill',stylers: [{ color: '#1E9AB0' }] },
+  { featureType: 'water', elementType: 'labels.text.stroke',stylers: [{ color: '#0C1014' }] },
+];
+
 interface Props { token?: string }
 
 export function DiscoveryMap({ token }: Props): React.JSX.Element {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef       = useRef<mapboxgl.Map | null>(null);
-  const markersRef   = useRef<mapboxgl.Marker[]>([]);
-  const retryRef     = useRef(0);
+  const containerRef  = useRef<HTMLDivElement>(null);
+  const mapRef        = useRef<google.maps.Map | null>(null);
+  const markersRef    = useRef<google.maps.Marker[]>([]);
 
-  const [selected, setSelected]       = useState<PublicSpot | null>(null);
-  const [spots, setSpots]             = useState<PublicSpot[]>([]);
-  const [category, setCategory]       = useState('');
-  const [mapReady, setMapReady]       = useState(false);
-  // mapboxActive: Mapbox loaded successfully — switch from FreeTileMap to Mapbox
-  const [mapboxActive, setMapboxActive] = useState(false);
-  const [spotsLoaded, setSpotsLoaded] = useState(false);
-  const [mapError, setMapError]       = useState(false);
+  const [selected, setSelected]         = useState<PublicSpot | null>(null);
+  const [spots, setSpots]               = useState<PublicSpot[]>([]);
+  const [category, setCategory]         = useState('');
+  const [mapReady, setMapReady]         = useState(false);
+  const [mapActive, setMapActive]       = useState(false);
+  const [spotsLoaded, setSpotsLoaded]   = useState(false);
+  const [mapError, setMapError]         = useState(false);
 
   // ── Load spots ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -75,186 +97,95 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
       .catch(() => { setSpots([]); setSpotsLoaded(true); });
   }, [category]);
 
-  // ── Init Mapbox ─────────────────────────────────────────────────────────────
+  // ── Init Google Maps ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!token) return;
-    if (!containerRef.current || mapRef.current) return;
+    if (!token || !containerRef.current || mapRef.current) return;
 
     let mounted = true;
-    let ro: ResizeObserver | null = null;
-    let loadTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    let reinitTimerId: ReturnType<typeof setTimeout> | null = null;
+    let idleListener: google.maps.MapsEventListener | null = null;
 
-    const loadMapbox = (): Promise<MapboxGL> =>
-      import('mapbox-gl').then((mod) => (mod.default ?? mod) as MapboxGL);
-
-    const initMap = (container: HTMLDivElement, Mapbox: MapboxGL) => {
-      if (!mounted || mapRef.current) return;
-
-      // Skip Mapbox entirely on browsers without WebGL support
-      if (!Mapbox.supported()) {
-        if (mounted) setMapError(true);
-        return;
-      }
-
-      Mapbox.accessToken = token;
-
-      let map: mapboxgl.Map;
+    const initMap = async () => {
       try {
-        map = new Mapbox.Map({
-          container,
-          style: MAP_STYLE,
-          center: [19.5, 51.8],
-          zoom: 3.5,
-          minZoom: 1,
-          maxZoom: 16,
-          projection: { name: 'globe' } as ProjectionSpecification,
-          attributionControl: false,
-          // Prevent canvas alpha so the background doesn't bleed through on init
-          preserveDrawingBuffer: false,
+        // v2: Loader constructor sets global options; importLibrary is a standalone fn
+        const { Loader, importLibrary } = await import('@googlemaps/js-api-loader');
+        new Loader({ apiKey: token, version: 'weekly' });
+        await importLibrary('maps');
+
+        if (!mounted || !containerRef.current) return;
+
+        const map = new google.maps.Map(containerRef.current, {
+          center:          { lat: 51.8, lng: 19.5 },
+          zoom:            5,
+          styles:          TERRA_MARE_STYLE,
+          disableDefaultUI: true,
+          gestureHandling: 'greedy',
+          backgroundColor: '#0C1014',
+          mapTypeId:       'roadmap',
+          clickableIcons:  false,
+          keyboardShortcuts: false,
+        });
+
+        mapRef.current = map;
+
+        // idle fires once all tiles are loaded and map is ready
+        idleListener = map.addListener('idle', () => {
+          if (idleListener) {
+            google.maps.event.removeListener(idleListener);
+            idleListener = null;
+          }
+          if (!mounted) return;
+          setMapReady(true);
+          setMapActive(true);
         });
       } catch {
-        scheduleRetry(Mapbox, container, 800);
-        return;
-      }
-
-      mapRef.current = map;
-      let isLoaded = false;
-
-      const canvas = map.getCanvas();
-      canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); }, false);
-      canvas.addEventListener('webglcontextrestored', () => {
-        if (!mounted) return;
-        if (isLoaded && mapRef.current) { mapRef.current.resize(); mapRef.current.triggerRepaint(); }
-        else {
-          if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
-          scheduleRetry(Mapbox, container, 400);
-        }
-      }, false);
-
-      map.on('error', (e) => {
-        if ((e as unknown as Record<string, unknown>).tile) return;
-        const status = (e?.error as { status?: number } | undefined)?.status;
-        if (!mounted) return;
-        if (status === 401 || status === 403) setMapError(true);
-        if (!isLoaded && loadTimeoutId) { clearTimeout(loadTimeoutId); loadTimeoutId = null; }
-      });
-
-      map.on('load', () => {
-        isLoaded = true;
-        if (loadTimeoutId) { clearTimeout(loadTimeoutId); loadTimeoutId = null; }
-        if (!mounted) return;
-
-        try {
-          map.setFog({
-            color: '#0C1014', 'high-color': '#0F1E2A',
-            'horizon-blend': 0.04, 'space-color': '#070A0C', 'star-intensity': 0.18,
-          } as FogSpecification);
-        } catch { /* style may not support fog */ }
-
-        const overrides: Array<[string, string, string]> = [
-          ['water',    'fill-color', '#0F1E2A'],
-          ['waterway', 'line-color', '#133040'],
-        ];
-        for (const [layer, prop, val] of overrides) {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (map.getLayer(layer)) map.setPaintProperty(layer, prop as any, val);
-          } catch { /* layer absent */ }
-        }
-
-        map.addControl(new Mapbox.AttributionControl({ compact: true }), 'bottom-left');
-
-        // Make Mapbox canvas visible and enable markers
-        setMapReady(true);
-        setMapboxActive(true);
-
-        // Cascade resize so the globe container's computed dimensions are applied
-        map.resize();
-        requestAnimationFrame(() => { if (mapRef.current) mapRef.current.resize(); });
-        setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 150);
-        setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 500);
-      });
-
-      // If map.on('load') never fires within 10 s, stay with FreeTileMap
-      loadTimeoutId = setTimeout(() => {
-        if (mounted && !isLoaded) setMapError(true);
-      }, 10000);
-
-      ro = new ResizeObserver(() => { if (mapRef.current) mapRef.current.resize(); });
-      ro.observe(container);
-    };
-
-    const scheduleRetry = (Mapbox: MapboxGL, container: HTMLDivElement, delay: number) => {
-      if (!mounted || retryRef.current >= MAX_RETRIES) {
         if (mounted) setMapError(true);
-        return;
       }
-      retryRef.current += 1;
-      reinitTimerId = setTimeout(() => {
-        if (!mounted || !containerRef.current) return;
-        initMap(containerRef.current, Mapbox);
-      }, delay);
     };
 
-    // Give Three.js canvas time to be removed from DOM and GPU context to settle.
-    // R3F calls gl.dispose() on Canvas unmount — the context is then GC'd naturally.
-    // 1200ms is sufficient for the browser to release GPU resources after navigation.
-    const initTimerId = setTimeout(() => {
-      if (!mounted || !containerRef.current) return;
-      loadMapbox()
-        .then((Mapbox) => {
-          if (!mounted || !containerRef.current) return;
-          initMap(containerRef.current!, Mapbox);
-        })
-        .catch(() => { /* import failed */ });
-    }, 1200);
+    // 300ms — let navigation complete; Google Maps doesn't have WebGL context conflicts
+    const timerId = setTimeout(() => { if (mounted) void initMap(); }, 300);
 
     return () => {
       mounted = false;
-      clearTimeout(initTimerId);
-      if (loadTimeoutId) clearTimeout(loadTimeoutId);
-      if (reinitTimerId) clearTimeout(reinitTimerId);
-      ro?.disconnect();
-      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
-      retryRef.current = 0;
+      clearTimeout(timerId);
+      if (idleListener) {
+        google.maps.event.removeListener(idleListener);
+        idleListener = null;
+      }
+      markersRef.current.forEach((m) => m.setMap(null));
+      markersRef.current = [];
+      if (mapRef.current) {
+        try { google.maps.event.clearInstanceListeners(mapRef.current); } catch { /* */ }
+        mapRef.current = null;
+      }
     };
   }, [token]);
 
-  // ── Render markers (only when Mapbox is active) ─────────────────────────────
+  // ── Render markers ──────────────────────────────────────────────────────────
   const renderMarkers = useCallback(() => {
-    if (!token || !mapRef.current || !mapReady) return;
-    markersRef.current.forEach((m) => m.remove());
+    if (!mapRef.current || !mapReady) return;
+    markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
-    import('mapbox-gl').then((mod) => {
-      const Mapbox = (mod.default ?? mod) as MapboxGL;
-      spots.forEach((spot) => {
-        const el = document.createElement('div');
-        const color = CATEGORY_COLORS[spot.category] ?? '#5CB88C';
-        const rgb = hexToRgb(color);
-        el.style.cssText = `
-          width:10px;height:10px;border-radius:50%;background:${color};
-          box-shadow:0 0 0 2px rgba(${rgb},0.3),0 0 8px rgba(${rgb},0.5);
-          cursor:pointer;transition:transform .15s ease,box-shadow .15s ease;
-        `;
-        el.addEventListener('mouseenter', () => {
-          el.style.transform = 'scale(1.8)';
-          el.style.boxShadow = `0 0 0 3px rgba(${rgb},0.4),0 0 16px rgba(${rgb},0.7)`;
-        });
-        el.addEventListener('mouseleave', () => {
-          el.style.transform = 'scale(1)';
-          el.style.boxShadow = `0 0 0 2px rgba(${rgb},0.3),0 0 8px rgba(${rgb},0.5)`;
-        });
-        el.addEventListener('click', () => setSelected(spot));
-
-        const marker = new Mapbox.Marker({ element: el, anchor: 'center' })
-          .setLngLat([spot.lng, spot.lat])
-          .addTo(mapRef.current!);
-        markersRef.current.push(marker);
+    spots.forEach((spot) => {
+      const color = CATEGORY_COLORS[spot.category] ?? '#5CB88C';
+      const marker = new google.maps.Marker({
+        position: { lat: spot.lat, lng: spot.lng },
+        map: mapRef.current!,
+        title: spot.title,
+        icon: {
+          path:         google.maps.SymbolPath.CIRCLE,
+          scale:        7,
+          fillColor:    color,
+          fillOpacity:  1,
+          strokeColor:  '#070A0C',
+          strokeWeight: 1.5,
+        },
       });
+      marker.addListener('click', () => setSelected(spot));
+      markersRef.current.push(marker);
     });
-  }, [spots, mapReady, token]);
+  }, [spots, mapReady]);
 
   useEffect(() => {
     if (mapReady && spotsLoaded) renderMarkers();
@@ -272,26 +203,24 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         className="relative rounded-full overflow-hidden flex-shrink-0"
         style={{ width: GLOBE_SIZE, height: GLOBE_SIZE, boxShadow: GLOBE_SHADOW }}
       >
-        {/* FreeTileMap — always rendered as immediate content.
-            Fades out once Mapbox finishes loading and activates. */}
+        {/* FreeTileMap — immediate content, fades out when Google Maps is ready */}
         <div
           className="absolute inset-0 transition-opacity duration-700 ease-in-out"
-          style={{ opacity: mapboxActive ? 0 : 1, pointerEvents: mapboxActive ? 'none' : 'auto' }}
+          style={{ opacity: mapActive ? 0 : 1, pointerEvents: mapActive ? 'none' : 'auto' }}
         >
           <FreeTileMap spots={spots} onSelect={setSelected} />
         </div>
 
-        {/* Mapbox container — always in DOM so initialisation can proceed.
-            Transparent (z-0) until loaded, then fades in above FreeTileMap. */}
+        {/* Google Maps container — in DOM when API key set, fades in on idle */}
         {token && !mapError && (
           <div
             ref={containerRef}
             className="absolute inset-0 transition-opacity duration-700 ease-in-out"
-            style={{ opacity: mapboxActive ? 1 : 0, zIndex: mapboxActive ? 1 : 0 }}
+            style={{ opacity: mapActive ? 1 : 0, zIndex: mapActive ? 1 : 0 }}
           />
         )}
 
-        {/* Edge vignette — fades the globe rim into deep ocean dark */}
+        {/* Edge vignette */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -301,36 +230,22 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           }}
         />
 
-        {/* Loading indicator — shows while Mapbox is initialising in background */}
-        {token && !mapboxActive && !mapError && (
+        {/* Loading indicator (only while Google Maps loads in background) */}
+        {token && !mapActive && !mapError && (
           <div className="absolute right-[19%] top-[13%] z-20 flex items-center gap-2 rounded-full border border-steel/60 bg-abyss/80 px-3 py-1.5 backdrop-blur">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border border-aurora/30 border-t-aurora" />
-            <span className="font-mono text-[9px] uppercase tracking-widest text-starGhost">
-              GL
-            </span>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-starGhost">GM</span>
           </div>
         )}
 
-        {/* Mapbox attribution — repositioned inside the circular clip area */}
+        {/* Suppress Google Maps default UI chrome that leaks outside the clip circle */}
         <style>{`
-          .mapboxgl-ctrl-bottom-right { bottom: 22% !important; right: 20% !important; }
-          .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-logo {
-            filter: brightness(0.4) contrast(0.7);
-            opacity: 0.5;
-          }
-          .mapboxgl-ctrl-bottom-left { left: 22% !important; bottom: 20% !important; }
-          .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib {
-            background: rgba(12,16,20,0.70);
-            border-radius: 6px;
-            font-size: 8px;
-            color: #5A5550;
-          }
-          .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib a { color: #5A5550; }
-          .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib-button { display: none; }
+          .gm-style-cc, .gmnoprint, .gm-bundled-control, .gm-svpc { display: none !important; }
+          .gm-style a[href*="google.com/maps"] { opacity: 0.25 !important; pointer-events: none !important; }
         `}</style>
       </div>
 
-      {/* ─── Category filters (below globe, centered) ───────────────────────── */}
+      {/* ─── Category filters ───────────────────────────────────────────────── */}
       <div className="absolute bottom-4 left-0 right-0 z-10 flex justify-center px-4">
         <div className="flex flex-wrap justify-center gap-1.5">
           {CATEGORIES.map((cat) => (
@@ -349,7 +264,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         </div>
       </div>
 
-      {/* ─── HUD overlay (floats top-left, overlaps globe rim) ──────────────── */}
+      {/* ─── HUD overlay ────────────────────────────────────────────────────── */}
       <div className="absolute left-4 top-[4.75rem] z-10 w-52 pointer-events-auto md:left-6 md:top-20 md:w-60">
         <div className="rounded-2xl border border-steel/60 bg-abyss/90 p-3.5 shadow-2xl shadow-void/60 backdrop-blur-xl">
 
@@ -358,17 +273,11 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
               <span className="h-2 w-2 rounded-full bg-aurora shadow-[0_0_12px_rgba(92,184,140,0.75)]" />
             </div>
             <div className="min-w-0">
-              <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-starGhost">
-                World Map
-              </p>
-              <h1 className="font-display text-sm font-bold leading-none text-starlight">
-                Discovery
-              </h1>
+              <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-starGhost">World Map</p>
+              <h1 className="font-display text-sm font-bold leading-none text-starlight">Discovery</h1>
             </div>
             <div className="ml-auto rounded-full border border-steel/60 bg-graphite/60 px-2 py-0.5">
-              <p className="font-mono text-[8px] text-starGhost">
-                {mapboxActive ? 'GL' : 'OSM'}
-              </p>
+              <p className="font-mono text-[8px] text-starGhost">{mapActive ? 'GM' : 'OSM'}</p>
             </div>
           </div>
 
@@ -393,16 +302,12 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         </div>
       </div>
 
-      {/* ─── Token error badge ───────────────────────────────────────────────── */}
+      {/* ─── API key error badge ─────────────────────────────────────────────── */}
       {mapError && token && (
         <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
           <div className="rounded-2xl border border-ember/40 bg-graphite/95 px-4 py-3 text-center backdrop-blur">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-ember">
-              Błąd tokenu Mapbox
-            </p>
-            <p className="mt-1 font-sans text-xs text-starFaint">
-              Sprawdź NEXT_PUBLIC_MAPBOX_TOKEN
-            </p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-ember">Błąd mapy</p>
+            <p className="mt-1 font-sans text-xs text-starFaint">Sprawdź NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</p>
           </div>
         </div>
       )}
@@ -412,7 +317,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
   );
 }
 
-// ── FreeTileMap ───────────────────────────────────────────────────────────────
+// ── FreeTileMap (OSM tiles — immediate content before Google Maps loads) ───────
 function FreeTileMap({
   spots,
   onSelect,
@@ -433,11 +338,11 @@ function FreeTileMap({
     return () => observer.disconnect();
   }, []);
 
-  const center = lonLatToWorld(FALLBACK_CENTER.lng, FALLBACK_CENTER.lat, FALLBACK_ZOOM);
+  const center     = lonLatToWorld(FALLBACK_CENTER.lng, FALLBACK_CENTER.lat, FALLBACK_ZOOM);
   const centerTileX = Math.floor(center.x);
   const centerTileY = Math.floor(center.y);
-  const tilesX = Math.ceil(size.width / TILE_SIZE / 2) + 2;
-  const tilesY = Math.ceil(size.height / TILE_SIZE / 2) + 2;
+  const tilesX     = Math.ceil(size.width  / TILE_SIZE / 2) + 2;
+  const tilesY     = Math.ceil(size.height / TILE_SIZE / 2) + 2;
   const tiles: Array<{ x: number; y: number; left: number; top: number; url: string }> = [];
 
   for (let dx = -tilesX; dx <= tilesX; dx++) {
@@ -473,8 +378,8 @@ function FreeTileMap({
 
       {spots.map((spot) => {
         const point = lonLatToWorld(spot.lng, spot.lat, FALLBACK_ZOOM);
-        const left = size.width  / 2 + (point.x - center.x) * TILE_SIZE;
-        const top  = size.height / 2 + (point.y - center.y) * TILE_SIZE;
+        const left  = size.width  / 2 + (point.x - center.x) * TILE_SIZE;
+        const top   = size.height / 2 + (point.y - center.y) * TILE_SIZE;
         if (left < -20 || top < -20 || left > size.width + 20 || top > size.height + 20) return null;
         const color = CATEGORY_COLORS[spot.category] ?? '#5CB88C';
         return (
@@ -500,11 +405,4 @@ function lonLatToWorld(lng: number, lat: number, zoom: number): { x: number; y: 
     x: ((lng + 180) / 360) * scale,
     y: ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale,
   };
-}
-
-function hexToRgb(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `${r},${g},${b}`;
 }

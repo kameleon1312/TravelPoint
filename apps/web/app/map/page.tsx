@@ -13,15 +13,13 @@ export const metadata: Metadata = {
 };
 
 export default function MapPage(): React.JSX.Element {
-  const token = process.env['NEXT_PUBLIC_MAPBOX_TOKEN'] ?? '';
-  const hasToken = token && token !== 'pk.CHANGE_ME';
+  const apiKey = process.env['NEXT_PUBLIC_GOOGLE_MAPS_API_KEY'] ?? '';
+  const hasKey = apiKey.length > 10;
 
   return (
     <>
       <WorldNav />
 
-      {/* fixed inset-0 gives Mapbox reliable full-viewport dimensions.
-          The radial gradient creates an ocean-floor vignette around the floating globe. */}
       <div
         className="fixed inset-0"
         style={{
@@ -30,7 +28,7 @@ export default function MapPage(): React.JSX.Element {
           `,
         }}
       >
-        <MapClient token={hasToken ? token : undefined} />
+        <MapClient token={hasKey ? apiKey : undefined} />
       </div>
     </>
   );
