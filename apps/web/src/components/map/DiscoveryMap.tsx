@@ -24,12 +24,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   CAMP:        '#4A8A6A',
 };
 
-const FALLBACK_ZOOM = 5;
+const FALLBACK_ZOOM   = 5;
 const FALLBACK_CENTER = { lng: 19.5, lat: 51.8 };
-const TILE_SIZE = 256;
-
-const GLOBE_SIZE   = 'min(80vw, calc(100vh - 160px), 680px)';
-const GLOBE_SHADOW = [
+const TILE_SIZE       = 256;
+const GLOBE_SIZE      = 'min(80vw, calc(100vh - 160px), 680px)';
+const GLOBE_SHADOW    = [
   '0 0 0 1px rgba(92,184,140,0.10)',
   '0 0 0 4px rgba(7,10,12,0.96)',
   '0 0 50px rgba(30,154,176,0.20)',
@@ -37,52 +36,77 @@ const GLOBE_SHADOW = [
   '0 0 240px rgba(92,184,140,0.05)',
 ].join(', ');
 
-// Terra Mare dark style for Google Maps — ocean floor palette, no default look
+// Terra Mare dark custom style — matches ocean-floor palette, no Google defaults
 const TERRA_MARE_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry',                  stylers: [{ color: '#131A1F' }] },
-  { elementType: 'labels.text.stroke',        stylers: [{ color: '#0C1014' }] },
-  { elementType: 'labels.text.fill',          stylers: [{ color: '#5A5550' }] },
+  { elementType: 'geometry',              stylers: [{ color: '#131A1F' }] },
+  { elementType: 'labels.text.stroke',    stylers: [{ color: '#0C1014' }] },
+  { elementType: 'labels.text.fill',      stylers: [{ color: '#5A5550' }] },
 
-  { featureType: 'administrative',               elementType: 'geometry',        stylers: [{ color: '#253035' }] },
-  { featureType: 'administrative.country',       elementType: 'geometry.stroke', stylers: [{ color: '#253035' }] },
-  { featureType: 'administrative.province',      elementType: 'geometry.stroke', stylers: [{ color: '#1B2328' }] },
-  { featureType: 'administrative.locality',      elementType: 'labels.text.fill',stylers: [{ color: '#8A827A' }] },
-  { featureType: 'administrative.land_parcel',   stylers:                        [{ visibility: 'off' }] },
-  { featureType: 'administrative.neighborhood',  stylers:                        [{ visibility: 'off' }] },
+  { featureType: 'administrative',               elementType: 'geometry',         stylers: [{ color: '#253035' }] },
+  { featureType: 'administrative.country',        elementType: 'geometry.stroke',  stylers: [{ color: '#253035' }] },
+  { featureType: 'administrative.province',       elementType: 'geometry.stroke',  stylers: [{ color: '#1B2328' }] },
+  { featureType: 'administrative.locality',       elementType: 'labels.text.fill', stylers: [{ color: '#8A827A' }] },
+  { featureType: 'administrative.land_parcel',    stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.neighborhood',   stylers: [{ visibility: 'off' }] },
 
-  { featureType: 'landscape',           elementType: 'geometry', stylers: [{ color: '#131A1F' }] },
-  { featureType: 'landscape.natural',   elementType: 'geometry', stylers: [{ color: '#0C1014' }] },
-  { featureType: 'landscape.man_made',  elementType: 'geometry', stylers: [{ color: '#131A1F' }] },
+  { featureType: 'landscape',          elementType: 'geometry', stylers: [{ color: '#131A1F' }] },
+  { featureType: 'landscape.natural',  elementType: 'geometry', stylers: [{ color: '#0C1014' }] },
+  { featureType: 'landscape.man_made', elementType: 'geometry', stylers: [{ color: '#131A1F' }] },
 
-  { featureType: 'poi',   stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi',    stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 
-  { featureType: 'road',          elementType: 'geometry',        stylers: [{ color: '#1B2328' }] },
-  { featureType: 'road',          elementType: 'geometry.stroke', stylers: [{ color: '#131A1F' }] },
-  { featureType: 'road',          elementType: 'labels',          stylers: [{ visibility: 'off' }] },
-  { featureType: 'road.highway',  elementType: 'geometry',        stylers: [{ color: '#253035' }] },
-  { featureType: 'road.highway',  elementType: 'geometry.stroke', stylers: [{ color: '#1B2328' }] },
-  { featureType: 'road.local',    elementType: 'labels',          stylers: [{ visibility: 'off' }] },
+  { featureType: 'road',         elementType: 'geometry',        stylers: [{ color: '#1B2328' }] },
+  { featureType: 'road',         elementType: 'geometry.stroke',  stylers: [{ color: '#131A1F' }] },
+  { featureType: 'road',         elementType: 'labels',           stylers: [{ visibility: 'off' }] },
+  { featureType: 'road.highway', elementType: 'geometry',         stylers: [{ color: '#253035' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke',  stylers: [{ color: '#1B2328' }] },
 
-  { featureType: 'water', elementType: 'geometry',        stylers: [{ color: '#0F1E2A' }] },
-  { featureType: 'water', elementType: 'labels.text.fill',stylers: [{ color: '#1E9AB0' }] },
-  { featureType: 'water', elementType: 'labels.text.stroke',stylers: [{ color: '#0C1014' }] },
+  { featureType: 'water', elementType: 'geometry',         stylers: [{ color: '#0F1E2A' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#1E9AB0' }] },
+  { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#0C1014' }] },
 ];
+
+// Load the Google Maps JS API script directly — no wrapper library.
+// Reuses an existing script tag if the component remounts or HMR fires.
+function loadGoogleMapsScript(apiKey: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Already fully loaded
+    if (typeof window !== 'undefined' && window.google?.maps?.Map) {
+      resolve();
+      return;
+    }
+    // Script is in the DOM but still loading
+    const existing = document.getElementById('__tp_gmap__');
+    if (existing) {
+      existing.addEventListener('load',  () => resolve(),                          { once: true });
+      existing.addEventListener('error', () => reject(new Error('script error')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.id  = '__tp_gmap__';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly`;
+    script.async = true;
+    script.onload  = () => resolve();
+    script.onerror = () => reject(new Error('Google Maps script failed to load'));
+    document.head.appendChild(script);
+  });
+}
 
 interface Props { token?: string }
 
 export function DiscoveryMap({ token }: Props): React.JSX.Element {
-  const containerRef  = useRef<HTMLDivElement>(null);
-  const mapRef        = useRef<google.maps.Map | null>(null);
-  const markersRef    = useRef<google.maps.Marker[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef       = useRef<google.maps.Map | null>(null);
+  const markersRef   = useRef<google.maps.Marker[]>([]);
 
-  const [selected, setSelected]         = useState<PublicSpot | null>(null);
-  const [spots, setSpots]               = useState<PublicSpot[]>([]);
-  const [category, setCategory]         = useState('');
-  const [mapReady, setMapReady]         = useState(false);
-  const [mapActive, setMapActive]       = useState(false);
-  const [spotsLoaded, setSpotsLoaded]   = useState(false);
-  const [mapError, setMapError]         = useState(false);
+  const [selected, setSelected]       = useState<PublicSpot | null>(null);
+  const [spots, setSpots]             = useState<PublicSpot[]>([]);
+  const [category, setCategory]       = useState('');
+  const [mapReady, setMapReady]       = useState(false);
+  const [mapActive, setMapActive]     = useState(false);
+  const [spotsLoaded, setSpotsLoaded] = useState(false);
+  const [mapError, setMapError]       = useState(false);
 
   // ── Load spots ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -102,56 +126,67 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
     if (!token || !containerRef.current || mapRef.current) return;
 
     let mounted = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let idleListener: google.maps.MapsEventListener | null = null;
+
+    // gm_authFailure is the Google Maps global callback for auth errors
+    // (invalid key, billing not enabled, API not enabled in Console).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prevAuthFailure = (window as any).gm_authFailure as (() => void) | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).gm_authFailure = () => {
+      prevAuthFailure?.();
+      if (mounted) setMapError(true);
+    };
 
     const initMap = async () => {
       try {
-        // v2: Loader constructor sets global options; importLibrary is a standalone fn
-        const { Loader, importLibrary } = await import('@googlemaps/js-api-loader');
-        new Loader({ apiKey: token, version: 'weekly' });
-        await importLibrary('maps');
-
+        await loadGoogleMapsScript(token);
         if (!mounted || !containerRef.current) return;
 
         const map = new google.maps.Map(containerRef.current, {
-          center:          { lat: 51.8, lng: 19.5 },
-          zoom:            5,
-          styles:          TERRA_MARE_STYLE,
+          center:           { lat: 51.8, lng: 19.5 },
+          zoom:             5,
+          styles:           TERRA_MARE_STYLE,
           disableDefaultUI: true,
-          gestureHandling: 'greedy',
-          backgroundColor: '#0C1014',
-          mapTypeId:       'roadmap',
-          clickableIcons:  false,
+          gestureHandling:  'greedy',
+          backgroundColor:  '#0C1014',
+          mapTypeId:        'roadmap',
+          clickableIcons:   false,
           keyboardShortcuts: false,
         });
 
         mapRef.current = map;
 
-        // idle fires once all tiles are loaded and map is ready
+        // If idle never fires within 10 s (auth error, API disabled, etc.) → error
+        timeoutId = setTimeout(() => {
+          if (mounted) setMapError(true);
+        }, 10_000);
+
         idleListener = map.addListener('idle', () => {
-          if (idleListener) {
-            google.maps.event.removeListener(idleListener);
-            idleListener = null;
-          }
+          if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+          if (idleListener) { google.maps.event.removeListener(idleListener); idleListener = null; }
           if (!mounted) return;
           setMapReady(true);
           setMapActive(true);
         });
+
       } catch {
         if (mounted) setMapError(true);
       }
     };
 
-    // 300ms — let navigation complete; Google Maps doesn't have WebGL context conflicts
-    const timerId = setTimeout(() => { if (mounted) void initMap(); }, 300);
+    // Short delay — let the page finish rendering before adding a map canvas
+    const initTimerId = setTimeout(() => { if (mounted) void initMap(); }, 300);
 
     return () => {
       mounted = false;
-      clearTimeout(timerId);
-      if (idleListener) {
-        google.maps.event.removeListener(idleListener);
-        idleListener = null;
-      }
+      clearTimeout(initTimerId);
+      if (timeoutId)    clearTimeout(timeoutId);
+      if (idleListener) { google.maps.event.removeListener(idleListener); idleListener = null; }
+      // Restore previous gm_authFailure
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).gm_authFailure = prevAuthFailure;
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];
       if (mapRef.current) {
@@ -171,8 +206,8 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
       const color = CATEGORY_COLORS[spot.category] ?? '#5CB88C';
       const marker = new google.maps.Marker({
         position: { lat: spot.lat, lng: spot.lng },
-        map: mapRef.current!,
-        title: spot.title,
+        map:      mapRef.current!,
+        title:    spot.title,
         icon: {
           path:         google.maps.SymbolPath.CIRCLE,
           scale:        7,
@@ -203,7 +238,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         className="relative rounded-full overflow-hidden flex-shrink-0"
         style={{ width: GLOBE_SIZE, height: GLOBE_SIZE, boxShadow: GLOBE_SHADOW }}
       >
-        {/* FreeTileMap — immediate content, fades out when Google Maps is ready */}
+        {/* FreeTileMap — shows instantly; fades out once Google Maps is idle */}
         <div
           className="absolute inset-0 transition-opacity duration-700 ease-in-out"
           style={{ opacity: mapActive ? 0 : 1, pointerEvents: mapActive ? 'none' : 'auto' }}
@@ -211,7 +246,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           <FreeTileMap spots={spots} onSelect={setSelected} />
         </div>
 
-        {/* Google Maps container — in DOM when API key set, fades in on idle */}
+        {/* Google Maps container — in DOM so init can proceed; transparent until idle */}
         {token && !mapError && (
           <div
             ref={containerRef}
@@ -230,7 +265,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           }}
         />
 
-        {/* Loading indicator (only while Google Maps loads in background) */}
+        {/* Loading spinner while GM initialises */}
         {token && !mapActive && !mapError && (
           <div className="absolute right-[19%] top-[13%] z-20 flex items-center gap-2 rounded-full border border-steel/60 bg-abyss/80 px-3 py-1.5 backdrop-blur">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border border-aurora/30 border-t-aurora" />
@@ -238,9 +273,10 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
           </div>
         )}
 
-        {/* Suppress Google Maps default UI chrome that leaks outside the clip circle */}
+        {/* Hide Google Maps default chrome */}
         <style>{`
           .gm-style-cc, .gmnoprint, .gm-bundled-control, .gm-svpc { display: none !important; }
+          .gm-err-container { display: none !important; }
           .gm-style a[href*="google.com/maps"] { opacity: 0.25 !important; pointer-events: none !important; }
         `}</style>
       </div>
@@ -264,7 +300,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         </div>
       </div>
 
-      {/* ─── HUD overlay ────────────────────────────────────────────────────── */}
+      {/* ─── HUD ────────────────────────────────────────────────────────────── */}
       <div className="absolute left-4 top-[4.75rem] z-10 w-52 pointer-events-auto md:left-6 md:top-20 md:w-60">
         <div className="rounded-2xl border border-steel/60 bg-abyss/90 p-3.5 shadow-2xl shadow-void/60 backdrop-blur-xl">
 
@@ -302,12 +338,12 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
         </div>
       </div>
 
-      {/* ─── API key error badge ─────────────────────────────────────────────── */}
+      {/* ─── Auth / API error badge ──────────────────────────────────────────── */}
       {mapError && token && (
-        <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
+        <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap">
           <div className="rounded-2xl border border-ember/40 bg-graphite/95 px-4 py-3 text-center backdrop-blur">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-ember">Błąd mapy</p>
-            <p className="mt-1 font-sans text-xs text-starFaint">Sprawdź NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-ember">Błąd Google Maps</p>
+            <p className="mt-1 font-sans text-xs text-starFaint">Sprawdź: Maps JS API włączone + billing w Google Console</p>
           </div>
         </div>
       )}
@@ -317,7 +353,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
   );
 }
 
-// ── FreeTileMap (OSM tiles — immediate content before Google Maps loads) ───────
+// ── FreeTileMap (OSM dark tiles — immediate content while Google Maps loads) ───
 function FreeTileMap({
   spots,
   onSelect,
@@ -338,13 +374,13 @@ function FreeTileMap({
     return () => observer.disconnect();
   }, []);
 
-  const center     = lonLatToWorld(FALLBACK_CENTER.lng, FALLBACK_CENTER.lat, FALLBACK_ZOOM);
+  const center      = lonLatToWorld(FALLBACK_CENTER.lng, FALLBACK_CENTER.lat, FALLBACK_ZOOM);
   const centerTileX = Math.floor(center.x);
   const centerTileY = Math.floor(center.y);
-  const tilesX     = Math.ceil(size.width  / TILE_SIZE / 2) + 2;
-  const tilesY     = Math.ceil(size.height / TILE_SIZE / 2) + 2;
-  const tiles: Array<{ x: number; y: number; left: number; top: number; url: string }> = [];
+  const tilesX      = Math.ceil(size.width  / TILE_SIZE / 2) + 2;
+  const tilesY      = Math.ceil(size.height / TILE_SIZE / 2) + 2;
 
+  const tiles: Array<{ x: number; y: number; left: number; top: number; url: string }> = [];
   for (let dx = -tilesX; dx <= tilesX; dx++) {
     for (let dy = -tilesY; dy <= tilesY; dy++) {
       const x = centerTileX + dx;
@@ -354,14 +390,16 @@ function FreeTileMap({
         x, y,
         left: size.width  / 2 + (x - center.x) * TILE_SIZE,
         top:  size.height / 2 + (y - center.y) * TILE_SIZE,
-        url: `https://${['a','b','c'][Math.abs(x+y)%3]}.basemaps.cartocdn.com/dark_all/${FALLBACK_ZOOM}/${x}/${y}.png`,
+        // OpenStreetMap tiles — free, no API key, no watermarks
+        url: `https://tile.openstreetmap.org/${FALLBACK_ZOOM}/${x}/${y}.png`,
       });
     }
   }
 
   return (
-    <div ref={ref} className="absolute inset-0 overflow-hidden bg-[#090d10]">
-      <div className="absolute inset-0 opacity-95">
+    <div ref={ref} className="absolute inset-0 overflow-hidden" style={{ backgroundColor: '#090d10' }}>
+      {/* Dark overlay on top of OSM light tiles to match Terra Mare palette */}
+      <div className="absolute inset-0 opacity-90">
         {tiles.map((tile) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -370,7 +408,11 @@ function FreeTileMap({
             alt=""
             draggable={false}
             className="absolute select-none"
-            style={{ left: tile.left, top: tile.top, width: TILE_SIZE, height: TILE_SIZE }}
+            style={{
+              left: tile.left, top: tile.top,
+              width: TILE_SIZE, height: TILE_SIZE,
+              filter: 'invert(1) hue-rotate(180deg) saturate(0.3) brightness(0.35)',
+            }}
           />
         ))}
       </div>
