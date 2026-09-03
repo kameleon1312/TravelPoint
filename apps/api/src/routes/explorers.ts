@@ -369,11 +369,58 @@ export async function explorerRoutes(app: FastifyInstance) {
     const explorer = await app.prisma.explorer.findFirst({
       where: { handle, deletedAt: null },
       select: {
-        id: true, handle: true, displayName: true,
+        id: true, handle: true, displayName: true, avatarUrl: true,
         archetype: true, bio: true, obsessions: true, rank: true,
       },
     });
     if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
     return reply.send(explorer);
+  });
+
+  // ─── GET /api/explorers/:handle/spots — public spots of an explorer ────────
+  // Returns only PUBLIC spots, with coords fuzzed ≥500m (same as /spots/public).
+  // Rate-limited — no auth required.
+  app.get('/api/explorers/:handle/spots', {
+    config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
+    const { handle } = req.params as { handle: string };
+    const query = req.query as Record<string, string>;
+    const limit = Math.min(Number(query['limit'] ?? 30), 50);
+
+    const explorer = await app.prisma.explorer.findFirst({
+      where: { handle, deletedAt: null },
+      select: { id: true },
+    });
+    if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const now = new Date();
+    const spots = await app.prisma.spot.findMany({
+      where: {
+        ownerId:     explorer.id,
+        accessLevel: 'PUBLIC',
+        deletedAt:   null,
+        OR: [
+          { dropExpiresAt: null },
+          { dropExpiresAt: { gt: now } },
+        ],
+      },
+      select: {
+        id: true, title: true, category: true,
+        lat: true, lng: true, createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    // Fuzz coords with a stable daily seed (consistent within a day, shifts daily)
+    const today = Math.floor(Date.now() / 86_400_000);
+    const { fuzzCoordinates } = await import('@travelpoint/geo');
+    const fuzzed = spots.map((s) => {
+      const seed = today ^ s.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+      const { lat, lng } = fuzzCoordinates(s.lat, s.lng, seed, 500);
+      return { ...s, lat, lng };
+    });
+
+    return reply.send(fuzzed);
   });
 }

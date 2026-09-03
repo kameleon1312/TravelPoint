@@ -44,7 +44,7 @@ travelpoint/
 [Web WORLD] ─────────────────────────► [ENGINE API]
   Next.js RSC + App Router              Same API
   TanStack Query (client)
-  Mapbox GL JS (public map)
+  Google Maps JS API (public map, Terra Mare style)
 ```
 
 ## Key Technical Decisions
@@ -59,13 +59,13 @@ Rationale: 2x faster, schema-first, native TypeScript support.
 ### ADR-003: Expo over bare React Native
 Rationale: OTA updates, EAS Build, faster iteration. No native modules that require ejection at MVP.
 
-### ADR-004: Maps — Mapbox (web) + react-native-maps (mobile)
-- **Web (WORLD):** Mapbox GL JS — full custom Terra Mare dark style via JSON, Mapbox token required.
-- **Mobile (CORE):** `react-native-maps` — `PROVIDER_GOOGLE` on Android with custom `TERRA_MARE_STYLE` JSON overlay. Requires `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and the key injected into `AndroidManifest.xml` at EAS build time. Without the key the map tab renders a dark placeholder (geo functionality is preserved — only the visual map is hidden).
-- Revisit: consider Mapbox Native SDK for mobile (Maps SDK for React Native) in Q1 2027 for visual consistency.
+### ADR-004: Maps — Google Maps (web + mobile)
+- **Web (WORLD):** Google Maps JavaScript API loaded via direct `<script>` injection (no `@googlemaps/js-api-loader` dependency). Custom `TERRA_MARE_STYLE` JSON overlay applied via `styledMapType`. Falls back to OpenStreetMap tiles (CSS-filtered to Terra Mare dark look) if the script fails or `gm_authFailure` fires. Key: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (HTTP-referrer-restricted in Google Cloud Console).
+- **Mobile (CORE):** `react-native-maps` — `PROVIDER_GOOGLE` on Android/iOS with the same `TERRA_MARE_STYLE` JSON overlay. Requires `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and the key in `AndroidManifest.xml` at EAS build time. Without the key, the map tab renders a dark placeholder (geo functionality preserved).
+- Revisit: consider unified Mapbox Native SDK if Maps pricing becomes prohibitive (Q1 2028).
 
-### ADR-005: PostGIS for geo queries
-Rationale: ST_DWithin radius queries and H3 clustering are native to PostGIS.
+### ADR-005: Haversine for geo queries (not PostGIS)
+Rationale: Radius proximity queries use Haversine formula computed in Prisma raw queries, not PostGIS `ST_DWithin`. This avoids requiring the PostGIS extension on the Railway PostgreSQL instance (which requires manual activation and is not guaranteed on all plans). H3 index is pre-computed and stored in the `h3Index` column for fast hex-cell filtering. Revisit with PostGIS if query performance degrades beyond 10k spots.
 
 ### ADR-006: Socket.io for realtime
 Rationale: Presence, signals, circle chat. WebSocket with fallback.
