@@ -280,14 +280,15 @@ export default function ExplorerProfileScreen() {
         {!isOwnProfile && (
           <Animated.View entering={FadeInDown.delay(200).duration(400)}>
             <View style={styles.divider} />
-            <SignalButton
-              label={blocked ? 'Odblokuj explorera' : 'Zablokuj explorera'}
-              onPress={toggleBlock}
-              variant={blocked ? 'ghost' : 'ember'}
-              size="sm"
-              haptic="light"
-              style={styles.blockCta}
-            />
+            <View style={styles.blockCta}>
+              <SignalButton
+                label={blocked ? 'Odblokuj explorera' : 'Zablokuj explorera'}
+                onPress={toggleBlock}
+                variant={blocked ? 'ghost' : 'ember'}
+                size="sm"
+                haptic="light"
+              />
+            </View>
           </Animated.View>
         )}
 
@@ -451,7 +452,7 @@ const styles = StyleSheet.create({
   spotBody: { flex: 1, gap: 2 },
   spotTitle: {
     fontFamily: 'ClashDisplay-Bold',
-    fontSize: FontSize.bodyMd,
+    fontSize: FontSize.body,
     color: Colors.starlight,
   },
   spotArrow: {

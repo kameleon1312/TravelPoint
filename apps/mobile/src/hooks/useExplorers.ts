@@ -24,7 +24,7 @@ export type ExplorerPublicSpot = {
 export function useExplorerProfile(handle: string) {
   return useQuery<ExplorerPublicProfile>({
     queryKey: ['explorer', handle],
-    queryFn: () => api.get<ExplorerPublicProfile>(`/api/explorers/${encodeURIComponent(handle)}`, false),
+    queryFn: () => api.get<ExplorerPublicProfile>(`/api/explorers/${encodeURIComponent(handle)}`),
     enabled: handle.length > 0,
     staleTime: 5 * 60_000,
   });
@@ -33,7 +33,7 @@ export function useExplorerProfile(handle: string) {
 export function useExplorerSpots(handle: string, enabled = true) {
   return useQuery<ExplorerPublicSpot[]>({
     queryKey: ['explorer-spots', handle],
-    queryFn: () => api.get<ExplorerPublicSpot[]>(`/api/explorers/${encodeURIComponent(handle)}/spots`, false),
+    queryFn: () => api.get<ExplorerPublicSpot[]>(`/api/explorers/${encodeURIComponent(handle)}/spots`),
     enabled: enabled && handle.length > 0,
     staleTime: 3 * 60_000,
   });
