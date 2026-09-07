@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { InviteRequestSchema } from '@travelpoint/validation';
 import { Resend } from 'resend';
 
-const FROM   = process.env['EMAIL_FROM'] ?? 'TravelPoint <gototrip66@gmail.com>';
+const FROM   = process.env['EMAIL_FROM'] ?? 'TravelPoint <onboarding@resend.dev>';
 
 export async function POST(req: NextRequest) {
   const body: unknown = await req.json().catch(() => null);

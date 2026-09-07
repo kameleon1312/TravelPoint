@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { ReactElement } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ForumAuthProvider, useForumAuth, SignInModal } from '@/components/forum/ForumAuth';
 import { ReplyForm } from '@/components/forum/ReplyForm';
 import { apiFetch } from '@/lib/webAuth';
@@ -37,22 +38,54 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 function PostClientInner({ post: initial }: { post: Post }): ReactElement {
   const { token } = useForumAuth();
+  const router = useRouter();
   const [post, setPost] = useState(initial);
   const [replies, setReplies] = useState<Reply[]>(initial.replies);
   const [showSignIn, setShowSignIn] = useState(false);
   const [reportSent, setReportSent] = useState(false);
   const [reportError, setReportError] = useState('');
   const [isModerator, setIsModerator] = useState(false);
+  const [myHandle, setMyHandle] = useState('');
   const [modWorking, setModWorking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
+
+  const isAuthor = !!myHandle && myHandle === post.author.handle;
 
   useEffect(() => {
-    if (!token) { setIsModerator(false); return; }
-    void apiFetch<{ role?: string }>('/api/explorers/me')
+    if (!token) { setIsModerator(false); setMyHandle(''); return; }
+    void apiFetch<{ role?: string; handle?: string }>('/api/explorers/me')
       .then((me) => {
         setIsModerator(me.role === 'MODERATOR' || me.role === 'ADMIN');
+        setMyHandle(me.handle ?? '');
       })
-      .catch(() => setIsModerator(false));
+      .catch(() => { setIsModerator(false); setMyHandle(''); });
   }, [token]);
+
+  async function deletePost() {
+    if (!confirm(`Usunąć post "${post.title}"? Tej operacji nie można cofnąć.`)) return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/forum/posts/${post.slug}`, { method: 'DELETE' });
+      router.push('/forum');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Nie udało się usunąć posta.');
+      setDeleting(false);
+    }
+  }
+
+  async function deleteReply(replyId: string) {
+    if (!confirm('Usunąć tę odpowiedź?')) return;
+    setDeletingReplyId(replyId);
+    try {
+      await apiFetch(`/api/forum/replies/${replyId}`, { method: 'DELETE' });
+      setReplies((prev) => prev.filter((r) => r.id !== replyId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Nie udało się usunąć odpowiedzi.');
+    } finally {
+      setDeletingReplyId(null);
+    }
+  }
 
   function onReplied(reply: Reply) {
     setReplies((prev) => [...prev, reply]);
@@ -133,6 +166,19 @@ function PostClientInner({ post: initial }: { post: Post }): ReactElement {
                 @{post.author.handle} · {new Date(post.createdAt).toLocaleDateString('pl-PL')}
               </p>
               <div className="flex items-center gap-3 flex-wrap">
+                {/* Author delete */}
+                {(isAuthor || isModerator) && (
+                  <div className="flex items-center gap-2 border-r border-steel pr-3">
+                    <button
+                      type="button"
+                      onClick={() => void deletePost()}
+                      disabled={deleting}
+                      className="font-mono text-[10px] uppercase tracking-wider text-ember hover:text-starlight transition disabled:opacity-40 border border-ember/40 rounded-full px-2.5 py-1"
+                    >
+                      {deleting ? '…' : 'Usuń post'}
+                    </button>
+                  </div>
+                )}
                 {/* Moderator controls */}
                 {isModerator && (
                   <div className="flex items-center gap-2 border-r border-steel pr-3">
@@ -181,16 +227,31 @@ function PostClientInner({ post: initial }: { post: Post }): ReactElement {
               Odpowiedzi ({replies.length})
             </h2>
             <div className="grid gap-4 mb-6">
-              {replies.map((reply) => (
-                <div key={reply.id} className="rounded-2xl border border-steel bg-midnight p-5">
-                  <p className="font-mono text-xs text-starGhost mb-3">
-                    @{reply.author.handle} · {new Date(reply.createdAt).toLocaleDateString('pl-PL')}
-                  </p>
-                  <p className="whitespace-pre-wrap font-sans text-sm text-star leading-relaxed">
-                    {reply.body}
-                  </p>
-                </div>
-              ))}
+              {replies.map((reply) => {
+                const isReplyAuthor = !!myHandle && myHandle === reply.author.handle;
+                return (
+                  <div key={reply.id} className="rounded-2xl border border-steel bg-midnight p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="font-mono text-xs text-starGhost">
+                        @{reply.author.handle} · {new Date(reply.createdAt).toLocaleDateString('pl-PL')}
+                      </p>
+                      {(isReplyAuthor || isModerator) && (
+                        <button
+                          type="button"
+                          onClick={() => void deleteReply(reply.id)}
+                          disabled={deletingReplyId === reply.id}
+                          className="font-mono text-[10px] uppercase tracking-wider text-ember/60 hover:text-ember transition disabled:opacity-40"
+                        >
+                          {deletingReplyId === reply.id ? '…' : 'Usuń'}
+                        </button>
+                      )}
+                    </div>
+                    <p className="whitespace-pre-wrap font-sans text-sm text-star leading-relaxed">
+                      {reply.body}
+                    </p>
+                  </div>
+                );
+              })}
               {replies.length === 0 && (
                 <p className="font-mono text-xs text-starGhost py-4">
                   Brak odpowiedzi. Bądź pierwszy.
