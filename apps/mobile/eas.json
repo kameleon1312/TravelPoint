@@ -20,6 +20,7 @@
     },
     "preview": {
       "node": "22.13.0",
+      "channel": "preview",
       "environment": "preview",
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
@@ -36,6 +37,7 @@
     },
     "production": {
       "node": "22.13.0",
+      "channel": "production",
       "environment": "production",
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
