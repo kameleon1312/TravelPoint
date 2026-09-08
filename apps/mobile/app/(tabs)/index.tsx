@@ -37,8 +37,8 @@ const ACCESS_PIN_COLORS: Record<string, string> = {
 const DEFAULT_REGION: Region = {
   latitude:      52.2297,
   longitude:     21.0122,
-  latitudeDelta: 20,
-  longitudeDelta: 20,
+  latitudeDelta: 0.6,
+  longitudeDelta: 0.6,
 };
 
 interface NearbyExplorer {
@@ -245,6 +245,7 @@ export default function AtlasScreen() {
   const [previewSpot, setPreviewSpot]       = useState<SpotForViewer | null>(null);
   const [mapReady, setMapReady]             = useState(false);
   const [mapError, setMapError]             = useState(false);
+  const [mapStyle, setMapStyle]             = useState<typeof TERRA_MARE_STYLE | undefined>(undefined);
   const mapReadyRef   = useRef(false);
   const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -480,13 +481,14 @@ export default function AtlasScreen() {
           showsTraffic={false}
           showsBuildings={false}
           mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
-          customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
+          customMapStyle={mapStyle}
           onRegionChangeComplete={setRegion}
           onMapReady={() => {
             mapReadyRef.current = true;
             setMapReady(true);
             setMapError(false);
             if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
+            if (Platform.OS === 'android') setMapStyle(TERRA_MARE_STYLE);
           }}
         >
           {/* Spot pins */}

@@ -288,9 +288,9 @@ export default function JourneyDetailScreen() {
                 provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                 style={styles.routeMap}
                 initialRegion={routeRegion}
-                scrollEnabled={true}
+                scrollEnabled={false}
                 zoomEnabled={true}
-                pitchEnabled={true}
+                pitchEnabled={false}
                 rotateEnabled={false}
                 showsCompass={true}
                 showsScale={true}
