@@ -245,7 +245,6 @@ export default function AtlasScreen() {
   const [previewSpot, setPreviewSpot]       = useState<SpotForViewer | null>(null);
   const [mapReady, setMapReady]             = useState(false);
   const [mapError, setMapError]             = useState(false);
-  const [mapStyle, setMapStyle]             = useState<typeof TERRA_MARE_STYLE | undefined>(undefined);
   const mapReadyRef   = useRef(false);
   const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -253,7 +252,7 @@ export default function AtlasScreen() {
     if (!MAPS_KEY) return;
     mapTimeoutRef.current = setTimeout(() => {
       if (!mapReadyRef.current) setMapError(true);
-    }, 7000);
+    }, 12000);
     return () => { if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current); };
   }, []);
 
@@ -481,14 +480,13 @@ export default function AtlasScreen() {
           showsTraffic={false}
           showsBuildings={false}
           mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
-          customMapStyle={mapStyle}
+          customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
           onRegionChangeComplete={setRegion}
           onMapReady={() => {
             mapReadyRef.current = true;
             setMapReady(true);
             setMapError(false);
             if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
-            if (Platform.OS === 'android') setMapStyle(TERRA_MARE_STYLE);
           }}
         >
           {/* Spot pins */}
@@ -547,15 +545,7 @@ export default function AtlasScreen() {
         <View style={[StyleSheet.absoluteFill, styles.mapPlaceholder]} />
       )}
 
-      {/* Map loading / error overlay */}
-      {MAPS_KEY && !mapReady && !mapError && (
-        <View style={[StyleSheet.absoluteFill, styles.mapLoadingOverlay]} pointerEvents="none">
-          <View style={styles.mapLoadingSpinner}>
-            <Text style={styles.mapLoadingDot}>◎</Text>
-            <Text style={styles.mapLoadingText}>Ładowanie mapy…</Text>
-          </View>
-        </View>
-      )}
+      {/* Map error overlay — shown only after timeout if map never initialized */}
       {mapError && (
         <View style={[StyleSheet.absoluteFill, styles.mapErrorOverlay]} pointerEvents="none">
           <View style={styles.mapErrorBox}>
@@ -653,22 +643,6 @@ export default function AtlasScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.abyss },
   mapPlaceholder: { backgroundColor: Colors.abyss },
-  mapLoadingOverlay: {
-    backgroundColor: Colors.abyss,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mapLoadingSpinner: { alignItems: 'center', gap: Spacing.sm },
-  mapLoadingDot: {
-    fontSize: 28,
-    color: Colors.signal,
-  },
-  mapLoadingText: {
-    fontFamily: 'SpaceMono-Regular',
-    fontSize: FontSize.caption,
-    color: Colors.starGhost,
-    letterSpacing: 1,
-  },
   mapErrorOverlay: {
     backgroundColor: Colors.abyss + 'CC',
     justifyContent: 'center',
