@@ -38,7 +38,7 @@ interface Props {
   onDismiss: () => void;
 }
 
-const SHEET_HEIGHT = 220;
+const SHEET_HEIGHT = 260;
 const SPRING_CONFIG = { damping: 20, stiffness: 200, mass: 0.8 };
 
 export function SpotPreviewSheet({ spot, onDismiss }: Props) {

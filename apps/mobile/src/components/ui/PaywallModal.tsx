@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, Modal, Pressable,
 } from 'react-native';
 import { useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withSequence, withTiming, withSpring, FadeIn, FadeOut,
@@ -48,6 +49,7 @@ interface PaywallModalProps {
 }
 
 export function PaywallModal({ visible, onClose, requiredTier, featureLabel }: PaywallModalProps) {
+  const insets = useSafeAreaInsets();
   const scale = useSharedValue(0.88);
   const glow  = useSharedValue(1);
   const color = TIER_COLORS[requiredTier];
@@ -82,7 +84,11 @@ export function PaywallModal({ visible, onClose, requiredTier, featureLabel }: P
       onRequestClose={onClose}
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(160)} style={styles.backdropInner}>
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(160)}
+          style={[styles.backdropInner, { paddingBottom: Math.max(insets.bottom, Spacing.xl) }]}
+        >
           <Pressable onPress={(e) => e.stopPropagation()}>
             <Animated.View style={[styles.card, { borderColor: color + '40' }, cardStyle]}>
               <Animated.Text style={[styles.icon, { color }, iconStyle]}>
@@ -140,11 +146,10 @@ const styles = StyleSheet.create({
   },
   backdropInner: {
     paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xxxl ?? 48,
   },
   card: {
     backgroundColor: Colors.graphite,
-    borderRadius: BorderRadius.xl ?? 20,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
     padding: Spacing.xl,
     alignItems: 'center',
@@ -204,7 +209,7 @@ const styles = StyleSheet.create({
   cta: {
     width: '100%',
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg ?? 12,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
     marginTop: Spacing.xs,
   },

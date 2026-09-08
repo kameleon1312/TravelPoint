@@ -32,6 +32,12 @@ const RANK_THRESHOLDS: Record<string, { next: string | null; required: number }>
   LEGEND:   { next: null,        required: 1000 },
 };
 
+const TIER_BADGE_COLORS: Record<string, { border: string; bg: string; text: string; label: string }> = {
+  FREE:       { border: Colors.starGhost + '60', bg: 'transparent',        text: Colors.starFaint, label: 'Free Explorer' },
+  PRO:        { border: Colors.signal + '60',    bg: Colors.signal + '18', text: Colors.signal,    label: 'Explorer PRO' },
+  EXPEDITION: { border: Colors.ember + '60',     bg: Colors.ember + '18',  text: Colors.ember,     label: 'Expedition' },
+};
+
 const RANK_START: Record<string, number> = {
   NEWCOMER: 0,
   EXPLORER: 50,
@@ -661,18 +667,14 @@ export default function IdentityScreen() {
           <View style={styles.planCardLeft}>
             <Text style={styles.sectionLabel}>Plan Explorer</Text>
             <View style={styles.billingRow}>
-              <View style={[
-                styles.planBadge,
-                { borderColor: explorer.tier === 'FREE' ? Colors.starGhost + '60' : explorer.tier === 'PRO' ? Colors.signal + '60' : Colors.ember + '60' },
-                { backgroundColor: explorer.tier === 'FREE' ? 'transparent' : explorer.tier === 'PRO' ? Colors.signal + '18' : Colors.ember + '18' },
-              ]}>
-                <Text style={[
-                  styles.planBadgeText,
-                  { color: explorer.tier === 'FREE' ? Colors.starFaint : explorer.tier === 'PRO' ? Colors.signal : Colors.ember },
-                ]}>
-                  {explorer.tier === 'FREE' ? 'Free Explorer' : explorer.tier === 'PRO' ? 'Explorer PRO' : 'Expedition'}
-                </Text>
-              </View>
+              {(() => {
+                const tb = TIER_BADGE_COLORS[explorer.tier] ?? TIER_BADGE_COLORS['FREE']!;
+                return (
+                  <View style={[styles.planBadge, { borderColor: tb.border, backgroundColor: tb.bg }]}>
+                    <Text style={[styles.planBadgeText, { color: tb.text }]}>{tb.label}</Text>
+                  </View>
+                );
+              })()}
               {explorer.tierExpiresAt && (
                 <Text style={styles.billingSub}>
                   Wygasa {new Date(explorer.tierExpiresAt).toLocaleDateString('pl-PL')}
@@ -843,7 +845,7 @@ const styles = StyleSheet.create({
     width: 88, height: 88, borderRadius: 44, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
-    position: 'relative',
+    position: 'relative', overflow: 'hidden',
   },
   avatar: {
     width: 76, height: 76, borderRadius: 38,
@@ -893,7 +895,6 @@ const styles = StyleSheet.create({
 
   // Billing
   billingRow: { gap: Spacing.xs },
-  billingTier: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.bodyLg, color: Colors.starlight },
   billingSub: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
   planCard: {
     flexDirection: 'row', alignItems: 'center',

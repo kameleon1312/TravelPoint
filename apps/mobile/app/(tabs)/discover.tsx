@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.sm,
-    gap: 2,
+    gap: Spacing.xs,
   },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starFaint,
   },
   segLabelActive: { color: Colors.aurora },
-  filterRow: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.md, gap: Spacing.sm },
+  filterRow: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.xs, paddingBottom: Spacing.md, gap: Spacing.sm },
   filterChip: {
     paddingHorizontal: Spacing.md, paddingVertical: 6,
     borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.steel,

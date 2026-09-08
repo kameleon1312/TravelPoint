@@ -11,10 +11,11 @@ import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
-import { Colors, Spacing, Shadow } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, Shadow } from '@travelpoint/theme';
 import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
 
 const MAPS_KEY = process.env['EXPO_PUBLIC_GOOGLE_MAPS_API_KEY'];
+const TOP_BAR_HEIGHT = 56;
 import { SignalButton } from '@/components/ui/SignalButton';
 import { SpotPreviewSheet } from '@/components/map/SpotPreviewSheet';
 import { pl } from '@/i18n/pl';
@@ -151,6 +152,7 @@ function StartJourneyModal({
   onClose: () => void;
   onStart: (title: string) => Promise<void>;
 }) {
+  const modalInsets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -183,7 +185,7 @@ function StartJourneyModal({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
-        <View style={styles.modalSheet}>
+        <View style={[styles.modalSheet, { paddingBottom: Math.max(modalInsets.bottom, Spacing.xl) }]}>
           <View style={styles.modalHandle} />
 
           <Text style={styles.modalEyebrow}>GPS · Journey Replay</Text>
@@ -542,7 +544,7 @@ export default function AtlasScreen() {
 
       {/* Recording status bar */}
       {isRecording && startedAt && (
-        <View style={[styles.recordingBarWrapper, { top: insets.top + 56 }]}>
+        <View style={[styles.recordingBarWrapper, { top: insets.top + TOP_BAR_HEIGHT }]}>
           <RecordingBar
             startedAt={startedAt}
             pointCount={points.length}
@@ -708,7 +710,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     borderWidth: 1, borderColor: Colors.steel,
     padding: Spacing.xl,
-    paddingBottom: 40,
+    paddingBottom: Spacing.xl,
     gap: Spacing.md,
   },
   modalHandle: {
@@ -719,7 +721,7 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono-Regular', fontSize: 10,
     color: Colors.ember, letterSpacing: 3, textTransform: 'uppercase',
   },
-  modalTitle: { fontFamily: 'ClashDisplay-Bold', fontSize: 22, color: Colors.starlight },
+  modalTitle: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h3, color: Colors.starlight },
   modalSub: {
     fontFamily: 'GeneralSans-Regular', fontSize: 13,
     color: Colors.star, lineHeight: 20,

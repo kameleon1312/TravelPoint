@@ -1,5 +1,5 @@
-import { View, StyleSheet, type ViewProps } from 'react-native';
-import { Colors, BorderRadius, Shadow } from '@travelpoint/theme';
+import { View, StyleSheet, type ViewStyle, type ViewProps } from 'react-native';
+import { Colors, BorderRadius, Shadow, Spacing } from '@travelpoint/theme';
 
 interface GlassCardProps extends ViewProps {
   children: React.ReactNode;
@@ -22,7 +22,7 @@ export function GlassCard({
         styles.background,
         { borderRadius: radius, overflow: 'hidden' },
         glowStyle,
-        style as object,
+        style as ViewStyle,
       ]}
       {...props}
     >
@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.glassBorder,
   },
   content: {
-    padding: 16,
+    padding: Spacing.lg,
   },
 });

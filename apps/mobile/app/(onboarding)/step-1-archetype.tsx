@@ -30,10 +30,21 @@ export default function ArchetypeStep() {
     <LinearGradient colors={[Colors.void, Colors.abyss]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.step}>1 / 3</Text>
-          <Text style={styles.eyebrow}>Explorer Archetype</Text>
-          <Text style={styles.title}>Kim jesteś jako podróżnik?</Text>
-          <Text style={styles.subtitle}>Wybierz swój archetyp. Możesz to zmienić w Tożsamości.</Text>
+          {/* Progress indicator */}
+          <View style={styles.progressRow}>
+            <View style={[styles.progressDot, styles.progressDotActive]} />
+            <View style={styles.progressLine} />
+            <View style={styles.progressDot} />
+            <View style={styles.progressLine} />
+            <View style={styles.progressDot} />
+          </View>
+
+          <View style={styles.headingBlock}>
+            <Text style={styles.step}>1 / 3</Text>
+            <Text style={styles.eyebrow}>Explorer Archetype</Text>
+            <Text style={styles.title}>Kim jesteś jako podróżnik?</Text>
+            <Text style={styles.subtitle}>Wybierz swój archetyp. Możesz to zmienić w Tożsamości.</Text>
+          </View>
 
           <View style={styles.grid}>
             {ARCHETYPES.map((a) => (
@@ -72,7 +83,14 @@ export default function ArchetypeStep() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: Spacing.xl, gap: Spacing.lg },
+  container: { flexGrow: 1, padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.huge },
+  progressRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 0, marginBottom: Spacing.sm,
+  },
+  progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.steel },
+  progressDotActive: { width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.signal },
+  progressLine: { flex: 1, height: 1, backgroundColor: Colors.steel, marginHorizontal: Spacing.xs },
+  headingBlock: { gap: Spacing.sm },
   step: {
     fontFamily: 'SpaceMono-Regular',
     fontSize: FontSize.micro,
@@ -96,6 +114,7 @@ const styles = StyleSheet.create({
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.bodySm,
     color: Colors.star,
+    lineHeight: 22,
   },
   grid: { gap: Spacing.md },
   card: {

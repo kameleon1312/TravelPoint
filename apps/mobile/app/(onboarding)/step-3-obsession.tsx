@@ -98,15 +98,6 @@ export default function ObsessionStep() {
   }
 
   async function finish() {
-    if (selected.length === 0) {
-      Alert.alert(
-        'Wybierz przynajmniej jedną obsesję',
-        'To pomoże nam dopasować mapę do Twojego stylu eksploracji.',
-        [{ text: 'OK' }],
-      );
-      return;
-    }
-
     setLoading(true);
     try {
       await api.patch('/api/explorers/me', {

@@ -2,7 +2,7 @@ import {
   View, Text, StyleSheet, FlatList, Pressable,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
@@ -30,9 +30,11 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function CirclesScreen() {
+  const insets = useSafeAreaInsets();
   const { data: circles, isLoading, refetch, isRefetching } = useMyCircles();
   const { explorer } = useAuthStore();
   const canCreate = explorer?.tier === 'EXPEDITION';
+  const fabBottom = insets.bottom + Spacing.lg;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -109,7 +111,7 @@ export default function CirclesScreen() {
                     <View style={styles.cardMeta}>
                       {item.isInviteOnly && (
                         <View style={styles.metaTag}>
-                          <Text style={styles.metaTagText}>🔒 Invite only</Text>
+                          <Text style={styles.metaTagText}>◑ Invite only</Text>
                         </View>
                       )}
                       {(item as unknown as { _count?: { members: number } })._count?.members !== undefined && (
@@ -124,7 +126,7 @@ export default function CirclesScreen() {
             );
           }}
           ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
-          contentContainerStyle={[styles.list, { paddingBottom: Spacing.huge }]}
+          contentContainerStyle={[styles.list, { paddingBottom: fabBottom + Spacing.xl + 48 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -137,7 +139,7 @@ export default function CirclesScreen() {
       )}
 
       {/* FAB row */}
-      <View style={[styles.fabRow, { bottom: Spacing.lg }]}>
+      <View style={[styles.fabRow, { bottom: fabBottom }]}>
         {canCreate && (
           <Pressable
             style={styles.fabSecondary}
