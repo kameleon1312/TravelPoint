@@ -29,7 +29,7 @@ function SavedSpotCard({ spot }: { spot: SpotForViewer }) {
   function confirmUnsave() {
     Alert.alert(
       'Usuń z zapisanych',
-      `Usunąć "${('title' in spot ? (spot as { title: string }).title : 'ten spot')}" z Saved Worlds?`,
+      `Usunąć "${('title' in spot ? (spot as { title: string }).title : 'ten spot')}" z zapisanych?`,
       [
         { text: 'Anuluj', style: 'cancel' },
         {
@@ -77,7 +77,7 @@ export default function SavedWorldsScreen() {
           <Text style={styles.backText}>← Wróć</Text>
         </Pressable>
         <Text style={styles.eyebrow}>Kolekcja</Text>
-        <Text style={styles.heading}>Saved Worlds</Text>
+        <Text style={styles.heading}>Zapisane miejsca</Text>
         {spots && (
           <Text style={styles.sub}>{spots.length} {spots.length === 1 ? 'spot' : 'spotów'} zapisanych</Text>
         )}

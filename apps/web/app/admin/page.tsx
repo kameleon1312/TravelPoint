@@ -225,7 +225,7 @@ export default function AdminPage(): ReactElement {
 
         <div className="mt-12 flex flex-wrap gap-4 border-t border-[#253035] pt-8">
           <a href="/admin/journal" className="text-sm text-[#1E9AB0] hover:underline">
-            Journal CMS →
+            CMS Dziennika →
           </a>
           <a href="/admin/analytics" className="text-sm text-[#1E9AB0] hover:underline">
             Analytics →

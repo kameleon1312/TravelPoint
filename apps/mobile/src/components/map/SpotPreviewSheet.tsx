@@ -28,9 +28,9 @@ const ACCESS_COLORS: Record<string, string> = {
 };
 const ACCESS_LABELS: Record<string, string> = {
   PUBLIC: 'Publiczne',
-  TRUSTED: 'Trusted',
-  SECRET_DROP: 'Secret Drop',
-  CIRCLE_ONLY: 'Circle Only',
+  TRUSTED: 'Zaufani',
+  SECRET_DROP: 'Tajny Drop',
+  CIRCLE_ONLY: 'Tylko Circle',
 };
 
 interface Props {

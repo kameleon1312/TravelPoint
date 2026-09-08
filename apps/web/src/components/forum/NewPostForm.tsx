@@ -6,11 +6,11 @@ import { useForumAuth } from './ForumAuth';
 import { apiFetch } from '@/lib/webAuth';
 
 const CATEGORIES = [
-  { value: 'FIELD_NOTES', label: 'Field Notes' },
-  { value: 'GEAR', label: 'Gear' },
-  { value: 'SAFETY', label: 'Safety' },
-  { value: 'REQUESTS', label: 'Requests' },
-  { value: 'STORIES', label: 'Stories' },
+  { value: 'FIELD_NOTES', label: 'Notatki z terenu' },
+  { value: 'GEAR', label: 'Sprzęt' },
+  { value: 'SAFETY', label: 'Bezpieczeństwo' },
+  { value: 'REQUESTS', label: 'Prośby' },
+  { value: 'STORIES', label: 'Historie' },
 ] as const;
 
 interface Props {

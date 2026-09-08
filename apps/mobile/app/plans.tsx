@@ -32,17 +32,17 @@ interface TierDef {
 const TIERS: TierDef[] = [
   {
     id: 'FREE',
-    label: 'Free Explorer',
+    label: 'Explorer',
     color: Colors.starFaint,
     icon: '◎',
     tagline: 'Odkrywaj pierwsze miejsca',
     features: [
       { label: 'Mapa odkrywcza',            available: true },
       { label: 'Spoty publiczne bez limitu', available: true },
-      { label: '3 Journeys',                available: true },
-      { label: '25 Saved Worlds',            available: true },
-      { label: 'Spoty TRUSTED',             available: false },
-      { label: 'Secret Drops',              available: false },
+      { label: '3 wyprawy',                 available: true },
+      { label: '25 zapisanych miejsc',       available: true },
+      { label: 'Spoty dla zaufanych',        available: false },
+      { label: 'Tajne dropy',               available: false },
       { label: 'Własne Circles',            available: false },
     ],
   },
@@ -54,10 +54,10 @@ const TIERS: TierDef[] = [
     tagline: 'Dla eksploratorów bez kompromisów',
     features: [
       { label: 'Wszystko z Free',              available: true },
-      { label: 'Spoty TRUSTED',               available: true },
-      { label: 'Nieograniczone Journeys',      available: true },
-      { label: 'Nieograniczone Saved Worlds',  available: true },
-      { label: 'Secret Drops',               available: false },
+      { label: 'Spoty dla zaufanych',           available: true },
+      { label: 'Nieograniczone wyprawy',        available: true },
+      { label: 'Nieograniczone zapisane miejsca', available: true },
+      { label: 'Tajne dropy',                  available: false },
       { label: 'Własne Circles (do 5)',       available: false },
       { label: 'Ukryta warstwa mapy',         available: false },
     ],
@@ -70,7 +70,7 @@ const TIERS: TierDef[] = [
     tagline: 'Pełny dostęp do sieci',
     features: [
       { label: 'Wszystko z PRO',             available: true },
-      { label: 'Secret Drops',               available: true },
+      { label: 'Tajne dropy',                  available: true },
       { label: 'Własne Circles (do 5)',       available: true },
       { label: 'Ukryta warstwa mapy',         available: true },
       { label: 'Priorytetowe wsparcie',       available: true },
@@ -258,7 +258,7 @@ function TierCard({
               <ActivityIndicator color={Colors.void} size="small" />
             ) : (
               <Text style={styles.ctaBtnText}>
-                {tier.id === 'PRO' && currentTier === 'FREE' ? 'Zacznij 7-dniowy trial' : `Upgrade do ${tier.label}`}
+                {tier.id === 'PRO' && currentTier === 'FREE' ? 'Zacznij 7 dni za darmo' : `Przejdź na ${tier.label}`}
               </Text>
             )}
           </Pressable>

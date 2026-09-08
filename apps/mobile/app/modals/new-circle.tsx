@@ -131,7 +131,7 @@ export default function NewCircleModal() {
               <View style={styles.toggleRow}>
                 <View style={styles.toggleText}>
                   <Text style={styles.toggleLabel}>Tylko na zaproszenie</Text>
-                  <Text style={styles.toggleDesc}>Nowi members muszą mieć invite code</Text>
+                  <Text style={styles.toggleDesc}>Nowi członkowie muszą mieć kod zaproszenia</Text>
                 </View>
                 <Controller
                   control={control}

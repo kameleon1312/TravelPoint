@@ -243,7 +243,7 @@ export default function CircleDetailScreen() {
       >
         {/* Back */}
         <Pressable style={styles.back} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Circles</Text>
+          <Text style={styles.backText}>← Kręgi</Text>
         </Pressable>
 
         {/* Header */}
@@ -283,7 +283,7 @@ export default function CircleDetailScreen() {
             {detail.isInviteOnly && (
               <>
                 <Text style={styles.joinHint}>
-                  Ten circle jest prywatny. Wpisz jednorazowy kod otrzymany od GUIDE lub FOUNDER.
+                  Ten circle jest prywatny. Wpisz jednorazowy kod otrzymany od Przewodnika lub Założyciela.
                 </Text>
                 <TextInput
                   style={styles.inviteInput}
@@ -313,7 +313,7 @@ export default function CircleDetailScreen() {
         {isMember && (
           <View style={styles.memberActions}>
             <SignalButton
-              label="◐ Circle Chat"
+              label="◐ Czat Circle"
               onPress={() =>
                 router.push(
                   `/modals/transmissions?circleId=${detail.id}&circleName=${encodeURIComponent(detail.name)}`,

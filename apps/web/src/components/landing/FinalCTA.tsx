@@ -53,7 +53,7 @@ export function FinalCTA(): React.JSX.Element {
         >
           <p className="eyebrow mb-4">Dołącz do sieci</p>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-starlight mb-4 tracking-tight">
-            Zgłoś request access
+            Chcę wejść do sieci
           </h2>
           <p className="font-sans text-sm text-star mb-10 leading-relaxed">
             TravelPoint działa na zaproszenia. Zostaw swój e-mail — odezwiemy się,
@@ -101,7 +101,7 @@ export function FinalCTA(): React.JSX.Element {
                            bg-ember-gradient glow-ember transition-all duration-200
                            hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {status === 'loading' ? 'Wysyłanie...' : 'Join the Network'}
+                {status === 'loading' ? 'Wysyłanie...' : 'Dołącz do sieci'}
               </button>
             </form>
           )}

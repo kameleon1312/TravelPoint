@@ -24,11 +24,16 @@ const CATEGORY_ICONS: Record<string, string> = {
   ABANDONED: '◈', CAFE: '◎', BEACH: '◎', ROUTE: '◉', UNDERGROUND: '◈', VIEWPOINT: '◎', CAMP: '◉',
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  ABANDONED: 'Opuszczone', CAFE: 'Kawiarnia', BEACH: 'Plaża',
+  ROUTE: 'Trasa', UNDERGROUND: 'Podziemia', VIEWPOINT: 'Widok', CAMP: 'Baza',
+};
+
 const ACCESS_LABELS: Record<string, string> = {
   PUBLIC:      'Publiczne',
-  TRUSTED:     'Trusted+',
-  CIRCLE_ONLY: 'Tylko circle',
-  SECRET_DROP: 'Secret Drop',
+  TRUSTED:     'Tylko zaufani',
+  CIRCLE_ONLY: 'Tylko Circle',
+  SECRET_DROP: 'Tajny Drop',
 };
 
 const ACCESS_COLORS: Record<string, string> = {
@@ -178,7 +183,7 @@ export default function NewSpotModal() {
                         styles.chipText,
                         selectedCategory === cat && styles.chipTextActive,
                       ]}>
-                        {CATEGORY_ICONS[cat]} {cat}
+                        {CATEGORY_ICONS[cat]} {CATEGORY_LABELS[cat] ?? cat}
                       </Text>
                     </Pressable>
                   ))}
@@ -286,7 +291,7 @@ export default function NewSpotModal() {
           {isSecretDrop && (
             <Animated.View entering={FadeInDown.duration(280)}>
               <GlassCard style={styles.dropCard}>
-                <Text style={styles.dropTitle}>⬡ Secret Drop</Text>
+                <Text style={styles.dropTitle}>⬡ Tajny Drop</Text>
                 <Text style={styles.dropSub}>
                   Spot zniknie po wybranym czasie. Tylko dla uprawnio&shy;nych eksploratorów.
                 </Text>

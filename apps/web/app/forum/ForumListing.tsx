@@ -12,11 +12,11 @@ const API_URL = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/$/, '');
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'Wszystkie' },
-  { value: 'FIELD_NOTES', label: 'Field Notes' },
-  { value: 'GEAR', label: 'Gear' },
-  { value: 'SAFETY', label: 'Safety' },
-  { value: 'REQUESTS', label: 'Requests' },
-  { value: 'STORIES', label: 'Stories' },
+  { value: 'FIELD_NOTES', label: 'Notatki z terenu' },
+  { value: 'GEAR', label: 'Sprzęt' },
+  { value: 'SAFETY', label: 'Bezpieczeństwo' },
+  { value: 'REQUESTS', label: 'Prośby' },
+  { value: 'STORIES', label: 'Historie' },
 ];
 
 interface ForumPost {
@@ -88,7 +88,7 @@ function ForumListingInner(): ReactElement {
         <div className="max-w-5xl mx-auto">
           <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="eyebrow mb-4">World Forum</p>
+              <p className="eyebrow mb-4">Forum Odkrywców</p>
               <h1 className="font-display text-4xl md:text-6xl font-bold text-starlight tracking-tight leading-none mb-4">
                 Głos społeczności
               </h1>

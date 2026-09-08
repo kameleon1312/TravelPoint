@@ -43,7 +43,7 @@ export default function NewJourneyModal() {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.eyebrow}>Nowa ekspedycja</Text>
-            <Text style={styles.title}>Zacznij Journey</Text>
+            <Text style={styles.title}>Nowa Wyprawa</Text>
           </View>
 
           {/* Title */}
@@ -52,7 +52,7 @@ export default function NewJourneyModal() {
             name="title"
             render={({ field: { onChange, value } }) => (
               <View style={styles.field}>
-                <Text style={styles.label}>Nazwa journey</Text>
+                <Text style={styles.label}>Nazwa wyprawy</Text>
                 <TextInput
                   style={[styles.input, errors.title && styles.inputError]}
                   placeholder="np. Poranek w opuszczonej fabryce..."
@@ -72,7 +72,7 @@ export default function NewJourneyModal() {
             name="mood"
             render={({ field: { onChange, value } }) => (
               <View style={styles.field}>
-                <Text style={styles.label}>Mood (opcjonalnie)</Text>
+                <Text style={styles.label}>Nastrój (opcjonalnie)</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="jedno zdanie, jedno uczucie..."
@@ -91,7 +91,7 @@ export default function NewJourneyModal() {
             name="soundtrack"
             render={({ field: { onChange, value } }) => (
               <View style={styles.field}>
-                <Text style={styles.label}>Soundtrack URL (opcjonalnie)</Text>
+                <Text style={styles.label}>Ścieżka dźwiękowa — URL (opcjonalnie)</Text>
                 <TextInput
                   style={[styles.input, errors.soundtrack && styles.inputError]}
                   placeholder="https://open.spotify.com/..."
@@ -114,7 +114,7 @@ export default function NewJourneyModal() {
             render={({ field: { onChange, value } }) => (
               <View style={styles.toggleRow}>
                 <View style={styles.toggleLabel}>
-                  <Text style={styles.label}>Prywatne journey</Text>
+                  <Text style={styles.label}>Prywatna wyprawa</Text>
                   <Text style={styles.toggleSub}>
                     {value ? '🔒 Widoczne tylko dla Ciebie' : '◎ Publiczne w Twoim profilu'}
                   </Text>
@@ -133,7 +133,7 @@ export default function NewJourneyModal() {
 
           <View style={styles.actions}>
             <SignalButton
-              label="Rozpocznij Journey ◎"
+              label="Ruszam w drogę ◎"
               onPress={handleSubmit(onSubmit)}
               variant="aurora"
               size="lg"

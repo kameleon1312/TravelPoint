@@ -24,6 +24,14 @@ const RANK_COLORS: Record<string, string> = {
   LEGEND:   Colors.ember,
 };
 
+const RANK_LABELS: Record<string, string> = {
+  NEWCOMER: 'Nowicjusz',
+  EXPLORER: 'Explorer',
+  TRUSTED:  'Zaufany',
+  INSIDER:  'Wtajemniczony',
+  LEGEND:   'Legenda',
+};
+
 const RANK_THRESHOLDS: Record<string, { next: string | null; required: number }> = {
   NEWCOMER: { next: 'EXPLORER', required: 50 },
   EXPLORER: { next: 'TRUSTED',  required: 200 },
@@ -33,7 +41,7 @@ const RANK_THRESHOLDS: Record<string, { next: string | null; required: number }>
 };
 
 const TIER_BADGE_COLORS: Record<string, { border: string; bg: string; text: string; label: string }> = {
-  FREE:       { border: Colors.starGhost + '60', bg: 'transparent',        text: Colors.starFaint, label: 'Free Explorer' },
+  FREE:       { border: Colors.starGhost + '60', bg: 'transparent',        text: Colors.starFaint, label: 'Explorer' },
   PRO:        { border: Colors.signal + '60',    bg: Colors.signal + '18', text: Colors.signal,    label: 'Explorer PRO' },
   EXPEDITION: { border: Colors.ember + '60',     bg: Colors.ember + '18',  text: Colors.ember,     label: 'Expedition' },
 };
@@ -553,7 +561,7 @@ export default function IdentityScreen() {
       >
 
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>Explorer Identity</Text>
+          <Text style={styles.eyebrow}>Twoja tożsamość</Text>
 
           <Pressable
             onPress={() => void handleAvatarPick()}
@@ -580,7 +588,7 @@ export default function IdentityScreen() {
           )}
 
           <View style={[styles.rankBadge, { borderColor: rankColor }]}>
-            <Text style={[styles.rankText, { color: rankColor }]}>{explorer.rank}</Text>
+            <Text style={[styles.rankText, { color: rankColor }]}>{RANK_LABELS[explorer.rank] ?? explorer.rank}</Text>
           </View>
 
           {/* Rank progress bar */}
@@ -613,9 +621,9 @@ export default function IdentityScreen() {
 
         <View style={styles.statsRow}>
           {[
-            { label: 'Trust', value: String(explorer.trustScore) },
-            { label: 'Tier', value: explorer.tier },
-            { label: 'Archetype', value: explorer.archetype ?? '—' },
+            { label: 'Reputacja', value: String(explorer.trustScore) },
+            { label: 'Plan', value: explorer.tier },
+            { label: 'Archetyp', value: explorer.archetype ?? '—' },
           ].map((stat) => (
             <GlassCard key={stat.label} style={styles.statCard}>
               <Text style={styles.statValue}>{stat.value}</Text>
@@ -628,7 +636,7 @@ export default function IdentityScreen() {
         <View style={styles.quickLinks}>
           <Pressable style={styles.quickLink} onPress={() => router.push('/saved')}>
             <Text style={styles.quickLinkIcon}>◎</Text>
-            <Text style={styles.quickLinkLabel}>Saved Worlds</Text>
+            <Text style={styles.quickLinkLabel}>Zapisane miejsca</Text>
             <Text style={styles.quickLinkChevron}>›</Text>
           </Pressable>
         </View>
@@ -681,7 +689,7 @@ export default function IdentityScreen() {
                 </Text>
               )}
               {explorer.tier === 'FREE' && (
-                <Text style={styles.billingSub}>Odblokuj spoty TRUSTED i Secret Drops</Text>
+                <Text style={styles.billingSub}>Odblokuj ukryte spoty i tajne dropy</Text>
               )}
             </View>
           </View>

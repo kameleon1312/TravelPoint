@@ -47,9 +47,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const ACCESS_LABELS: Record<string, string> = {
   PUBLIC:      'Publiczne',
-  TRUSTED:     'Wymaga ranku TRUSTED',
-  CIRCLE_ONLY: 'Tylko dla circle',
-  SECRET_DROP: 'Secret Drop',
+  TRUSTED:     'Wymaga rangi Zaufanego',
+  CIRCLE_ONLY: 'Tylko dla Circle',
+  SECRET_DROP: 'Tajny Drop',
 };
 
 // ─── Locked overlay ───────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ function LockedOverlay({
         visible={paywallVisible}
         onClose={() => setPaywallVisible(false)}
         requiredTier={requiredTier ?? 'PRO'}
-        featureLabel={requiredAccess === 'SECRET_DROP' ? 'Secret Drop' : 'spot TRUSTED'}
+        featureLabel={requiredAccess === 'SECRET_DROP' ? 'Tajny Drop' : 'spoty dla zaufanych'}
       />
     </GlassCard>
   );
@@ -765,7 +765,7 @@ export default function SpotDetailScreen() {
 
             {/* Save action */}
             <SignalButton
-              label={saved ? '◈ Zapisano w Saved Worlds' : '◎ Zapisz w Saved Worlds'}
+              label={saved ? '◈ Zapisano' : '◎ Zapisz to miejsce'}
               onPress={handleSave}
               variant={saved ? 'aurora' : 'signal'}
               size="md"

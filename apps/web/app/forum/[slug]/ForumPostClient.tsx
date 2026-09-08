@@ -29,11 +29,11 @@ interface Post {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  FIELD_NOTES: 'Field Notes',
-  GEAR: 'Gear',
-  SAFETY: 'Safety',
-  REQUESTS: 'Requests',
-  STORIES: 'Stories',
+  FIELD_NOTES: 'Notatki z terenu',
+  GEAR: 'Sprzęt',
+  SAFETY: 'Bezpieczeństwo',
+  REQUESTS: 'Prośby',
+  STORIES: 'Historie',
 };
 
 function PostClientInner({ post: initial }: { post: Post }): ReactElement {
@@ -148,7 +148,7 @@ function PostClientInner({ post: initial }: { post: Post }): ReactElement {
             <div className="mb-4 flex flex-wrap items-center gap-3">
               {post.isPinned && (
                 <span className="rounded-full border border-aurora/30 bg-aurora/10 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-aurora">
-                  pinned
+                  przypięty
                 </span>
               )}
               {locked && (

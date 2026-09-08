@@ -22,11 +22,11 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  UNDERGROUND: 'Underground',
-  ABANDONED:   'Abandoned',
-  ROUTE:       'Off-trail',
-  VIEWPOINT:   'Viewpoint',
-  CAMP:        'Base Camp',
+  UNDERGROUND: 'Podziemia',
+  ABANDONED:   'Opuszczone',
+  ROUTE:       'Poza szlakiem',
+  VIEWPOINT:   'Widokówki',
+  CAMP:        'Bazy',
 };
 
 export default function JournalPage(): React.JSX.Element {
@@ -41,9 +41,9 @@ export default function JournalPage(): React.JSX.Element {
 
           {/* Header */}
           <div className="mb-16 md:mb-20">
-            <p className="eyebrow mb-4">Explorer Journal</p>
+            <p className="eyebrow mb-4">Dziennik Eksploracji</p>
             <h1 className="font-display text-4xl md:text-6xl font-bold text-starlight tracking-tight leading-none mb-6">
-              Field Notes
+              Notatki z terenu
             </h1>
             <p className="font-sans text-base text-star max-w-xl leading-relaxed">
               Relacje eksploratorów z miejsc których nie znajdziesz w żadnym przewodniku.

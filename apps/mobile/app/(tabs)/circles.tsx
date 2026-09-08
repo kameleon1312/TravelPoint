@@ -50,9 +50,9 @@ export default function CirclesScreen() {
       ) : !circles || circles.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>◑</Text>
-          <Text style={styles.emptyTitle}>Brak circles</Text>
+          <Text style={styles.emptyTitle}>Jeszcze bez kręgów</Text>
           <Text style={styles.emptySub}>
-            Circles to zamknięte kręgi eksploratorów ze wspólnymi mapami, chatami i secret dropami.
+            Circles to zamknięte kręgi odkrywców ze wspólnymi mapami, rozmowami i tajnymi dropami.
           </Text>
           <View style={styles.emptyActions}>
             <SignalButton

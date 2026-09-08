@@ -6,20 +6,20 @@ import { useRef } from 'react';
 const PILLARS = [
   {
     icon: '◎',
-    title: 'Explorer Identity',
-    desc: 'Twój profil to cyfrowa osobowość podróżnika — nie lista zapisanych hoteli. Archetype, aura, terytoria, obsesje.',
+    title: 'Tożsamość Odkrywcy',
+    desc: 'Twój profil to cyfrowa dusza podróżnika — nie lista zapisanych hoteli. Archetyp, aura, terytoria, obsesje.',
     accent: 'aurora',
   },
   {
     icon: '◈',
-    title: 'Hidden Layer',
-    desc: 'Nie każdy widzi wszystko. Trust score, rank i circles odblokowują kolejne warstwy mapy. Ekskluzywność napędza odkrycia.',
+    title: 'Ukryta Warstwa',
+    desc: 'Nie każdy widzi wszystko. Reputacja, ranga i kręgi odblokowują kolejne warstwy mapy. Ekskluzywność napędza odkrycia.',
     accent: 'ember',
   },
   {
     icon: '◑',
-    title: 'Travel Circles',
-    desc: 'Plemiona podróżnicze z prywatnymi mapami, chatami i secret dropami. Twoja sieć — Twoje zasady.',
+    title: 'Kręgi Podróżników',
+    desc: 'Plemiona odkrywców z prywatnymi mapami, rozmowami i tajnymi dropami. Twoja sieć — Twoje zasady.',
     accent: 'signal',
   },
 ];

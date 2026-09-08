@@ -47,7 +47,7 @@ export function Hero({ onJoinClick }: HeroProps): React.JSX.Element {
         className="relative z-10 flex flex-col items-center text-center px-5 max-w-2xl mx-auto w-full pt-16 md:pt-0"
       >
         <motion.p variants={itemVariants} className="eyebrow mb-3 md:mb-5 text-[10px] md:text-xs">
-          A Network for the Obsessed
+          Sieć dla obsesjonatów odkrywania
         </motion.p>
 
         <motion.h1
@@ -84,7 +84,7 @@ export function Hero({ onJoinClick }: HeroProps): React.JSX.Element {
                        transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]
                        whitespace-nowrap"
           >
-            Request Access
+            Chcę wejść do sieci
           </button>
           <a
             href="#world"
@@ -93,7 +93,7 @@ export function Hero({ onJoinClick }: HeroProps): React.JSX.Element {
                        transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]
                        whitespace-nowrap"
           >
-            Explore the World
+            Odkryj Świat
           </a>
         </motion.div>
       </motion.div>

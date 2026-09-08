@@ -135,7 +135,7 @@ function RecordingBar({
           <Text style={styles.recordingCancelText}>✕</Text>
         </Pressable>
         <Pressable style={styles.recordingStopBtn} onPress={onStop}>
-          <Text style={styles.recordingStopText}>⏹ Stop</Text>
+          <Text style={styles.recordingStopText}>⏹ Zatrzymaj</Text>
         </Pressable>
       </View>
     </Animated.View>
@@ -188,7 +188,7 @@ function StartJourneyModal({
         <View style={[styles.modalSheet, { paddingBottom: Math.max(modalInsets.bottom, Spacing.xl) }]}>
           <View style={styles.modalHandle} />
 
-          <Text style={styles.modalEyebrow}>GPS · Journey Replay</Text>
+          <Text style={styles.modalEyebrow}>GPS · Nagraj wyprawę</Text>
           <Text style={styles.modalTitle}>{pl.recording.startRecording}</Text>
           <Text style={styles.modalSub}>
             Twoja trasa zostanie nagrana i zapisana do journey.
@@ -432,7 +432,7 @@ export default function AtlasScreen() {
     const result = await stopRecording();
 
     if (!result) {
-      Alert.alert('Journey', pl.recording.tooFewPoints);
+      Alert.alert('Wyprawa', pl.recording.tooFewPoints);
       return;
     }
 

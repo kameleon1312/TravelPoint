@@ -11,9 +11,9 @@ interface WorldNavProps {
 }
 
 const NAV_LINKS = [
-  { label: 'Journal', href: '/journal',  live: true  },
-  { label: 'Map',     href: '/map',      live: true  },
-  { label: 'Forum',   href: '/forum',    live: true  },
+  { label: 'Dziennik', href: '/journal',  live: true  },
+  { label: 'Mapa',     href: '/map',      live: true  },
+  { label: 'Forum',    href: '/forum',    live: true  },
 ];
 
 export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
@@ -119,8 +119,8 @@ export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
             className="px-5 py-2.5 rounded-xl font-sans text-sm font-semibold text-starlight bg-signal-gradient glow-signal
                        transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
           >
-            <span className="hidden sm:inline">Request Access</span>
-            <span className="sm:hidden">Join</span>
+            <span className="hidden sm:inline">Dołącz do sieci</span>
+            <span className="sm:hidden">Dołącz</span>
           </button>
 
           {/* Mobile hamburger */}

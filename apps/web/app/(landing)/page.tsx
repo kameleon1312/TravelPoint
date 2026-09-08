@@ -51,7 +51,7 @@ export default function LandingPage(): React.JSX.Element {
                 replay twoich journeys. Nie aplikacja do planowania — tożsamość podróżnika.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                {['Hidden Layer', 'Live Presence', 'Journey Replay', 'Travel Circles'].map((tag) => (
+                {['Ukryta Warstwa', 'Live Presence', 'Replay Trasy', 'Kręgi Podróżników'].map((tag) => (
                   <span key={tag} className="glass rounded-full px-4 py-1.5 font-mono text-xs text-aurora border border-aurora/20">
                     {tag}
                   </span>
@@ -69,10 +69,10 @@ export default function LandingPage(): React.JSX.Element {
           <div className="landing-band py-12 px-4">
             <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-center">
               {[
-                { value: '2,400+', label: 'Hidden Spots' },
+                { value: '2400+', label: 'Ukrytych Spotów' },
                 { value: '58', label: 'Krajów' },
-                { value: '340', label: 'Aktywnych Explorerów' },
-                { value: '12', label: 'Travel Circles' },
+                { value: '340', label: 'Aktywnych Odkrywców' },
+                { value: '12', label: 'Kręgów Podróżników' },
               ].map((s) => (
                 <div key={s.label} className="px-6">
                   <p className="font-display text-2xl font-bold text-gradient-aurora">{s.value}</p>
@@ -99,7 +99,7 @@ export default function LandingPage(): React.JSX.Element {
                   <p className="eyebrow text-aurora mb-4">WORLD · Publiczny</p>
                   <h3 className="font-display text-xl font-bold text-starlight mb-4">Odkrywaj i inspiruj</h3>
                   <ul className="space-y-2">
-                    {['Explorer Journal — cinematic stories', 'Forum — community głos', 'Discovery Map — publiczne spoty', 'Explorer profiles'].map((item) => (
+                    {['Dziennik Eksploracji — filmowe historie', 'Forum — głos społeczności', 'Mapa Odkryć — publiczne spoty', 'Profile odkrywców'].map((item) => (
                       <li key={item} className="flex items-start gap-2">
                         <span className="text-aurora mt-0.5 flex-shrink-0">◎</span>
                         <span className="font-sans text-sm text-star">{item}</span>
@@ -113,7 +113,7 @@ export default function LandingPage(): React.JSX.Element {
                   <p className="eyebrow text-ember mb-4">CORE · Prywatny</p>
                   <h3 className="font-display text-xl font-bold text-starlight mb-4">Twoja tajna sieć</h3>
                   <ul className="space-y-2">
-                    {['Hidden Layer — locked spots', 'Live Presence — explorers nearby', 'Circles — zamknięte kręgi', 'Journey Replay — twoje trasy'].map((item) => (
+                    {['Ukryta Warstwa — zamknięte spoty', 'Live Presence — odkrywcy w pobliżu', 'Circles — zamknięte kręgi', 'Replay Trasy — twoje wyprawy'].map((item) => (
                       <li key={item} className="flex items-start gap-2">
                         <span className="text-ember mt-0.5 flex-shrink-0">◈</span>
                         <span className="font-sans text-sm text-star">{item}</span>
@@ -144,7 +144,7 @@ export default function LandingPage(): React.JSX.Element {
                   tier: 'FREE',
                   label: 'Explorer',
                   price: '0 zł',
-                  features: ['25 saved worlds', '3 journeys', 'Public spots', 'Basic identity'],
+                  features: ['25 zapisanych miejsc', '3 wyprawy', 'Publiczne spoty', 'Podstawowa tożsamość'],
                   featured: false,
                   accentClass: 'border-steel',
                 },
@@ -152,7 +152,7 @@ export default function LandingPage(): React.JSX.Element {
                   tier: 'PRO',
                   label: 'PRO',
                   price: '29 zł/mies',
-                  features: ['∞ saved worlds', '∞ journeys', 'Hidden Layer access', 'Advanced map layers'],
+                  features: ['∞ zapisanych miejsc', '∞ wypraw', 'Dostęp do Ukrytej Warstwy', 'Zaawansowane warstwy mapy'],
                   featured: true,
                   accentClass: 'border-aurora/50',
                 },
@@ -160,7 +160,7 @@ export default function LandingPage(): React.JSX.Element {
                   tier: 'EXPEDITION',
                   label: 'Expedition',
                   price: '79 zł/mies',
-                  features: ['Wszystko z PRO', '5 własnych circles', 'Insider drops', 'Priority presence'],
+                  features: ['Wszystko z PRO', '5 własnych Circles', 'Tajne dropy insiderów', 'Priorytetowa widoczność'],
                   featured: false,
                   accentClass: 'border-ember/30',
                 },
@@ -194,7 +194,7 @@ export default function LandingPage(): React.JSX.Element {
                       className={`mt-8 w-full py-3 rounded-xl font-sans text-sm font-semibold transition-all duration-200 hover:scale-[1.02]
                         ${t.featured ? 'bg-aurora-gradient text-void glow-aurora' : 'glass text-starlight'}`}
                     >
-                      {t.tier === 'FREE' ? 'Zacznij za darmo' : 'Request Access'}
+                      {t.tier === 'FREE' ? 'Zacznij za darmo' : 'Chcę ten plan'}
                     </button>
                   </div>
                 </SectionReveal>

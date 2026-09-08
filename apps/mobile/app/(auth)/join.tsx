@@ -150,7 +150,7 @@ export default function JoinScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.header}>
-              <Text style={styles.eyebrow}>A Network for the Obsessed</Text>
+              <Text style={styles.eyebrow}>Sieć dla obsesjonatów odkrywania</Text>
               <Text style={styles.title}>{pl.auth.joinTitle}</Text>
               <Text style={styles.subtitle}>{pl.auth.joinSubtitle}</Text>
             </View>

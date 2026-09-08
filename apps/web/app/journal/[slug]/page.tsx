@@ -115,7 +115,7 @@ export default async function JournalPostPage({ params }: Props): Promise<React.
               className="inline-flex items-center gap-2 font-mono text-xs text-starFaint hover:text-star transition-colors mb-10 group"
             >
               <span className="group-hover:-translate-x-0.5 transition-transform">←</span>
-              <span className="uppercase tracking-widest">Explorer Journal</span>
+              <span className="uppercase tracking-widest">Dziennik Eksploracji</span>
             </Link>
 
             {/* Category + terrain */}
@@ -232,7 +232,7 @@ export default async function JournalPostPage({ params }: Props): Promise<React.
               href="/#join"
               className="inline-block px-6 py-3 rounded-xl font-sans font-semibold text-sm text-void bg-aurora hover:brightness-110 transition-all"
             >
-              Request Access →
+              Chcę wejść do sieci →
             </Link>
           </div>
         </div>

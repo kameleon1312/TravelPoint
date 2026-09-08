@@ -37,9 +37,9 @@ const RANK_ICONS: Record<string, string> = {
 };
 
 const ARCHETYPE_LABELS: Record<string, string> = {
-  WANDERER: 'Wędrownik',
+  WANDERER: 'Włóczęga',
   URBEXER:  'Urbexer',
-  NOMAD:    'Nomad',
+  NOMAD:    'Nomada',
   HUNTER:   'Łowca',
   PILGRIM:  'Pielgrzym',
 };

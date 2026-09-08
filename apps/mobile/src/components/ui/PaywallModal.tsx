@@ -30,12 +30,12 @@ const TIER_ICONS: Record<RequiredTier, string> = {
 
 const TIER_PERKS: Record<RequiredTier, string[]> = {
   PRO: [
-    'Spoty TRUSTED bez ograniczeń',
-    'Nieograniczone Journeys',
-    'Nieograniczone Saved Worlds',
+    'Spoty zaufanych bez ograniczeń',
+    'Nieograniczone wyprawy',
+    'Nieograniczone zapisane miejsca',
   ],
   EXPEDITION: [
-    'Dostęp do Secret Drops',
+    'Dostęp do Tajnych Dropów',
     'Twórz własne Circles (do 5)',
     'Ukryta warstwa mapy',
   ],

@@ -50,7 +50,7 @@ export default function ExplorersPage(): ReactElement {
         setSearched(true);
       } catch (err) {
         if (err instanceof Error && err.message === 'UNAUTHORIZED') {
-          setError('Zaloguj się, aby przeszukiwać explorerów.');
+          setError('Zaloguj się, aby przeszukiwać odkrywców.');
         } else {
           setError('Błąd wyszukiwania. Spróbuj ponownie.');
         }
@@ -68,7 +68,7 @@ export default function ExplorersPage(): ReactElement {
           <div className="mb-12 text-center">
             <p className="eyebrow mb-4">Sieć TravelPoint</p>
             <h1 className="font-display text-4xl md:text-5xl font-bold text-starlight tracking-tight mb-4">
-              Znajdź explorerów
+              Znajdź odkrywców
             </h1>
             <p className="font-sans text-base text-star">
               Wyszukaj po nazwie lub handlu. Obserwuj, pisz, buduj circle.
@@ -165,7 +165,7 @@ export default function ExplorersPage(): ReactElement {
                 Sieć prywatna
               </p>
               <p className="font-sans text-sm text-starFaint max-w-xs mx-auto leading-relaxed">
-                Wyszukiwanie explorerów wymaga zalogowania. Skorzystaj z aplikacji mobilnej TravelPoint lub zaloguj się na forum.
+                Wyszukiwanie odkrywców wymaga zalogowania. Skorzystaj z aplikacji mobilnej TravelPoint lub zaloguj się na forum.
               </p>
             </div>
           )}

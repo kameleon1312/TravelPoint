@@ -26,11 +26,11 @@ const RANK_COLORS: Record<string, string> = {
 };
 
 const RANK_LABELS: Record<string, string> = {
-  NEWCOMER: 'Newcomer',
+  NEWCOMER: 'Nowicjusz',
   EXPLORER: 'Explorer',
-  TRUSTED:  'Trusted',
-  INSIDER:  'Insider',
-  LEGEND:   'Legend',
+  TRUSTED:  'Zaufany',
+  INSIDER:  'Wtajemniczony',
+  LEGEND:   'Legenda',
 };
 
 const ARCHETYPE_ICONS: Record<string, string> = {
@@ -42,11 +42,11 @@ const ARCHETYPE_ICONS: Record<string, string> = {
 };
 
 const ARCHETYPE_LABELS: Record<string, string> = {
-  WANDERER: 'Wanderer',
+  WANDERER: 'Włóczęga',
   URBEXER:  'Urbexer',
-  NOMAD:    'Nomad',
-  HUNTER:   'Hunter',
-  PILGRIM:  'Pilgrim',
+  NOMAD:    'Nomada',
+  HUNTER:   'Łowca',
+  PILGRIM:  'Pielgrzym',
 };
 
 const ARCHETYPE_DESC: Record<string, string> = {
@@ -247,7 +247,7 @@ export default async function ExplorerProfilePage({ params }: Props): Promise<Re
             <div className="flex items-start gap-4">
               <span className="font-mono text-2xl text-ember flex-shrink-0">◈</span>
               <div>
-                <p className="font-mono text-xs text-ember uppercase tracking-widest mb-2">Hidden Layer</p>
+                <p className="font-mono text-xs text-ember uppercase tracking-widest mb-2">Ukryta Warstwa</p>
                 <p className="font-sans text-sm text-star leading-relaxed">
                   Spoty, journeys i circles tego explorera są widoczne wyłącznie w aplikacji CORE
                   dla uprawnionych członków sieci.
@@ -265,7 +265,7 @@ export default async function ExplorerProfilePage({ params }: Props): Promise<Re
               href="/#join"
               className="inline-block px-8 py-4 rounded-xl font-sans font-semibold text-sm text-void bg-aurora hover:brightness-110 transition-all"
             >
-              Zgłoś Request Access →
+              Chcę dołączyć do sieci →
             </Link>
           </div>
 

@@ -38,11 +38,11 @@ const CATEGORY_PL: Record<string, string> = {
 };
 
 const FEED_TYPE_LABELS: Record<string, string> = {
-  SPOT_CREATED:       'dropnął spot',
-  JOURNEY_PUBLISHED:  'opublikował journey',
-  SPOT_COMMENT:       'skomentował spot',
+  SPOT_CREATED:       'dodał nowy Spot',
+  JOURNEY_PUBLISHED:  'opublikował Journey',
+  SPOT_COMMENT:       'skomentował Spot',
   REACTION_RECEIVED:  'zareagował',
-  CIRCLE_ACTIVITY:    'aktywność w circle',
+  CIRCLE_ACTIVITY:    'aktywny w Circle',
 };
 
 const FEED_TYPE_ICONS: Record<string, string> = {
@@ -222,7 +222,7 @@ export default function DiscoverScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>Hidden Layer</Text>
+        <Text style={styles.eyebrow}>Ukryta Warstwa</Text>
         <Text style={styles.heading}>Odkrywaj</Text>
       </View>
 
@@ -233,7 +233,7 @@ export default function DiscoverScreen() {
           onPress={() => setSegment('feed')}
         >
           <Text style={[styles.segLabel, segment === 'feed' && styles.segLabelActive]}>
-            Feed
+            Aktywność
           </Text>
         </Pressable>
         <Pressable

@@ -259,7 +259,7 @@ export default function TransmissionsModal() {
           <View style={styles.header}>
             <View>
               <Text style={styles.eyebrow}>Circle</Text>
-              <Text style={styles.title}>{circleName ?? 'Chat'}</Text>
+              <Text style={styles.title}>{circleName ?? 'Czat'}</Text>
             </View>
             <Pressable onPress={() => router.back()} style={styles.closeBtn} hitSlop={12}>
               <Text style={styles.closeBtnText}>Zamknij</Text>
@@ -439,7 +439,7 @@ export default function TransmissionsModal() {
         <View>
           <Text style={styles.eyebrow}>Sieć</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-            <Text style={styles.title}>Transmissions</Text>
+            <Text style={styles.title}>Wiadomości</Text>
             {totalUnread > 0 && (
               <View style={styles.titleBadge}>
                 <Text style={styles.titleBadgeText}>{totalUnread}</Text>

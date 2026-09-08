@@ -54,7 +54,7 @@ function CircleCard({
               <Text style={styles.memberCount}>{pluralMembers(memberCount)}</Text>
               {item.isInviteOnly && (
                 <View style={styles.inviteBadge}>
-                  <Text style={styles.inviteBadgeText}>🔒 INVITE</Text>
+                  <Text style={styles.inviteBadgeText}>🔒 ZAPROSZENIE</Text>
                 </View>
               )}
             </View>
@@ -138,7 +138,7 @@ export default function BrowseCirclesScreen() {
         <Text style={styles.eyebrow}>Odkryj</Text>
         <Text style={styles.heading}>Circles</Text>
         <Text style={styles.sub}>
-          Prywatne kręgi eksploratorów — wspólne mapy, chaty i secret dropy.
+          Prywatne kręgi odkrywców — wspólne mapy, rozmowy i tajne dropy.
         </Text>
       </View>
 

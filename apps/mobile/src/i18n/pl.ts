@@ -8,7 +8,7 @@ export const pl = {
     passwordPlaceholder: 'Hasło (min. 12 znaków)',
     acceptTerms:      'Akceptuję regulamin',
     acceptPrivacy:    'Akceptuję politykę prywatności',
-    joinCta:          'Request Access',
+    joinCta:          'Chcę wejść do sieci',
     loginTitle:       'Powrót do sieci',
     loginCta:         'Wejdź',
     haveAccount:      'Masz już konto?',
@@ -26,11 +26,11 @@ export const pl = {
 
   // Spots
   spots: {
-    dropSpot:       'Drop a Spot',
-    hiddenSpot:     'Hidden Spot',
+    dropSpot:       'Oznacz miejsce',
+    hiddenSpot:     'Ukryty Spot',
     lockedSpot:     'Zablokowane',
     unlockRequires: 'Wymaga',
-    secretDrop:     'Secret Drop',
+    secretDrop:     'Tajny Drop',
     expiresIn:      'Wygasa za',
   },
 
@@ -39,13 +39,13 @@ export const pl = {
     nearby:         'Explorers w pobliżu',
     presenceActive: 'Presence aktywny',
     presenceOff:    'Presence wyłączony',
-    enablePresence: 'Włącz presence',
+    enablePresence: 'Włącz Presence',
   },
 
   // Journeys
   journeys: {
-    newJourney:     'Nowe journey',
-    replayJourney:  'Replay',
+    newJourney:     'Nowe Journey',
+    replayJourney:  'Odtwórz',
     privateJourney: 'Prywatne',
   },
 
@@ -53,12 +53,12 @@ export const pl = {
   recording: {
     startRecording:      'Nagraj Journey',
     stopRecording:       'Zatrzymaj nagrywanie',
-    journeyNameLabel:    'Nazwa journey',
+    journeyNameLabel:    'Nazwa Journey',
     journeyNameHint:     'np. Poranny urbex w Łodzi...',
     startBtn:            'Rozpocznij',
     recordingActive:     'Nagrywam',
     locationRequired:    'Wymagana lokalizacja',
-    locationDeniedMsg:   'Zezwól na dostęp do lokalizacji w ustawieniach, aby nagrywać journey.',
+    locationDeniedMsg:   'Zezwól na dostęp do lokalizacji w ustawieniach, aby nagrywać Journey.',
     savedTitle:          'Journey zapisane',
     savedBody:           (pts: number, km: number) =>
       `${pts} punktów GPS · ${km.toFixed(2)} km`,
@@ -66,14 +66,14 @@ export const pl = {
     saveFailed:          'Błąd zapisu trasy. Spróbuj ponownie.',
     cancelTitle:         'Anulować nagrywanie?',
     cancelMsg:           'Zarejestrowana trasa zostanie utracona.',
-    cancelConfirm:       'Anuluj nagrywanie',
+    cancelConfirm:       'Tak, anuluj',
   },
 
   // Circles
   circles: {
-    myCircles:    'Moje circles',
+    myCircles:    'Moje Circles',
     joinCircle:   'Dołącz',
-    createCircle: 'Utwórz circle',
+    createCircle: 'Utwórz Circle',
     inviteOnly:   'Tylko zaproszenia',
   },
 

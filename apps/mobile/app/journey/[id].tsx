@@ -209,7 +209,7 @@ export default function JourneyDetailScreen() {
   function confirmDelete() {
     Alert.alert(
       `Usuń "${journey?.title}"?`,
-      'Tej operacji nie można cofnąć. Journey zostanie trwale usunięte.',
+      'Tej operacji nie można cofnąć. Trasa zostanie trwale usunięta.',
       [
         { text: 'Anuluj', style: 'cancel' },
         {
@@ -255,7 +255,7 @@ export default function JourneyDetailScreen() {
         {/* Back + owner actions */}
         <View style={styles.topBar}>
           <Pressable style={styles.back} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Journeys</Text>
+            <Text style={styles.backText}>← Trasy</Text>
           </Pressable>
           {isOwner && (
             <Pressable style={styles.editBtn} onPress={() => setEditVisible(true)}>
@@ -267,7 +267,7 @@ export default function JourneyDetailScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <Text style={styles.eyebrow}>Journey Replay</Text>
+            <Text style={styles.eyebrow}>Odtwarzanie trasy</Text>
             {journey.isPrivate && (
               <View style={styles.privateBadge}>
                 <Text style={styles.privateBadgeText}>◑ Prywatne</Text>
@@ -355,7 +355,7 @@ export default function JourneyDetailScreen() {
           <GlassCard style={styles.soundtrackCard}>
             <Text style={styles.soundtrackIcon}>♪</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.soundtrackLabel}>Soundtrack</Text>
+              <Text style={styles.soundtrackLabel}>Ścieżka dźwiękowa</Text>
               <Text style={styles.soundtrackUrl} numberOfLines={1}>{journey.soundtrack}</Text>
             </View>
           </GlassCard>
@@ -396,7 +396,7 @@ export default function JourneyDetailScreen() {
           >
             <Text style={[styles.likeIcon, journey.liked && styles.likeIconActive]}>♥</Text>
             <Text style={[styles.likeLabel, journey.liked && styles.likeLabelActive]}>
-              {journey.liked ? 'Polubiłeś' : 'Lubię tę journey'}
+              {journey.liked ? 'Lubisz tę trasę' : 'Polub tę trasę'}
             </Text>
             {(journey.likeCount ?? 0) > 0 && (
               <Text style={styles.likeCount}>{journey.likeCount}</Text>
@@ -407,7 +407,7 @@ export default function JourneyDetailScreen() {
         {/* Like count for owners */}
         {isOwner && (journey.likeCount ?? 0) > 0 && (
           <View style={styles.ownerLikeRow}>
-            <Text style={styles.ownerLikeText}>♥ {journey.likeCount} explorers polubiło tę journey</Text>
+            <Text style={styles.ownerLikeText}>♥ {journey.likeCount} odkrywców polubiło tę trasę</Text>
           </View>
         )}
 
@@ -415,7 +415,7 @@ export default function JourneyDetailScreen() {
         {isOwner && (
           <View style={styles.ownerActions}>
             <SignalButton
-              label="Edytuj journey"
+              label="Edytuj trasę"
               onPress={() => setEditVisible(true)}
               variant="ghost"
               size="md"

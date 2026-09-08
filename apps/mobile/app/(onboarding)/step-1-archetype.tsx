@@ -9,11 +9,11 @@ import type { Archetype } from '@travelpoint/types';
 import { useOnboardingStore } from '@/stores/onboarding';
 
 const ARCHETYPES: Array<{ value: Archetype; label: string; desc: string; icon: string }> = [
-  { value: 'WANDERER', label: 'Wanderer', desc: 'Żyjesz bez planu. Mapy to tylko sugestie.', icon: '◎' },
+  { value: 'WANDERER', label: 'Włóczęga', desc: 'Żyjesz bez planu. Mapy to tylko sugestie.', icon: '◎' },
   { value: 'URBEXER', label: 'Urbexer', desc: 'Zapomniane miejsca, opuszczone budynki, zakazane strefy.', icon: '◈' },
-  { value: 'NOMAD', label: 'Nomad', desc: 'Dom to van, plecak lub dowolny kraj z Wi-Fi.', icon: '◑' },
-  { value: 'HUNTER', label: 'Hunter', desc: 'Tropiciel ukrytych klejnotów. Secret spots to twoja obsesja.', icon: '◐' },
-  { value: 'PILGRIM', label: 'Pilgrim', desc: 'Szukasz sensu w podróży. Każde miejsce ma swoją energię.', icon: '◉' },
+  { value: 'NOMAD', label: 'Nomada', desc: 'Dom to van, plecak lub dowolny kraj z Wi-Fi.', icon: '◑' },
+  { value: 'HUNTER', label: 'Łowca', desc: 'Tropiciel ukrytych klejnotów. Tajne spoty to twoja obsesja.', icon: '◐' },
+  { value: 'PILGRIM', label: 'Pielgrzym', desc: 'Szukasz sensu w podróży. Każde miejsce ma swoją energię.', icon: '◉' },
 ];
 
 export default function ArchetypeStep() {
@@ -41,7 +41,7 @@ export default function ArchetypeStep() {
 
           <View style={styles.headingBlock}>
             <Text style={styles.step}>1 / 3</Text>
-            <Text style={styles.eyebrow}>Explorer Archetype</Text>
+            <Text style={styles.eyebrow}>Twój archetyp</Text>
             <Text style={styles.title}>Kim jesteś jako podróżnik?</Text>
             <Text style={styles.subtitle}>Wybierz swój archetyp. Możesz to zmienić w Tożsamości.</Text>
           </View>

@@ -21,7 +21,7 @@ export default function JourneysScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Twoje wyprawy</Text>
-        <Text style={styles.heading}>Journeys</Text>
+        <Text style={styles.heading}>Trasy</Text>
       </View>
 
       {isLoading && (
@@ -34,7 +34,7 @@ export default function JourneysScreen() {
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>◈</Text>
           <Text style={styles.emptyTitle}>Błąd połączenia</Text>
-          <Text style={styles.emptySub}>Nie udało się załadować journeys.</Text>
+          <Text style={styles.emptySub}>Nie udało się załadować tras. Spróbuj ponownie.</Text>
           <SignalButton
             label="Spróbuj ponownie"
             onPress={() => void refetch()}
@@ -48,9 +48,9 @@ export default function JourneysScreen() {
       {isEmpty && (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>◎</Text>
-          <Text style={styles.emptyTitle}>Brak zapisanych journeys</Text>
+          <Text style={styles.emptyTitle}>Jeszcze bez tras</Text>
           <Text style={styles.emptySub}>
-            Twoje ekspedycje pojawią się tutaj. Zacznij nowe journey z mapy.
+            Twoje wyprawy pojawią się tutaj. Zacznij nowe Journey z mapy.
           </Text>
         </View>
       )}
