@@ -19,17 +19,17 @@ export async function POST(req: NextRequest) {
   const adminEmail = process.env['ADMIN_EMAIL'];
 
   const apiKey = process.env['RESEND_API_KEY'];
-  if (apiKey) {
+  if (!apiKey) {
+    console.error('[invite-request] RESEND_API_KEY not set — emails skipped');
+  } else {
     const resend = new Resend(apiKey);
-    await Promise.allSettled([
-      // ── 1. Potwierdzenie do osoby która się zgłosiła ───────────────────────
+    const sends = await Promise.allSettled([
       resend.emails.send({
         from: FROM,
         to: email,
         subject: 'Twój request access — TravelPoint',
         html: waitlistHtml(email),
       }),
-      // ── 2. Powiadomienie dla admina o nowym zgłoszeniu ─────────────────────
       ...(adminEmail ? [resend.emails.send({
         from: FROM,
         to: adminEmail,
@@ -37,6 +37,15 @@ export async function POST(req: NextRequest) {
         html: adminNotificationHtml(email, handle ?? null),
       })] : []),
     ]);
+    for (const result of sends) {
+      if (result.status === 'rejected') {
+        console.error('[invite-request] Resend error:', result.reason);
+      } else if (result.value.error) {
+        console.error('[invite-request] Resend API error:', result.value.error);
+      } else {
+        console.log('[invite-request] Email sent id:', result.value.data?.id);
+      }
+    }
   }
 
   // ── 2. Forward do API ENGINE (dla zapisu w DB) — fire-and-forget ──────────
