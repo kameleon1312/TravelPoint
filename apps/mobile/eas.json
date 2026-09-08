@@ -40,6 +40,7 @@
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_API_URL": "https://travelpointapi-production.up.railway.app",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyDlEywYik2Gud3G0e7AjMqSAnGyJCratb4",
         "EXPO_PUBLIC_MAPBOX_TOKEN": "pk.eyJ1Ijoic2ltb25hcnQiLCJhIjoiY210ZWl6MnkyMThvMTJ5c2V5ZHM1YnllcSJ9.sI03nEWwvzxCqrdePVFvDg",
         "EXPO_PUBLIC_SUPABASE_URL": "https://doekrkqgsoayovycfizd.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWtya3Fnc29heW92eWNmaXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDg4NzIsImV4cCI6MjA4MDE4NDg3Mn0.14YnpwX5MIf223MDWGqiUh5iLxBp_ufC_sA17CvtXUI"

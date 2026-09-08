@@ -185,6 +185,7 @@ export default function JourneyDetailScreen() {
   const likeJourney   = useLikeJourney();
   const unlikeJourney = useUnlikeJourney();
   const [editVisible, setEditVisible] = useState(false);
+  const [routeMapReady, setRouteMapReady] = useState(false);
 
   const isOwner = !!journey && journey.explorerId === explorer?.id;
 
@@ -296,6 +297,7 @@ export default function JourneyDetailScreen() {
                 showsUserLocation={false}
                 mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
                 customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
+                onMapReady={() => setRouteMapReady(true)}
               >
                 {/* Glow layer */}
                 <Polyline
@@ -314,6 +316,11 @@ export default function JourneyDetailScreen() {
                   lineJoin="round"
                 />
               </MapView>
+              {!routeMapReady && (
+                <View style={styles.routeMapLoading}>
+                  <Text style={styles.routeMapLoadingText}>◎</Text>
+                </View>
+              )}
               <View style={styles.routeStats}>
                 <View style={styles.routeStatItem}>
                   <Text style={styles.routeStatValue}>
@@ -481,6 +488,14 @@ const styles = StyleSheet.create({
   routeLabel: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1, padding: Spacing.lg, paddingBottom: Spacing.sm },
   routeMapContainer: { overflow: 'hidden' },
   routeMap: { height: 320 },
+  routeMapLoading: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, height: 320,
+    backgroundColor: Colors.graphite,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  routeMapLoadingText: { fontSize: 28, color: Colors.signal },
   routeStats: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.steel, gap: 0 },
   routeStatItem: { flex: 1, alignItems: 'center', gap: 2 },
   routeStatValue: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.body, color: Colors.starlight },

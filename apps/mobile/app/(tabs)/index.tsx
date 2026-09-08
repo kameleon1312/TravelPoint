@@ -243,6 +243,18 @@ export default function AtlasScreen() {
   const [nearbyExplorers, setNearbyExplorers] = useState<NearbyExplorer[]>([]);
   const [showStartModal, setShowStartModal] = useState(false);
   const [previewSpot, setPreviewSpot]       = useState<SpotForViewer | null>(null);
+  const [mapReady, setMapReady]             = useState(false);
+  const [mapError, setMapError]             = useState(false);
+  const mapReadyRef   = useRef(false);
+  const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!MAPS_KEY) return;
+    mapTimeoutRef.current = setTimeout(() => {
+      if (!mapReadyRef.current) setMapError(true);
+    }, 7000);
+    return () => { if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current); };
+  }, []);
 
   const mapRef = useRef<MapView>(null);
 
@@ -470,6 +482,12 @@ export default function AtlasScreen() {
           mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
           customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
           onRegionChangeComplete={setRegion}
+          onMapReady={() => {
+            mapReadyRef.current = true;
+            setMapReady(true);
+            setMapError(false);
+            if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
+          }}
         >
           {/* Spot pins */}
           {spots?.map((spot: SpotForViewer) => {
@@ -525,6 +543,27 @@ export default function AtlasScreen() {
         </MapView>
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.mapPlaceholder]} />
+      )}
+
+      {/* Map loading / error overlay */}
+      {MAPS_KEY && !mapReady && !mapError && (
+        <View style={[StyleSheet.absoluteFill, styles.mapLoadingOverlay]} pointerEvents="none">
+          <View style={styles.mapLoadingSpinner}>
+            <Text style={styles.mapLoadingDot}>◎</Text>
+            <Text style={styles.mapLoadingText}>Ładowanie mapy…</Text>
+          </View>
+        </View>
+      )}
+      {mapError && (
+        <View style={[StyleSheet.absoluteFill, styles.mapErrorOverlay]} pointerEvents="none">
+          <View style={styles.mapErrorBox}>
+            <Text style={styles.mapErrorIcon}>◈</Text>
+            <Text style={styles.mapErrorTitle}>Mapa niedostępna</Text>
+            <Text style={styles.mapErrorDesc}>
+              Włącz "Maps SDK for Android" w Google Cloud Console dla klucza API.
+            </Text>
+          </View>
+        </View>
       )}
 
       {/* Top bar */}
@@ -612,6 +651,52 @@ export default function AtlasScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.abyss },
   mapPlaceholder: { backgroundColor: Colors.abyss },
+  mapLoadingOverlay: {
+    backgroundColor: Colors.abyss,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapLoadingSpinner: { alignItems: 'center', gap: Spacing.sm },
+  mapLoadingDot: {
+    fontSize: 28,
+    color: Colors.signal,
+  },
+  mapLoadingText: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: FontSize.caption,
+    color: Colors.starGhost,
+    letterSpacing: 1,
+  },
+  mapErrorOverlay: {
+    backgroundColor: Colors.abyss + 'CC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  mapErrorBox: {
+    backgroundColor: Colors.graphite,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.ember + '40',
+    padding: Spacing.xl,
+    alignItems: 'center',
+    gap: Spacing.md,
+    maxWidth: 280,
+  },
+  mapErrorIcon: { fontSize: 32, color: Colors.ember },
+  mapErrorTitle: {
+    fontFamily: 'ClashDisplay-Bold',
+    fontSize: FontSize.h4,
+    color: Colors.starlight,
+    textAlign: 'center',
+  },
+  mapErrorDesc: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: FontSize.bodySm,
+    color: Colors.star,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 
   // ── Top bar ──────────────────────────────────────────────────────────────────
   topBar: {
