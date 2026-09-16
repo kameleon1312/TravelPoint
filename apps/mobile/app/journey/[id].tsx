@@ -10,7 +10,6 @@ import type { Region } from 'react-native-maps';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 
-const MAPS_KEY = process.env['EXPO_PUBLIC_GOOGLE_MAPS_API_KEY'];
 import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
 import { useJourney, useDeleteJourney, useLikeJourney, useUnlikeJourney, useUpdateJourney } from '@/hooks/useJourneys';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
@@ -282,7 +281,7 @@ export default function JourneyDetailScreen() {
         {/* Route map */}
         <View style={styles.routeCard}>
           <Text style={styles.routeLabel}>Trasa ekspedycji</Text>
-          {routeCoords.length > 0 && routeRegion && MAPS_KEY ? (
+          {routeCoords.length > 0 && routeRegion && Platform.OS !== 'web' ? (
             <View style={styles.routeMapContainer}>
               <MapView
                 provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}

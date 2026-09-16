@@ -14,7 +14,6 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native
 import { Colors, FontSize, Spacing, Shadow } from '@travelpoint/theme';
 import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
 
-const MAPS_KEY = process.env['EXPO_PUBLIC_GOOGLE_MAPS_API_KEY'];
 const TOP_BAR_HEIGHT = 56;
 import { SignalButton } from '@/components/ui/SignalButton';
 import { SpotPreviewSheet } from '@/components/map/SpotPreviewSheet';
@@ -249,7 +248,7 @@ export default function AtlasScreen() {
   const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!MAPS_KEY) return;
+    if (Platform.OS === 'web') return;
     mapTimeoutRef.current = setTimeout(() => {
       if (!mapReadyRef.current) setMapError(true);
     }, 12000);
@@ -467,7 +466,7 @@ export default function AtlasScreen() {
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.root}>
-      {MAPS_KEY ? (
+      {Platform.OS !== 'web' ? (
         <MapView
           ref={mapRef}
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
