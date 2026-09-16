@@ -242,7 +242,6 @@ export default function AtlasScreen() {
   const [nearbyExplorers, setNearbyExplorers] = useState<NearbyExplorer[]>([]);
   const [showStartModal, setShowStartModal] = useState(false);
   const [previewSpot, setPreviewSpot]       = useState<SpotForViewer | null>(null);
-  const [mapReady, setMapReady]             = useState(false);
   const [mapError, setMapError]             = useState(false);
   const mapReadyRef   = useRef(false);
   const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -483,7 +482,6 @@ export default function AtlasScreen() {
           onRegionChangeComplete={setRegion}
           onMapReady={() => {
             mapReadyRef.current = true;
-            setMapReady(true);
             setMapError(false);
             if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
           }}
