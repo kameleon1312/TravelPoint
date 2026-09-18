@@ -122,6 +122,12 @@ async function syncSpotLocation(app: FastifyInstance, spotId: string, lat: numbe
 }
 
 export async function spotsRoutes(app: FastifyInstance) {
+  // Public: live spot count for social proof on the landing page — no auth required.
+  app.get('/api/stats/spots', async (_req, reply) => {
+    const count = await app.prisma.spot.count({ where: { deletedAt: null } });
+    return reply.send({ count });
+  });
+
   async function resolveForExplorer(
     spot: Parameters<typeof resolveSpotForViewer>[0],
     explorerId: string,

@@ -83,7 +83,7 @@ export default function NewSpotModal() {
       setValue('lat', loc.coords.latitude);
       setValue('lng', loc.coords.longitude);
       setGpsLabel(
-        `📍 ${loc.coords.latitude.toFixed(5)}, ${loc.coords.longitude.toFixed(5)}`,
+        `◉ ${loc.coords.latitude.toFixed(5)}, ${loc.coords.longitude.toFixed(5)}`,
       );
     })();
   }, [setValue]);

@@ -1,5 +1,5 @@
 'use client';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { WorldNav } from '@/components/layout/WorldNav';
 import { Hero } from '@/components/landing/Hero';
 import { PhoneShowcase } from '@/components/landing/PhoneShowcase';
@@ -25,6 +25,19 @@ function SectionReveal({ children, className = '' }: { children: React.ReactNode
 }
 
 export default function LandingPage(): React.JSX.Element {
+  const [spotCount, setSpotCount] = useState('2400+');
+
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+    fetch(`${apiUrl}/api/stats/spots`)
+      .then((r) => r.json())
+      .then((data) => {
+        const { count } = data as { count: number };
+        if (count > 0) setSpotCount(`${count.toLocaleString('pl-PL')}+`);
+      })
+      .catch(() => {}); // keep fallback '2400+' on error
+  }, []);
+
   function scrollToJoin() {
     document.getElementById('join')?.scrollIntoView({ behavior: 'smooth' });
   }
@@ -69,7 +82,7 @@ export default function LandingPage(): React.JSX.Element {
           <div className="landing-band py-12 px-4">
             <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-8 text-center">
               {[
-                { value: '2400+', label: 'Ukrytych Spotów' },
+                { value: spotCount, label: 'Ukrytych Spotów' },
                 { value: '58', label: 'Krajów' },
                 { value: '340', label: 'Aktywnych Odkrywców' },
                 { value: '12', label: 'Kręgów Podróżników' },
