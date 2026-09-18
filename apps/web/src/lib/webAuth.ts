@@ -15,6 +15,8 @@ export function getStoredToken(): string | null {
 export function setStoredToken(token: string): void {
   try {
     sessionStorage.setItem(STORAGE_KEY, token);
+    // Mirror to cookie so Next.js middleware can read it for admin route protection
+    document.cookie = `tp_access_token=${token}; path=/; max-age=86400; SameSite=Strict`;
   } catch {
     // ignore
   }
@@ -23,6 +25,7 @@ export function setStoredToken(token: string): void {
 export function clearStoredToken(): void {
   try {
     sessionStorage.removeItem(STORAGE_KEY);
+    document.cookie = 'tp_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
   } catch {
     // ignore
   }

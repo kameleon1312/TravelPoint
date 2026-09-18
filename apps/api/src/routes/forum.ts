@@ -71,7 +71,7 @@ export async function forumRoutes(app: FastifyInstance) {
   });
 
   // POST /api/forum/posts
-  app.post('/api/forum/posts', { preHandler: [requireAuth] }, async (req, reply) => {
+  app.post('/api/forum/posts', { preHandler: [requireAuth], config: { rateLimit: { max: 10, timeWindow: '1 hour' } } }, async (req, reply) => {
     const parsed = CreatePostSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
@@ -126,7 +126,7 @@ export async function forumRoutes(app: FastifyInstance) {
   });
 
   // POST /api/forum/posts/:slug/replies
-  app.post('/api/forum/posts/:slug/replies', { preHandler: [requireAuth] }, async (req, reply) => {
+  app.post('/api/forum/posts/:slug/replies', { preHandler: [requireAuth], config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (req, reply) => {
     const { slug } = req.params as { slug: string };
     const parsed = CreateReplySchema.safeParse(req.body);
     if (!parsed.success) {

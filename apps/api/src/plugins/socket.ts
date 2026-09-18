@@ -77,8 +77,14 @@ export default fp(async (app: FastifyInstance) => {
 
     void socket.join(`explorer:${explorerId}`);
 
+    let lastPresenceEnable = 0;
+    const PRESENCE_THROTTLE_MS = 30_000;
+
     // ── Presence (opt-in, coords fuzzed ≥500m) ────────────────────────────────
     socket.on('presence:enable', async (data: { lat?: unknown; lng?: unknown }) => {
+      const now = Date.now();
+      if (now - lastPresenceEnable < PRESENCE_THROTTLE_MS) return;
+      lastPresenceEnable = now;
       if (
         typeof data?.lat !== 'number' ||
         typeof data.lng !== 'number' ||

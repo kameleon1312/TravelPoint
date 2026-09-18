@@ -17,8 +17,8 @@ import { pushSignal } from './signals';
 import { sendPushToExplorer } from '../services/push';
 import { pushStrings } from '../lib/pushStrings';
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] as const;
-const MAX_PHOTO_BYTES = 20_000_000;
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
 const PhotoUploadUrlSchema = z.object({
   mimeType:  z.enum(ALLOWED_MIME_TYPES),
@@ -346,7 +346,7 @@ export async function spotsRoutes(app: FastifyInstance) {
   });
 
   // POST /api/spots
-  app.post('/api/spots', { preHandler: [requireAuth] }, async (req, reply) => {
+  app.post('/api/spots', { preHandler: [requireAuth], config: { rateLimit: { max: 20, timeWindow: '1 hour' } } }, async (req, reply) => {
     const parsed = CreateSpotSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });

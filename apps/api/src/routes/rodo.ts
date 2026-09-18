@@ -39,7 +39,7 @@ async function sendEmail(to: string, subject: string, text: string): Promise<voi
 }
 
 export async function rodoRoutes(app: FastifyInstance) {
-  app.post('/api/rodo-request', async (req, reply) => {
+  app.post('/api/rodo-request', { config: { rateLimit: { max: 5, timeWindow: '1 hour' } } }, async (req, reply) => {
     const parsed = RodoRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });

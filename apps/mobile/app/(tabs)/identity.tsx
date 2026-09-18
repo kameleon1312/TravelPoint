@@ -1034,7 +1034,7 @@ export default function IdentityScreen() {
           </View>
 
           <Text style={styles.consentNote}>
-            Zgody regulaminowe udzielone: {new Date(explorer.consentTerms ?? '').toLocaleDateString('pl-PL')}
+            Zgody regulaminowe udzielone: {explorer.consentTerms ? new Date(explorer.consentTerms).toLocaleDateString('pl-PL') : '—'}
           </Text>
 
           <View style={styles.homeBaseBlock}>

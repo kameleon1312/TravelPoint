@@ -80,7 +80,7 @@ export async function transmissionRoutes(app: FastifyInstance) {
   });
 
   // POST /api/transmissions — send DM or circle message
-  app.post('/api/transmissions', { preHandler: [requireAuth] }, async (req, reply) => {
+  app.post('/api/transmissions', { preHandler: [requireAuth], config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (req, reply) => {
     const parsed = CreateTransmissionSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });

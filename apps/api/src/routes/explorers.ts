@@ -340,7 +340,7 @@ export async function explorerRoutes(app: FastifyInstance) {
   });
 
   // ─── GET /api/explorers/search?q= — find explorers by handle/displayName ──
-  app.get('/api/explorers/search', { preHandler: [requireAuth] }, async (req, reply) => {
+  app.get('/api/explorers/search', { preHandler: [requireAuth], config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req, reply) => {
     const { q } = req.query as { q?: string };
     const term = (q ?? '').trim();
     if (term.length < 2) return reply.send([]);

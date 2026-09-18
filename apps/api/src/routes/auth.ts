@@ -155,13 +155,19 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   // POST /api/auth/invite — INSIDER+ generuje kod zaproszenia
-  app.post('/api/auth/invite', { preHandler: [requireAuth] }, async (req, reply) => {
+  app.post('/api/auth/invite', { preHandler: [requireAuth], config: { rateLimit: { max: 10, timeWindow: '1 hour' } } }, async (req, reply) => {
     const explorer = await app.prisma.explorer.findUnique({ where: { id: req.explorerId } });
     if (!explorer || !['INSIDER', 'LEGEND'].includes(explorer.rank)) {
       return reply.status(403).send({ code: 'FORBIDDEN', message: 'Wymagana ranga INSIDER' });
     }
 
-    const { recipientEmail } = req.body as { recipientEmail?: string };
+    const body = req.body as { recipientEmail?: unknown };
+    const recipientEmailSchema = z.string().email().optional();
+    const emailParsed = recipientEmailSchema.safeParse(body.recipientEmail);
+    if (!emailParsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: emailParsed.error.flatten() });
+    }
+    const recipientEmail = emailParsed.data;
     const code = crypto.randomBytes(16).toString('hex');
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 

@@ -137,7 +137,7 @@ function AuthGate() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/(auth)/join');
+      router.replace('/(auth)/login');
     }
     if (!isLoading && isAuthenticated) {
       void registerPushToken();

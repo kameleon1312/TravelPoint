@@ -77,8 +77,8 @@ export async function billingRoutes(app: FastifyInstance) {
       }
       try {
         await applyStripeEvent(app.prisma, JSON.parse(rawBody) as StripeEvent);
-      } catch {
-        // Ack to Stripe regardless — retry storms do more harm than a failed handler
+      } catch (err) {
+        app.log.error(err, 'Stripe webhook handler failed');
       }
       return reply.status(204).send();
     });

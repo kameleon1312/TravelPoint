@@ -1,7 +1,7 @@
 import type { ContentStatus } from '@prisma/client';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { requireModerator } from '../middleware/requireAuth';
+import { requireModerator, verifySupabaseJwt } from '../middleware/requireAuth';
 
 const JournalPostSchema = z.object({
   slug: z.string().trim().min(3).max(140).regex(/^[a-z0-9-]+$/),
@@ -14,8 +14,26 @@ const JournalPostSchema = z.object({
 });
 
 export async function journalRoutes(app: FastifyInstance) {
-  app.get('/api/journal/posts', async (req) => {
-    const status = ((req.query as { status?: ContentStatus }).status ?? 'PUBLISHED') as ContentStatus;
+  app.get('/api/journal/posts', async (req, reply) => {
+    const requested = (req.query as { status?: string }).status ?? 'PUBLISHED';
+    // Non-published status requires moderator — guard against DRAFT/ARCHIVED leak
+    if (requested !== 'PUBLISHED') {
+      const auth = req.headers['authorization'];
+      if (!auth?.startsWith('Bearer ')) return reply.status(403).send({ code: 'FORBIDDEN' });
+      try {
+        const { sub: supabaseUserId } = verifySupabaseJwt(auth.slice(7));
+        const explorer = await app.prisma.explorer.findFirst({
+          where: { supabaseId: supabaseUserId, deletedAt: null },
+          select: { role: true },
+        });
+        if (!explorer || !['MODERATOR', 'ADMIN'].includes(explorer.role)) {
+          return reply.status(403).send({ code: 'FORBIDDEN' });
+        }
+      } catch {
+        return reply.status(403).send({ code: 'FORBIDDEN' });
+      }
+    }
+    const status = requested as ContentStatus;
     return app.prisma.journalPost.findMany({
       where: { status, ...(status === 'PUBLISHED' ? { publishedAt: { not: null } } : {}) },
       orderBy: { publishedAt: 'desc' },
