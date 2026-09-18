@@ -228,18 +228,22 @@ export default function JourneyDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={Colors.aurora} size="large" />
-      </View>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <View style={styles.center}>
+          <ActivityIndicator color={Colors.aurora} size="large" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!journey) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Journey nie znalezione.</Text>
-        <SignalButton label="Wróć" onPress={() => router.back()} variant="ghost" size="sm" />
-      </View>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <View style={styles.center}>
+          <Text style={styles.errorText}>Journey nie znalezione.</Text>
+          <SignalButton label="Wróć" onPress={() => router.back()} variant="ghost" size="sm" />
+        </View>
+      </SafeAreaView>
     );
   }
 

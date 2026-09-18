@@ -604,18 +604,22 @@ export default function SpotDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={Colors.aurora} size="large" />
-      </View>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <View style={styles.center}>
+          <ActivityIndicator color={Colors.aurora} size="large" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error || !spot) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Nie znaleziono spotu.</Text>
-        <SignalButton label="Wróć" onPress={() => router.back()} variant="ghost" size="sm" />
-      </View>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <View style={styles.center}>
+          <Text style={styles.errorText}>Nie znaleziono spotu.</Text>
+          <SignalButton label="Wróć" onPress={() => router.back()} variant="ghost" size="sm" />
+        </View>
+      </SafeAreaView>
     );
   }
 

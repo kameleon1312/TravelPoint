@@ -830,7 +830,6 @@ const styles = StyleSheet.create({
     width: 88, height: 88, borderRadius: 44, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
-    position: 'relative', overflow: 'hidden',
   },
   avatar: {
     width: 76, height: 76, borderRadius: 38,
@@ -839,12 +838,12 @@ const styles = StyleSheet.create({
   },
   avatarLetter: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h2, color: Colors.aurora },
   avatarEditBadge: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: Colors.graphite, borderWidth: 1, borderColor: Colors.steel,
+    position: 'absolute', bottom: 2, right: 2,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.graphite, borderWidth: 1.5, borderColor: Colors.aurora + '80',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarEditIcon: { fontFamily: 'GeneralSans-Regular', fontSize: 12, color: Colors.aurora, lineHeight: 14 },
+  avatarEditIcon: { fontFamily: 'GeneralSans-Regular', fontSize: 14, color: Colors.aurora, lineHeight: 16 },
   rankProgress: { width: '80%', gap: 4, alignItems: 'center' },
   rankProgressBar: {
     width: '100%', height: 3, borderRadius: 2,
