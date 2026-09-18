@@ -879,6 +879,7 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: Colors.abyss, borderWidth: 2, borderColor: Colors.aurora,
     alignItems: 'center', justifyContent: 'center',
+    zIndex: 10, elevation: 10,
   },
   avatarEditIcon: { fontFamily: 'GeneralSans-Medium', fontSize: 15, color: Colors.aurora, lineHeight: 18 },
   rankProgress: { width: '80%', gap: 4, alignItems: 'center' },
