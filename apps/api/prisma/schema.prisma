@@ -613,6 +613,7 @@ enum SignalType {
   JOURNEY_LIKE
   TRANSMISSION
   FORUM_REPLY
+  RANK_UP
 }
 
 enum InvitePurpose {

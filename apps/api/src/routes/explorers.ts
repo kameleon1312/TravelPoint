@@ -5,7 +5,13 @@ import { auditAccess } from '../middleware/auditLog';
 import { logger } from '../lib/logger';
 import { env } from '../config/env';
 import { decrypt, encrypt } from '@travelpoint/utils';
-import { HomeBaseSchema, ProfileUpdateSchema } from '@travelpoint/validation';
+import {
+  HomeBaseSchema,
+  ProfileUpdateSchema,
+  AvatarUploadUrlSchema,
+  AvatarUploadCompleteSchema,
+  PushTokenSchema,
+} from '@travelpoint/validation';
 import { createPhotoUpload, finalizePhoto, validatePhoto } from '../services/storage';
 
 function decryptHomeBase(value: string | null): { lat: number; lng: number } | null {
@@ -66,10 +72,14 @@ export async function explorerRoutes(app: FastifyInstance) {
 
   // ─── POST /api/explorers/me/avatar/upload-url ────────────────────────────
   app.post('/api/explorers/me/avatar/upload-url', { preHandler: [requireAuth] }, async (req, reply) => {
-    const { mimeType, sizeBytes } = req.body as { mimeType?: string; sizeBytes?: number };
+    const parsed = AvatarUploadUrlSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
+    const { mimeType, sizeBytes } = parsed.data;
     try {
-      validatePhoto(mimeType ?? '', sizeBytes ?? 0);
-      const upload = await createPhotoUpload(req.explorerId, mimeType!, sizeBytes!);
+      validatePhoto(mimeType, sizeBytes);
+      const upload = await createPhotoUpload(req.explorerId, mimeType, sizeBytes);
       return reply.send(upload);
     } catch (error) {
       const code = error instanceof Error ? error.message : 'UPLOAD_FAILED';
@@ -82,15 +92,17 @@ export async function explorerRoutes(app: FastifyInstance) {
 
   // ─── POST /api/explorers/me/avatar/complete ───────────────────────────────
   app.post('/api/explorers/me/avatar/complete', { preHandler: [requireAuth] }, async (req, reply) => {
-    const { objectKey, mimeType, sizeBytes } = req.body as {
-      objectKey?: string; mimeType?: string; sizeBytes?: number;
-    };
-    if (!objectKey?.startsWith(`photos/${req.explorerId}/`)) {
+    const parsed = AvatarUploadCompleteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
+    const { objectKey, mimeType, sizeBytes } = parsed.data;
+    if (!objectKey.startsWith(`photos/${req.explorerId}/`)) {
       return reply.status(400).send({ code: 'INVALID_OBJECT_KEY' });
     }
     let stored;
     try {
-      stored = await finalizePhoto(objectKey, mimeType ?? '', sizeBytes ?? 0);
+      stored = await finalizePhoto(objectKey, mimeType, sizeBytes);
     } catch (error) {
       const code = error instanceof Error ? error.message : 'UPLOAD_FAILED';
       return reply.status(code === 'STORAGE_NOT_CONFIGURED' ? 503 : 400).send({ code });
@@ -316,13 +328,13 @@ export async function explorerRoutes(app: FastifyInstance) {
 
   // ─── POST /api/explorers/me/push-token ────────────────────────────────────
   app.post('/api/explorers/me/push-token', { preHandler: [requireAuth] }, async (req, reply) => {
-    const { token } = req.body as { token?: string };
-    if (!token || typeof token !== 'string') {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'token required' });
+    const parsed = PushTokenSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
     await app.prisma.explorer.update({
       where: { id: req.explorerId },
-      data:  { pushToken: token },
+      data:  { pushToken: parsed.data.token },
     });
     return reply.status(204).send();
   });

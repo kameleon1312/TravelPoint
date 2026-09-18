@@ -7,7 +7,8 @@ export type SignalType =
   | 'SECRET_DROP'
   | 'JOURNEY_LIKE'
   | 'TRANSMISSION'
-  | 'FORUM_REPLY';
+  | 'FORUM_REPLY'
+  | 'RANK_UP';
 
 export interface SpotComment {
   id: string;

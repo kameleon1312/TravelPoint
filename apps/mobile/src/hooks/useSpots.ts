@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { SpotForViewer } from '@travelpoint/types';
+import type { CreateSpotInput, UpdateSpotInput } from '@travelpoint/validation';
 
 interface Photo {
   id: string;
@@ -33,7 +34,7 @@ export function useSpot(id: string) {
 export function useCreateSpot() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: unknown) => api.post<SpotForViewer>('/api/spots', body),
+    mutationFn: (body: CreateSpotInput) => api.post<SpotForViewer>('/api/spots', body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['spots'] }),
   });
 }
@@ -118,16 +119,8 @@ export function useUploadSpotPhoto() {
 export function useUpdateSpot() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      ...body
-    }: {
-      id: string;
-      title?: string;
-      story?: string;
-      accessLevel?: string;
-      dropExpiresAt?: string | null;
-    }) => api.patch<SpotForViewer>(`/api/spots/${id}`, body),
+    mutationFn: ({ id, ...body }: { id: string } & UpdateSpotInput) =>
+      api.patch<SpotForViewer>(`/api/spots/${id}`, body),
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: ['spots', id] });
     },

@@ -32,6 +32,10 @@ export const pl = {
     unlockRequires: 'Wymaga',
     secretDrop:     'Tajny Drop',
     expiresIn:      'Wygasa za',
+    saveToWorlds:   'Zapisz w Saved Worlds',
+    savedInWorlds:  'Zapisano w Saved Worlds',
+    savedWorlds:    'Saved Worlds',
+    noSavedWorlds:  'Brak Saved Worlds',
   },
 
   // Presence

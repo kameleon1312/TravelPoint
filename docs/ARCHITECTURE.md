@@ -59,10 +59,11 @@ Rationale: 2x faster, schema-first, native TypeScript support.
 ### ADR-003: Expo over bare React Native
 Rationale: OTA updates, EAS Build, faster iteration. No native modules that require ejection at MVP.
 
-### ADR-004: Maps — Google Maps (web + mobile)
-- **Web (WORLD):** Google Maps JavaScript API loaded via direct `<script>` injection (no `@googlemaps/js-api-loader` dependency). Custom `TERRA_MARE_STYLE` JSON overlay applied via `styledMapType`. Falls back to OpenStreetMap tiles (CSS-filtered to Terra Mare dark look) if the script fails or `gm_authFailure` fires. Key: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (HTTP-referrer-restricted in Google Cloud Console).
-- **Mobile (CORE):** `react-native-maps` — `PROVIDER_GOOGLE` on Android/iOS with the same `TERRA_MARE_STYLE` JSON overlay. Requires `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and the key in `AndroidManifest.xml` at EAS build time. Without the key, the map tab renders a dark placeholder (geo functionality preserved).
-- Revisit: consider unified Mapbox Native SDK if Maps pricing becomes prohibitive (Q1 2028).
+### ADR-004: Maps — Google Maps (mobile) + Mapbox (web) [DIVERGENCE DOCUMENTED]
+- **Mobile (CORE):** `react-native-maps` — `PROVIDER_GOOGLE` on Android/iOS with `TERRA_MARE_STYLE` JSON overlay. Requires `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and the key injected into `AndroidManifest.xml` at EAS build time. Without the key, the map tab renders a dark placeholder (geo functionality preserved).
+- **Web (WORLD):** Mapbox GL JS (`mapbox-gl` package). Original ADR-004 specified Google Maps JS API for web, but the implementation uses Mapbox with a custom Terra Mare style. This divergence was introduced intentionally for the web map's advanced style control and terrain layer support. Key: `NEXT_PUBLIC_MAPBOX_TOKEN` (URL-restricted in Mapbox console).
+- **Known divergence:** The two layers use different map providers. Unifying them under a single SDK (Mapbox Native or Google Maps) is tracked for Q1 2028 when mobile Mapbox Native becomes cost-effective.
+- **Why not change web back to Google Maps:** Mapbox GL JS provides better style customisation for the Terra Mare dark nautical theme (custom terrain, water layers) that Google Maps styledMapType cannot fully replicate at equivalent quality.
 
 ### ADR-005: Haversine for geo queries (not PostGIS)
 Rationale: Radius proximity queries use Haversine formula computed in Prisma raw queries, not PostGIS `ST_DWithin`. This avoids requiring the PostGIS extension on the Railway PostgreSQL instance (which requires manual activation and is not guaranteed on all plans). H3 index is pre-computed and stored in the `h3Index` column for fast hex-cell filtering. Revisit with PostGIS if query performance degrades beyond 10k spots.

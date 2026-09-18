@@ -170,8 +170,26 @@ export async function circleRoutes(app: FastifyInstance) {
     const circle = await app.prisma.circle.findUnique({ where: { slug } });
     if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
 
-    await app.prisma.circleMember.deleteMany({
-      where: { circleId: circle.id, explorerId: req.explorerId },
+    const membership = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
+    });
+    if (!membership) return reply.status(404).send({ code: 'NOT_MEMBER' });
+
+    if (membership.role === 'FOUNDER') {
+      const memberCount = await app.prisma.circleMember.count({ where: { circleId: circle.id } });
+      if (memberCount > 1) {
+        return reply.status(409).send({
+          code: 'FOUNDER_CANNOT_LEAVE',
+          message: 'Transfer ownership to another member before leaving the circle',
+        });
+      }
+      // Sole founder — dissolve the circle entirely
+      await app.prisma.circle.delete({ where: { id: circle.id } });
+      return reply.status(204).send();
+    }
+
+    await app.prisma.circleMember.delete({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
     });
     return reply.status(204).send();
   });

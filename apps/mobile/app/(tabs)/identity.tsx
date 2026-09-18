@@ -636,7 +636,7 @@ export default function IdentityScreen() {
         <View style={styles.quickLinks}>
           <Pressable style={styles.quickLink} onPress={() => router.push('/saved')}>
             <Text style={styles.quickLinkIcon}>◎</Text>
-            <Text style={styles.quickLinkLabel}>Zapisane miejsca</Text>
+            <Text style={styles.quickLinkLabel}>Saved Worlds</Text>
             <Text style={styles.quickLinkChevron}>›</Text>
           </Pressable>
         </View>

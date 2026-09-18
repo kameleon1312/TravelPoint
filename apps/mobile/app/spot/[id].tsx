@@ -765,7 +765,7 @@ export default function SpotDetailScreen() {
 
             {/* Save action */}
             <SignalButton
-              label={saved ? '◈ Zapisano' : '◎ Zapisz to miejsce'}
+              label={saved ? '◈ Zapisano w Saved Worlds' : '◎ Zapisz w Saved Worlds'}
               onPress={handleSave}
               variant={saved ? 'aurora' : 'signal'}
               size="md"

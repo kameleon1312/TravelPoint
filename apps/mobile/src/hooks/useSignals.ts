@@ -14,6 +14,7 @@ const SIGNAL_LABELS: Record<SignalType, string> = {
   JOURNEY_LIKE:    'Reakcja na journey',
   TRANSMISSION:    'Nowa transmisja',
   FORUM_REPLY:     'Odpowiedź na forum',
+  RANK_UP:         'Nowa ranga!',
 };
 
 const SIGNAL_ICONS: Record<SignalType, string> = {
@@ -26,6 +27,7 @@ const SIGNAL_ICONS: Record<SignalType, string> = {
   JOURNEY_LIKE:    '◎',
   TRANSMISSION:    '◐',
   FORUM_REPLY:     '◇',
+  RANK_UP:         '◈',
 };
 
 export { SIGNAL_LABELS, SIGNAL_ICONS };

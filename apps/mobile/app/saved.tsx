@@ -77,7 +77,7 @@ export default function SavedWorldsScreen() {
           <Text style={styles.backText}>← Wróć</Text>
         </Pressable>
         <Text style={styles.eyebrow}>Kolekcja</Text>
-        <Text style={styles.heading}>Zapisane miejsca</Text>
+        <Text style={styles.heading}>Saved Worlds</Text>
         {spots && (
           <Text style={styles.sub}>{spots.length} {spots.length === 1 ? 'spot' : 'spotów'} zapisanych</Text>
         )}
@@ -92,7 +92,7 @@ export default function SavedWorldsScreen() {
       {!isLoading && (!spots || spots.length === 0) && (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>◎</Text>
-          <Text style={styles.emptyTitle}>Brak zapisanych spotów</Text>
+          <Text style={styles.emptyTitle}>Brak Saved Worlds</Text>
           <Text style={styles.emptySub}>
             Odkryj spoty na mapie i zapisuj te, do których chcesz wrócić.
           </Text>

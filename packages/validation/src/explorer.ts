@@ -18,3 +18,21 @@ export const ProfileUpdateSchema = z.object({
 }).strict();
 
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
+
+export const AvatarUploadUrlSchema = z.object({
+  mimeType:  z.string().min(1).max(128),
+  sizeBytes: z.number().int().positive(),
+});
+export type AvatarUploadUrlInput = z.infer<typeof AvatarUploadUrlSchema>;
+
+export const AvatarUploadCompleteSchema = z.object({
+  objectKey: z.string().min(1).max(512),
+  mimeType:  z.string().min(1).max(128),
+  sizeBytes: z.number().int().positive(),
+});
+export type AvatarUploadCompleteInput = z.infer<typeof AvatarUploadCompleteSchema>;
+
+export const PushTokenSchema = z.object({
+  token: z.string().min(10).max(512),
+});
+export type PushTokenInput = z.infer<typeof PushTokenSchema>;

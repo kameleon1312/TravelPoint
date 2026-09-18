@@ -63,8 +63,8 @@ export async function addTrustPoints(
       await tx.signal.create({
         data: {
           explorerId,
-          type: 'SPOT_UNLOCKED',
-          dedupeKey: `rank-unlocked:${explorerId}:${rank}`,
+          type: 'RANK_UP',
+          dedupeKey: `rank-up:${explorerId}:${rank}`,
           payload: { rank, trustScore: explorer.trustScore },
         },
       });
