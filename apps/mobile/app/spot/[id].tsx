@@ -270,6 +270,7 @@ function AddPhotoPanel({
 
 // ─── Edit spot modal ──────────────────────────────────────────────────────────
 const ACCESS_EDIT_OPTIONS = ['PUBLIC', 'TRUSTED', 'CIRCLE_ONLY', 'SECRET_DROP'] as const;
+type AccessLevel = typeof ACCESS_EDIT_OPTIONS[number];
 
 function EditSpotModal({
   visible, spotId, initialTitle, initialStory, initialAccess, onClose, onSaved,
@@ -278,7 +279,7 @@ function EditSpotModal({
   spotId: string;
   initialTitle: string;
   initialStory: string;
-  initialAccess: string;
+  initialAccess: AccessLevel;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -635,7 +636,7 @@ export default function SpotDetailScreen() {
   const category  = 'category' in spot ? (spot as { category: string }).category : 'ABANDONED';
   const title     = 'title' in spot ? (spot as { title: string }).title : '???';
   const story     = 'story' in spot ? (spot as { story?: string }).story : undefined;
-  const access    = 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : '';
+  const access    = 'accessLevel' in spot ? (spot as { accessLevel: AccessLevel }).accessLevel : 'PUBLIC';
   const dropExp   = 'dropExpiresAt' in spot ? (spot as { dropExpiresAt?: string }).dropExpiresAt : undefined;
   const isOwner   = 'ownerId' in spot && (spot as { ownerId: string }).ownerId === explorer?.id;
 
