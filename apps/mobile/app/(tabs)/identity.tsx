@@ -541,24 +541,31 @@ export default function IdentityScreen() {
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Twoja tożsamość</Text>
 
-          <Pressable
-            onPress={() => void handleAvatarPick()}
-            style={[styles.avatarRing, { borderColor: rankColor, shadowColor: rankColor }]}
-            disabled={avatarUpload.isPending}
-          >
-            {explorer.avatarUrl ? (
-              <Image source={{ uri: explorer.avatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarLetter}>
-                  {explorer.handle[0]?.toUpperCase() ?? '?'}
-                </Text>
-              </View>
-            )}
-            <View style={styles.avatarEditBadge}>
+          <View style={styles.avatarWrapper}>
+            <Pressable
+              onPress={() => void handleAvatarPick()}
+              style={[styles.avatarRing, { borderColor: rankColor, shadowColor: rankColor }]}
+              disabled={avatarUpload.isPending}
+            >
+              {explorer.avatarUrl ? (
+                <Image source={{ uri: explorer.avatarUrl }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarLetter}>
+                    {explorer.handle[0]?.toUpperCase() ?? '?'}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+            <Pressable
+              onPress={() => void handleAvatarPick()}
+              disabled={avatarUpload.isPending}
+              style={styles.avatarEditBadge}
+              hitSlop={6}
+            >
               <Text style={styles.avatarEditIcon}>{avatarUpload.isPending ? '…' : '+'}</Text>
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
 
           <Text style={styles.handle}>@{explorer.handle}</Text>
           {explorer.displayName && (
@@ -851,9 +858,14 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     textTransform: 'uppercase',
   },
+  avatarWrapper: {
+    width: 96, height: 96,
+    alignItems: 'center', justifyContent: 'center',
+  },
   avatarRing: {
     width: 88, height: 88, borderRadius: 44, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
   },
   avatar: {
@@ -863,12 +875,12 @@ const styles = StyleSheet.create({
   },
   avatarLetter: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h2, color: Colors.aurora },
   avatarEditBadge: {
-    position: 'absolute', bottom: 2, right: 2,
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: Colors.graphite, borderWidth: 1.5, borderColor: Colors.aurora + '80',
+    position: 'absolute', bottom: 0, right: 0,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: Colors.abyss, borderWidth: 2, borderColor: Colors.aurora,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarEditIcon: { fontFamily: 'GeneralSans-Regular', fontSize: 14, color: Colors.aurora, lineHeight: 16 },
+  avatarEditIcon: { fontFamily: 'GeneralSans-Medium', fontSize: 15, color: Colors.aurora, lineHeight: 18 },
   rankProgress: { width: '80%', gap: 4, alignItems: 'center' },
   rankProgressBar: {
     width: '100%', height: 3, borderRadius: 2,
