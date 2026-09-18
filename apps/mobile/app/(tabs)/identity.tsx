@@ -1,5 +1,8 @@
 import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Image } from 'react-native';
 import { useEffect, useState } from 'react';
+import Animated, {
+  useSharedValue, useAnimatedStyle, withSpring, withTiming, withRepeat, withSequence,
+} from 'react-native-reanimated';
 import * as ImagePickerTypes from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -14,7 +17,8 @@ import { api } from '@/lib/api';
 import { socketManager } from '@/lib/socket';
 import { supabase } from '@/lib/supabase';
 import type { Signal } from '@travelpoint/types';
-import { RANK_THRESHOLDS, RANK_LABELS, RANK_START } from '@travelpoint/types';
+import { RANK_THRESHOLDS, RANK_LABELS, RANK_START, RANK_ORDER } from '@travelpoint/types';
+import type { Rank, Archetype } from '@travelpoint/types';
 import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 
 const RANK_COLORS: Record<string, string> = {
@@ -29,6 +33,31 @@ const TIER_BADGE_COLORS: Record<string, { border: string; bg: string; text: stri
   FREE:       { border: Colors.starGhost + '60', bg: 'transparent',        text: Colors.starFaint, label: 'Explorer' },
   PRO:        { border: Colors.signal + '60',    bg: Colors.signal + '18', text: Colors.signal,    label: 'Explorer PRO' },
   EXPEDITION: { border: Colors.ember + '60',     bg: Colors.ember + '18',  text: Colors.ember,     label: 'Expedition' },
+};
+
+const ARCHETYPES: Archetype[] = ['WANDERER', 'URBEXER', 'NOMAD', 'HUNTER', 'PILGRIM'];
+const ARCHETYPE_LABELS: Record<string, string> = {
+  WANDERER: 'Wędrowiec',
+  URBEXER:  'Urbex',
+  NOMAD:    'Nomada',
+  HUNTER:   'Łowca',
+  PILGRIM:  'Pielgrzym',
+};
+const ARCHETYPE_ICONS: Record<string, string> = {
+  WANDERER: '◉', URBEXER: '◈', NOMAD: '◎', HUNTER: '◈', PILGRIM: '◉',
+};
+const ARCHETYPE_DESCRIPTIONS: Record<string, string> = {
+  WANDERER: 'Poszukujesz nowych ścieżek bez konkretnego celu. Impuls i ciekawość prowadzą.',
+  URBEXER:  'Odkrywasz opuszczone miejsca i ukrytą historię miast.',
+  NOMAD:    'Żadnego stałego miejsca. Każde miasto to nowy dom i nowe możliwości.',
+  HUNTER:   'Tropiący rzadkich miejsc i tajemnych dropów. Zawsze w pogoni.',
+  PILGRIM:  'Podróże z głębszym znaczeniem — miejsca, które zmieniają perspektywę.',
+};
+const RANK_UP_DESCRIPTIONS: Record<string, string> = {
+  EXPLORER: 'Twoja sieć połączeń rośnie. Dostęp do ukrytych spotów się poszerzył.',
+  TRUSTED:  'Inni exploratorzy Ci ufają. Odkrywasz to, czego inni nie widzą.',
+  INSIDER:  'Należysz do elity. Tajne dropy i specjalne zaproszenia czekają.',
+  LEGEND:   'Twoja legenda jest zapisana w annałach TravelPoint.',
 };
 
 const NAVIGABLE_SIGNAL_TYPES = new Set([
@@ -158,6 +187,230 @@ function EditProfileModal({
             </View>
           </ScrollView>
 
+          <View style={editStyles.footer}>
+            <SignalButton
+              label="Zapisz"
+              onPress={handleSave}
+              variant="aurora"
+              size="lg"
+              fullWidth
+              loading={saving}
+              haptic="medium"
+            />
+          </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ── Rank-up celebratory modal ─────────────────────────────────────────────────
+function RankUpModal({ rank, onDismiss }: { rank: Rank; onDismiss: () => void }) {
+  const cardScale   = useSharedValue(0.6);
+  const cardOpacity = useSharedValue(0);
+  const ringScale   = useSharedValue(0.6);
+  const ringOpacity = useSharedValue(0.8);
+  const rankColor   = RANK_COLORS[rank] ?? Colors.aurora;
+
+  useEffect(() => {
+    cardScale.value   = withSpring(1, { damping: 12, stiffness: 180 });
+    cardOpacity.value = withTiming(1, { duration: 350 });
+    ringScale.value   = withRepeat(
+      withSequence(withTiming(1.6, { duration: 1400 }), withTiming(0.9, { duration: 900 })),
+      -1,
+    );
+    ringOpacity.value = withRepeat(
+      withSequence(withTiming(0.12, { duration: 1400 }), withTiming(0.5, { duration: 900 })),
+      -1,
+    );
+  }, []);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: cardScale.value }],
+    opacity: cardOpacity.value,
+  }));
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: ringScale.value }],
+    opacity: ringOpacity.value,
+  }));
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
+      <View style={rankUpStyles.overlay}>
+        <Animated.View style={[rankUpStyles.glowRing, { borderColor: rankColor }, ringStyle]} />
+        <Animated.View style={[rankUpStyles.card, cardStyle]}>
+          <Text style={rankUpStyles.eyebrow}>Nowa ranga odblokowana</Text>
+          <View style={[rankUpStyles.rankBadge, { borderColor: rankColor }]}>
+            <Text style={[rankUpStyles.rankBadgeText, { color: rankColor }]}>
+              {RANK_LABELS[rank]}
+            </Text>
+          </View>
+          <Text style={rankUpStyles.desc}>{RANK_UP_DESCRIPTIONS[rank] ?? ''}</Text>
+          <SignalButton label="Dalej" onPress={onDismiss} variant="aurora" size="md" haptic="heavy" />
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Archetype picker modal ────────────────────────────────────────────────────
+function ArchetypePickerModal({
+  visible, current, onClose, onSave,
+}: {
+  visible: boolean;
+  current: Archetype;
+  onClose: () => void;
+  onSave: (arch: Archetype) => Promise<void>;
+}) {
+  const [selected, setSelected] = useState<Archetype>(current);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { if (visible) setSelected(current); }, [visible]);
+
+  async function handleSave() {
+    setSaving(true);
+    try { await onSave(selected); onClose(); }
+    catch { Alert.alert('Błąd', 'Nie udało się zapisać archetypu.'); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={editStyles.root} edges={['top', 'bottom']}>
+        <View style={editStyles.header}>
+          <Text style={editStyles.title}>Twój archetyp</Text>
+          <Pressable onPress={onClose} style={editStyles.closeBtn}>
+            <Text style={editStyles.closeBtnText}>Anuluj</Text>
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={archStyles.scroll}>
+          <Text style={archStyles.subtitle}>
+            Archetyp kształtuje Twoją tożsamość w sieciach TravelPoint.
+          </Text>
+          {ARCHETYPES.map((arch) => {
+            const isActive = selected === arch;
+            return (
+              <Pressable
+                key={arch}
+                style={[archStyles.card, isActive && archStyles.cardActive]}
+                onPress={() => setSelected(arch)}
+              >
+                <Text style={[archStyles.cardIcon, isActive && { color: Colors.aurora }]}>
+                  {ARCHETYPE_ICONS[arch]}
+                </Text>
+                <View style={archStyles.cardBody}>
+                  <Text style={[archStyles.cardTitle, isActive && { color: Colors.aurora }]}>
+                    {ARCHETYPE_LABELS[arch]}
+                  </Text>
+                  <Text style={archStyles.cardDesc}>{ARCHETYPE_DESCRIPTIONS[arch]}</Text>
+                </View>
+                {isActive && <Text style={archStyles.cardCheck}>✓</Text>}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        <View style={editStyles.footer}>
+          <SignalButton
+            label="Zapisz archetyp"
+            onPress={handleSave}
+            variant="aurora"
+            size="lg"
+            fullWidth
+            loading={saving}
+            disabled={selected === current}
+            haptic="medium"
+          />
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// ── Obsessions editor modal ───────────────────────────────────────────────────
+const MAX_OBSESSIONS = 10;
+
+function ObsessionsModal({
+  visible, current, onClose, onSave,
+}: {
+  visible: boolean;
+  current: string[];
+  onClose: () => void;
+  onSave: (tags: string[]) => Promise<void>;
+}) {
+  const [tags, setTags] = useState<string[]>([...current]);
+  const [input, setInput] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible) { setTags([...current]); setInput(''); }
+  }, [visible]);
+
+  function handleAdd() {
+    const tag = input.trim().toLowerCase();
+    if (!tag || tag.length > 30 || tags.includes(tag) || tags.length >= MAX_OBSESSIONS) return;
+    setTags([...tags, tag]);
+    setInput('');
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try { await onSave(tags); onClose(); }
+    catch { Alert.alert('Błąd', 'Nie udało się zapisać obsesji.'); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <SafeAreaView style={editStyles.root} edges={['top', 'bottom']}>
+          <View style={editStyles.header}>
+            <Text style={editStyles.title}>Obsesje</Text>
+            <Pressable onPress={onClose} style={editStyles.closeBtn}>
+              <Text style={editStyles.closeBtnText}>Anuluj</Text>
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={obsStyles.scroll}>
+            <Text style={obsStyles.subtitle}>
+              Twoje obsesje pojawiają się na profilu. Maks {MAX_OBSESSIONS} tagów, każdy do 30 znaków.
+            </Text>
+            {tags.length > 0 ? (
+              <View style={obsStyles.tagsWrap}>
+                {tags.map((tag) => (
+                  <View key={tag} style={obsStyles.tagItem}>
+                    <Text style={obsStyles.tagItemText}>{tag}</Text>
+                    <Pressable onPress={() => setTags(tags.filter((t) => t !== tag))} hitSlop={6}>
+                      <Text style={obsStyles.tagRemove}>✕</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={obsStyles.emptyNote}>Brak obsesji. Dodaj pierwsze słowo-klucz.</Text>
+            )}
+            {tags.length < MAX_OBSESSIONS && (
+              <View style={obsStyles.addRow}>
+                <TextInput
+                  style={obsStyles.addInput}
+                  value={input}
+                  onChangeText={setInput}
+                  placeholder="urbex, góry, opuszczone..."
+                  placeholderTextColor={Colors.starGhost}
+                  maxLength={30}
+                  returnKeyType="done"
+                  onSubmitEditing={handleAdd}
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  style={[obsStyles.addBtn, !input.trim() && obsStyles.addBtnDisabled]}
+                  onPress={handleAdd}
+                  disabled={!input.trim()}
+                >
+                  <Text style={obsStyles.addBtnText}>+</Text>
+                </Pressable>
+              </View>
+            )}
+            <Text style={obsStyles.counter}>{tags.length}/{MAX_OBSESSIONS}</Text>
+          </ScrollView>
           <View style={editStyles.footer}>
             <SignalButton
               label="Zapisz"
@@ -311,13 +564,15 @@ type ExportPayload = {
 };
 
 export default function IdentityScreen() {
-  const { explorer, logout, setExplorer, deleteAccount } = useAuthStore();
+  const { explorer, logout, setExplorer, deleteAccount, pendingRankUp, clearPendingRankUp } = useAuthStore();
   const { mutate: markSeen, isPending: markingAllSeen } = useMarkSignalsSeen();
   const signalsQuery = useInfiniteSignals();
   const allSignals = signalsQuery.data?.pages.flatMap((p) => p.signals) ?? [];
   const avatarUpload = useAvatarUpload();
-  const [editVisible, setEditVisible]               = useState(false);
+  const [editVisible, setEditVisible]                     = useState(false);
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+  const [archPickerVisible, setArchPickerVisible]         = useState(false);
+  const [obsModalVisible, setObsModalVisible]             = useState(false);
   const [isExporting, setIsExporting]               = useState(false);
   const [isDeleting, setIsDeleting]             = useState(false);
   const [presenceToggling, setPresenceToggling] = useState(false);
@@ -347,6 +602,16 @@ export default function IdentityScreen() {
 
   async function handleSaveProfile(displayName: string, bio: string) {
     const updated = await api.patch<typeof explorer>('/api/explorers/me', { displayName, bio });
+    setExplorer(updated);
+  }
+
+  async function handleSaveArchetype(arch: Archetype) {
+    const updated = await api.patch<typeof explorer>('/api/explorers/me', { archetype: arch });
+    setExplorer(updated);
+  }
+
+  async function handleSaveObsessions(obsessions: string[]) {
+    const updated = await api.patch<typeof explorer>('/api/explorers/me', { obsessions });
     setExplorer(updated);
   }
 
@@ -605,16 +870,22 @@ export default function IdentityScreen() {
         </View>
 
         <View style={styles.statsRow}>
-          {[
-            { label: 'Reputacja', value: String(explorer.trustScore) },
-            { label: 'Plan', value: TIER_BADGE_COLORS[explorer.tier]?.label ?? explorer.tier },
-            { label: 'Archetyp', value: explorer.archetype ?? '—' },
-          ].map((stat) => (
-            <GlassCard key={stat.label} style={styles.statCard}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+          <GlassCard style={styles.statCard}>
+            <Text style={styles.statValue}>{String(explorer.trustScore)}</Text>
+            <Text style={styles.statLabel}>Reputacja</Text>
+          </GlassCard>
+          <GlassCard style={styles.statCard}>
+            <Text style={styles.statValue}>{TIER_BADGE_COLORS[explorer.tier]?.label ?? explorer.tier}</Text>
+            <Text style={styles.statLabel}>Plan</Text>
+          </GlassCard>
+          <Pressable style={styles.statCardWrap} onPress={() => setArchPickerVisible(true)}>
+            <GlassCard style={[styles.statCard, styles.statCardTappable]}>
+              <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+                {ARCHETYPE_LABELS[explorer.archetype] ?? explorer.archetype}
+              </Text>
+              <Text style={[styles.statLabel, { color: Colors.aurora + 'A0' }]}>Archetyp ›</Text>
             </GlassCard>
-          ))}
+          </Pressable>
         </View>
 
         {/* Quick access links */}
@@ -633,9 +904,14 @@ export default function IdentityScreen() {
           </GlassCard>
         )}
 
-        {(explorer.obsessions?.length ?? 0) > 0 && (
-          <GlassCard style={styles.section}>
+        <GlassCard style={styles.section}>
+          <View style={styles.signalsSectionHeader}>
             <Text style={styles.sectionLabel}>Obsesje</Text>
+            <Pressable onPress={() => setObsModalVisible(true)} hitSlop={8}>
+              <Text style={styles.markSeenBtn}>Edytuj</Text>
+            </Pressable>
+          </View>
+          {(explorer.obsessions?.length ?? 0) > 0 ? (
             <View style={styles.tags}>
               {explorer.obsessions.map((obs) => (
                 <View key={obs} style={styles.tag}>
@@ -643,8 +919,12 @@ export default function IdentityScreen() {
                 </View>
               ))}
             </View>
-          </GlassCard>
-        )}
+          ) : (
+            <Text style={styles.obsEmptyNote}>
+              Dodaj swoje obsesje — miejsca, klimaty, styl odkrywania.
+            </Text>
+          )}
+        </GlassCard>
 
         {allSignals.length > 0 && (
           <GlassCard style={styles.section}>
@@ -842,6 +1122,24 @@ export default function IdentityScreen() {
         visible={changePasswordVisible}
         onClose={() => setChangePasswordVisible(false)}
       />
+
+      <ArchetypePickerModal
+        visible={archPickerVisible}
+        current={explorer.archetype}
+        onClose={() => setArchPickerVisible(false)}
+        onSave={handleSaveArchetype}
+      />
+
+      <ObsessionsModal
+        visible={obsModalVisible}
+        current={explorer.obsessions ?? []}
+        onClose={() => setObsModalVisible(false)}
+        onSave={handleSaveObsessions}
+      />
+
+      {pendingRankUp !== null && (
+        <RankUpModal rank={pendingRankUp} onDismiss={clearPendingRankUp} />
+      )}
     </SafeAreaView>
   );
 }
@@ -896,9 +1194,15 @@ const styles = StyleSheet.create({
   rankBadge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs },
   rankText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, letterSpacing: 2, textTransform: 'uppercase' },
   statsRow: { flexDirection: 'row', gap: Spacing.md },
+  statCardWrap: { flex: 1 },
   statCard: { flex: 1, alignItems: 'center' },
+  statCardTappable: { borderColor: Colors.aurora + '40' },
   statValue: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, textAlign: 'center' },
   statLabel: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.micro, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center', marginTop: 2 },
+  obsEmptyNote: {
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm,
+    color: Colors.starGhost, fontStyle: 'italic', lineHeight: 20,
+  },
   section: { gap: Spacing.sm },
   sectionLabel: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
   bioText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, lineHeight: 22 },
@@ -1009,6 +1313,99 @@ const editStyles = StyleSheet.create({
   inputMultiline: { height: 100, paddingTop: Spacing.md },
   counter: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost, textAlign: 'right' },
   footer: { padding: Spacing.xl, paddingBottom: Spacing.xl },
+});
+
+const rankUpStyles = StyleSheet.create({
+  overlay: {
+    flex: 1, backgroundColor: 'rgba(7,10,12,0.92)',
+    alignItems: 'center', justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 320, height: 320, borderRadius: 160,
+    borderWidth: 2,
+  },
+  card: {
+    backgroundColor: Colors.graphite,
+    borderRadius: 24, borderWidth: 1, borderColor: Colors.steel,
+    padding: Spacing.xl,
+    alignItems: 'center', gap: Spacing.lg,
+    width: '100%', maxWidth: 320,
+  },
+  eyebrow: {
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
+    color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 2,
+  },
+  rankBadge: {
+    borderWidth: 2, borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm,
+  },
+  rankBadgeText: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h3, letterSpacing: 1 },
+  desc: {
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm,
+    color: Colors.star, textAlign: 'center', lineHeight: 22,
+  },
+});
+
+const archStyles = StyleSheet.create({
+  scroll: { padding: Spacing.xl, gap: Spacing.md },
+  subtitle: {
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm,
+    color: Colors.starFaint, lineHeight: 20, marginBottom: Spacing.xs,
+  },
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    backgroundColor: Colors.graphiteSoft,
+    borderRadius: BorderRadius.lg, borderWidth: 1, borderColor: Colors.steel,
+    padding: Spacing.lg,
+  },
+  cardActive: {
+    borderColor: Colors.aurora + '60', backgroundColor: Colors.aurora + '0C',
+  },
+  cardIcon:  { fontSize: 20, color: Colors.starFaint, width: 26, textAlign: 'center' },
+  cardBody:  { flex: 1, gap: 4 },
+  cardTitle: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starlight },
+  cardDesc:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint, lineHeight: 18 },
+  cardCheck: { fontFamily: 'GeneralSans-Regular', fontSize: 18, color: Colors.aurora },
+});
+
+const obsStyles = StyleSheet.create({
+  scroll: { padding: Spacing.xl, gap: Spacing.lg },
+  subtitle: {
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm,
+    color: Colors.starFaint, lineHeight: 20,
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  tagItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.aurora + '18',
+    borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.aurora + '50',
+    paddingHorizontal: Spacing.md, paddingVertical: 6,
+  },
+  tagItemText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, color: Colors.aurora },
+  tagRemove:   { fontFamily: 'GeneralSans-Regular', fontSize: 12, color: Colors.aurora + '80' },
+  emptyNote: {
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm,
+    color: Colors.starGhost, fontStyle: 'italic',
+  },
+  addRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
+  addInput: {
+    flex: 1, backgroundColor: Colors.graphiteSoft,
+    borderWidth: 1, borderColor: Colors.steel, borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.starlight,
+  },
+  addBtn: {
+    width: 44, height: 44, borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.aurora, alignItems: 'center', justifyContent: 'center',
+  },
+  addBtnDisabled: { backgroundColor: Colors.steel },
+  addBtnText: { fontFamily: 'GeneralSans-Bold', fontSize: 22, color: Colors.void, lineHeight: 26 },
+  counter: {
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
+    color: Colors.starGhost, textAlign: 'right',
+  },
 });
 
 const pwStyles = StyleSheet.create({

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import type { Explorer } from '@travelpoint/types';
+import type { Explorer, Rank } from '@travelpoint/types';
+import { RANK_ORDER } from '@travelpoint/types';
 import { supabase } from '../lib/supabase';
 import { socketManager } from '../lib/socket';
 import { api, ApiError } from '../lib/api';
@@ -25,7 +26,9 @@ interface AuthState {
   explorer: Explorer | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  pendingRankUp: Rank | null;
   setExplorer: (explorer: Explorer | null) => void;
+  clearPendingRankUp: () => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   rehydrate: () => Promise<void>;
@@ -33,13 +36,27 @@ interface AuthState {
   deleteAccount: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   explorer: null,
   isLoading: true,
   isAuthenticated: false,
+  pendingRankUp: null,
 
-  setExplorer: (explorer) =>
-    set({ explorer, isLoading: false, isAuthenticated: !!explorer }),
+  setExplorer: (explorer) => {
+    const prev = get().explorer;
+    const rankUp =
+      explorer !== null &&
+      prev !== null &&
+      RANK_ORDER[explorer.rank] > RANK_ORDER[prev.rank];
+    set({
+      explorer,
+      isLoading: false,
+      isAuthenticated: !!explorer,
+      ...(rankUp ? { pendingRankUp: explorer.rank } : {}),
+    });
+  },
+
+  clearPendingRankUp: () => set({ pendingRankUp: null }),
 
   login: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
