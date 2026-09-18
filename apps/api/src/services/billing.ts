@@ -8,6 +8,7 @@ type PaidTier = Exclude<Tier, 'FREE'>;
 const STRIPE_API = 'https://api.stripe.com/v1';
 const ACTIVE_STATUSES = new Set(['active', 'trialing']);
 const DOWNGRADE_STATUSES = new Set(['canceled', 'unpaid', 'incomplete_expired']);
+const WEBHOOK_TOLERANCE_S = 300; // Stripe recommends ≤5 min
 
 export function isBillingConfigured(): boolean {
   return Boolean(
@@ -68,9 +69,12 @@ export async function createCheckoutSession(
     params.set('customer_email', explorer.email);
   }
 
+  // Idempotency key prevents duplicate sessions on network retries
+  const idempotencyKey = `checkout-${explorer.id}-${tier}-${billingPeriod}`;
   const session = await stripeRequest<{ url?: string; customer?: string }>(
     '/checkout/sessions',
     params,
+    idempotencyKey,
   );
   if (session.customer && !explorer.stripeCustomerId) {
     await prisma.explorer.update({
@@ -114,12 +118,21 @@ export function verifyStripeSignature(rawBody: string, header: string | undefine
   const timestamp = parts['t'];
   const signature = parts['v1'];
   if (!timestamp || !signature) return false;
+
+  // Reject replayed webhooks older than tolerance window
+  const age = Math.floor(Date.now() / 1000) - parseInt(timestamp, 10);
+  if (Number.isNaN(age) || age > WEBHOOK_TOLERANCE_S) return false;
+
   const payload = `${timestamp}.${rawBody}`;
   const expected = crypto
     .createHmac('sha256', env.stripe.webhookSecret)
     .update(payload)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  try {
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
 }
 
 export async function applyStripeEvent(prisma: PrismaClient, event: StripeEvent): Promise<void> {
@@ -213,13 +226,17 @@ function mapStripeStatus(status: string): 'INCOMPLETE' | 'TRIALING' | 'ACTIVE' |
   return 'INCOMPLETE';
 }
 
-async function stripeRequest<T>(path: string, body: URLSearchParams): Promise<T> {
+async function stripeRequest<T>(path: string, body: URLSearchParams, idempotencyKey?: string): Promise<T> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${env.stripe.secretKey}`,
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Stripe-Version': '2024-06-20',
+  };
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+
   const response = await fetch(`${STRIPE_API}${path}`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.stripe.secretKey}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
+    headers,
     body,
   });
   const payload = await response.json().catch(() => ({})) as {
