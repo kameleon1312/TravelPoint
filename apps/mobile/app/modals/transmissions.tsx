@@ -200,10 +200,19 @@ export default function TransmissionsModal() {
   // ── Data ──────────────────────────────────────────────────────────────────
   const { data: inboxMsgs, isLoading: inboxLoading, refetch: refetchInbox } = useInbox();
   const { data: threadData, isLoading: threadLoading } = useThread(thread?.id ?? '');
-  const { data: circleMessages, isLoading: circleLoading } = useCircleMessages(circleId ?? '');
+  const { data: circlePage, isLoading: circleLoading, loadMore } = useCircleMessages(circleId ?? '');
+  const circleMessages = circlePage?.messages;
+  const circleHasMore  = circlePage?.hasMore ?? false;
 
   const sendDM = useSendDM();
   const sendCircle = useSendCircleMessage(circleId ?? '');
+
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  async function handleLoadMore() {
+    setLoadingMore(true);
+    try { await loadMore(); } finally { setLoadingMore(false); }
+  }
 
   // Scroll to bottom of circle chat / thread on new messages
   useEffect(() => {
@@ -283,6 +292,20 @@ export default function TransmissionsModal() {
               keyExtractor={(m) => m.id}
               contentContainerStyle={styles.messageList}
               showsVerticalScrollIndicator={false}
+              ListHeaderComponent={
+                circleHasMore ? (
+                  <Pressable
+                    style={styles.loadMoreBtn}
+                    onPress={() => void handleLoadMore()}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore
+                      ? <ActivityIndicator size="small" color={Colors.signal} />
+                      : <Text style={styles.loadMoreText}>↑ Starsze wiadomości</Text>
+                    }
+                  </Pressable>
+                ) : null
+              }
               renderItem={({ item, index }) => {
                 const isOwn = item.senderId === explorer?.id;
                 const prev  = circleMessages[index - 1];
@@ -589,6 +612,13 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono-Regular', fontSize: 10, color: Colors.void, fontWeight: '700',
   },
 
+  loadMoreBtn: {
+    alignItems: 'center', paddingVertical: Spacing.md, marginBottom: Spacing.sm,
+  },
+  loadMoreText: {
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
+    color: Colors.signal, letterSpacing: 1,
+  },
   // Message bubbles
   messageList: { padding: Spacing.lg, gap: Spacing.sm, paddingBottom: Spacing.xl },
   bubble: {

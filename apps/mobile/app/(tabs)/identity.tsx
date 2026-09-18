@@ -860,13 +860,12 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: {
     width: 96, height: 96,
-    alignItems: 'center', justifyContent: 'center',
   },
   avatarRing: {
+    position: 'absolute', top: 4, left: 4,
     width: 88, height: 88, borderRadius: 44, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
-    overflow: 'hidden',
-    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 4,
   },
   avatar: {
     width: 76, height: 76, borderRadius: 38,
@@ -877,11 +876,11 @@ const styles = StyleSheet.create({
   avatarEditBadge: {
     position: 'absolute', bottom: 0, right: 0,
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: Colors.abyss, borderWidth: 2, borderColor: Colors.aurora,
+    backgroundColor: Colors.aurora,
     alignItems: 'center', justifyContent: 'center',
-    zIndex: 10, elevation: 10,
+    zIndex: 100, elevation: 10,
   },
-  avatarEditIcon: { fontFamily: 'GeneralSans-Medium', fontSize: 15, color: Colors.aurora, lineHeight: 18 },
+  avatarEditIcon: { fontFamily: 'GeneralSans-Bold', fontSize: 16, color: Colors.abyss, lineHeight: 18 },
   rankProgress: { width: '80%', gap: 4, alignItems: 'center' },
   rankProgressBar: {
     width: '100%', height: 3, borderRadius: 2,

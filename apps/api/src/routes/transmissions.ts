@@ -184,9 +184,10 @@ export async function transmissionRoutes(app: FastifyInstance) {
     return reply.status(204).send();
   });
 
-  // GET /api/transmissions/circle/:circleId — circle chat history
+  // GET /api/transmissions/circle/:circleId?before=<iso>&limit=<n>
   app.get('/api/transmissions/circle/:circleId', { preHandler: [requireAuth] }, async (req, reply) => {
     const { circleId } = req.params as { circleId: string };
+    const { before, limit } = req.query as { before?: string; limit?: string };
 
     const membership = await app.prisma.circleMember.findFirst({
       where: { circleId, explorerId: req.explorerId },
@@ -194,14 +195,23 @@ export async function transmissionRoutes(app: FastifyInstance) {
     if (!membership) return reply.status(403).send({ code: 'FORBIDDEN' });
     const blockedIds = await getBlockedExplorerIds(app.prisma, req.explorerId);
 
+    const take = Math.min(Number(limit) || 50, 100);
+    const beforeDate = before ? new Date(before) : undefined;
+
     const messages = await app.prisma.transmission.findMany({
-      where: { circleId, senderId: { notIn: blockedIds } },
-      orderBy: { createdAt: 'asc' },
-      take: 100,
+      where: {
+        circleId,
+        senderId: { notIn: blockedIds },
+        ...(beforeDate ? { createdAt: { lt: beforeDate } } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
       include: {
         sender: { select: { id: true, handle: true, rank: true, displayName: true } },
       },
     });
-    return reply.send(messages);
+    const sorted = messages.reverse();
+    const hasMore = messages.length === take;
+    return reply.send({ messages: sorted, hasMore, oldestCursor: sorted[0]?.createdAt ?? null });
   });
 }

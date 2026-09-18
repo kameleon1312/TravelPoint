@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { Colors, Spacing } from '@travelpoint/theme';
 import { pl } from '@/i18n/pl';
 import { useUnseenSignalsCount } from '@/hooks/useSignals';
+import { useCircleUnreadCount } from '@/hooks/useCircles';
 import { socketManager, type SocketStatus } from '@/lib/socket';
 
 const TAB_ICONS: Record<string, string> = {
@@ -63,6 +64,21 @@ function IdentityTabIcon({ focused, unseenCount }: { focused: boolean; unseenCou
   );
 }
 
+function CirclesTabIcon({ focused, unreadCount }: { focused: boolean; unreadCount: number }) {
+  return (
+    <View style={styles.tabIcon}>
+      <Text style={[styles.icon, { color: focused ? Colors.aurora : Colors.starGhost }]}>
+        {TAB_ICONS['circles']}
+      </Text>
+      {unreadCount > 0 && (
+        <View style={styles.circleUnreadDot}>
+          <Text style={styles.circleUnreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function SocketBanner() {
   const [status, setStatus] = useState<SocketStatus>(socketManager.status);
 
@@ -81,6 +97,7 @@ function SocketBanner() {
 
 export default function TabsLayout() {
   const { data: unseenCount = 0 } = useUnseenSignalsCount();
+  const { count: circleUnread, reset: resetCircleUnread } = useCircleUnreadCount();
   const insets = useSafeAreaInsets();
   // Total tab bar height: 56px visual + system bottom safe area
   const tabBarHeight = 56 + insets.bottom;
@@ -125,8 +142,11 @@ export default function TabsLayout() {
         name="circles"
         options={{
           title: pl.nav.circles,
-          tabBarIcon: ({ focused }) => <TabIcon name="circles" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <CirclesTabIcon focused={focused} unreadCount={circleUnread} />
+          ),
         }}
+        listeners={{ tabPress: () => resetCircleUnread() }}
       />
       <Tabs.Screen
         name="journeys"
@@ -155,6 +175,15 @@ const styles = StyleSheet.create({
   tabIcon: { alignItems: 'center', justifyContent: 'center' },
   icon: { fontSize: 22 },
   tabLabel: { fontFamily: 'GeneralSans-Regular', fontSize: 10 },
+  circleUnreadDot: {
+    position: 'absolute', top: -4, right: -8,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: Colors.violet, paddingHorizontal: 3,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  circleUnreadText: {
+    fontFamily: 'SpaceMono-Regular', fontSize: 9, color: Colors.starlight, fontWeight: '700',
+  },
   badge: {
     backgroundColor: Colors.ember,
     color: Colors.starlight,

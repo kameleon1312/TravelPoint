@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api } from '../lib/api';
 import { socketManager } from '../lib/socket';
 import type { Circle } from '@travelpoint/types';
@@ -48,17 +48,32 @@ export function useCircle(slug: string) {
   });
 }
 
-// ── Circle chat messages — real-time via socket ───────────────────────────────
+type CircleMessagesPage = { messages: TransmissionWithSender[]; hasMore: boolean; oldestCursor: string | null };
+
+// ── Circle chat messages — real-time via socket + cursor pagination ────────────
 export function useCircleMessages(circleId: string) {
   const qc = useQueryClient();
 
   const query = useQuery({
     queryKey: ['transmissions', 'circle', circleId],
-    queryFn: () =>
-      api.get<TransmissionWithSender[]>(`/api/transmissions/circle/${circleId}`),
+    queryFn: () => api.get<CircleMessagesPage>(`/api/transmissions/circle/${circleId}?limit=50`),
     enabled: !!circleId,
     staleTime: 0,
+    select: (d) => d,
   });
+
+  const loadMore = useCallback(async () => {
+    const current = qc.getQueryData<CircleMessagesPage>(['transmissions', 'circle', circleId]);
+    if (!current?.hasMore || !current.oldestCursor) return;
+    const older = await api.get<CircleMessagesPage>(
+      `/api/transmissions/circle/${circleId}?limit=50&before=${encodeURIComponent(current.oldestCursor)}`,
+    );
+    qc.setQueryData<CircleMessagesPage>(['transmissions', 'circle', circleId], (prev) => {
+      if (!prev) return older;
+      const merged = [...older.messages.filter((m) => !prev.messages.some((p) => p.id === m.id)), ...prev.messages];
+      return { messages: merged, hasMore: older.hasMore, oldestCursor: older.oldestCursor };
+    });
+  }, [circleId, qc]);
 
   useEffect(() => {
     if (!circleId) return;
@@ -68,12 +83,12 @@ export function useCircleMessages(circleId: string) {
     const handler = (msg: unknown) => {
       const m = msg as TransmissionWithSender;
       if (m.circleId !== circleId) return;
-      qc.setQueryData<TransmissionWithSender[]>(
+      qc.setQueryData<CircleMessagesPage>(
         ['transmissions', 'circle', circleId],
         (prev) => {
-          if (!prev) return [m];
-          if (prev.some((x) => x.id === m.id)) return prev;
-          return [...prev, m];
+          if (!prev) return { messages: [m], hasMore: false, oldestCursor: null };
+          if (prev.messages.some((x) => x.id === m.id)) return prev;
+          return { ...prev, messages: [...prev.messages, m] };
         },
       );
     };
@@ -86,7 +101,21 @@ export function useCircleMessages(circleId: string) {
     };
   }, [circleId, qc]);
 
-  return query;
+  return { ...query, data: query.data, loadMore };
+}
+
+// ── Global circle unread count (for tab badge) ────────────────────────────────
+export function useCircleUnreadCount() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const handler = () => setCount((n) => n + 1);
+    socketManager.on('circle:message', handler);
+    return () => socketManager.off('circle:message', handler);
+  }, []);
+
+  const reset = useCallback(() => setCount(0), []);
+  return { count, reset };
 }
 
 // ── Send a circle message ─────────────────────────────────────────────────────
