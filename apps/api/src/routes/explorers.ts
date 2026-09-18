@@ -199,15 +199,28 @@ export async function explorerRoutes(app: FastifyInstance) {
       }),
     ]);
 
-    // Delete from Supabase Auth so the account cannot be reused
+    // Delete from Supabase Auth so the account cannot be reused (GDPR Art.17)
     if (explorerRecord?.supabaseId && env.supabaseUrl && env.supabaseServiceRoleKey) {
-      void fetch(`${env.supabaseUrl}/auth/v1/admin/users/${explorerRecord.supabaseId}`, {
-        method: 'DELETE',
-        headers: {
-          apikey: env.supabaseServiceRoleKey,
-          Authorization: `Bearer ${env.supabaseServiceRoleKey}`,
-        },
-      }).catch((err) => logger.warn({ err }, 'Failed to delete Supabase Auth user — will be purged later'));
+      try {
+        const supabaseResp = await fetch(`${env.supabaseUrl}/auth/v1/admin/users/${explorerRecord.supabaseId}`, {
+          method: 'DELETE',
+          headers: {
+            apikey: env.supabaseServiceRoleKey,
+            Authorization: `Bearer ${env.supabaseServiceRoleKey}`,
+          },
+        });
+        if (!supabaseResp.ok) {
+          logger.error(
+            { status: supabaseResp.status, explorerId },
+            'Supabase Auth user deletion returned non-2xx — account may persist in Supabase Auth, manual cleanup required',
+          );
+        }
+      } catch (err) {
+        logger.error(
+          { err, explorerId },
+          'Supabase Auth user deletion failed (network error) — account may persist in Supabase Auth, manual cleanup required',
+        );
+      }
     }
 
     logger.info({ explorerId }, 'GDPR: account anonymized and tokens revoked');
@@ -417,7 +430,7 @@ export async function explorerRoutes(app: FastifyInstance) {
     const { fuzzCoordinates } = await import('@travelpoint/geo');
     const fuzzed = spots.map((s) => {
       const seed = today ^ s.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-      const { lat, lng } = fuzzCoordinates(s.lat, s.lng, seed, 500);
+      const { lat, lng } = fuzzCoordinates(s.lat, s.lng, 500, seed);
       return { ...s, lat, lng };
     });
 

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@prisma/client';
-import { CreateSpotSchema, SpotQuerySchema } from '@travelpoint/validation';
+import { CreateSpotSchema, SpotQuerySchema, UpdateSpotSchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { resolveSpotForViewer } from '../services/hiddenLayer';
 import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
@@ -289,29 +289,17 @@ export async function spotsRoutes(app: FastifyInstance) {
     if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
     if (spot.ownerId !== req.explorerId) return reply.status(403).send({ code: 'FORBIDDEN' });
 
-    const body = req.body as {
-      title?: string;
-      story?: string;
-      accessLevel?: string;
-      dropExpiresAt?: string | null;
-    };
+    const parsed = UpdateSpotSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
 
+    const { title, story, accessLevel, dropExpiresAt } = parsed.data;
     const data: Record<string, unknown> = {};
-    if (typeof body.title === 'string' && body.title.trim().length > 0) {
-      data['title'] = body.title.trim().slice(0, 120);
-    }
-    if (typeof body.story === 'string') {
-      data['story'] = body.story.trim().slice(0, 2000) || null;
-    }
-    if (['PUBLIC', 'TRUSTED', 'CIRCLE_ONLY', 'SECRET_DROP'].includes(body.accessLevel ?? '')) {
-      data['accessLevel'] = body.accessLevel;
-    }
-    if (body.dropExpiresAt === null) {
-      data['dropExpiresAt'] = null;
-    } else if (typeof body.dropExpiresAt === 'string') {
-      const d = new Date(body.dropExpiresAt);
-      if (!isNaN(d.getTime())) data['dropExpiresAt'] = d;
-    }
+    if (title !== undefined) data['title'] = title.trim();
+    if (story !== undefined) data['story'] = story.trim() || null;
+    if (accessLevel !== undefined) data['accessLevel'] = accessLevel;
+    if (dropExpiresAt !== undefined) data['dropExpiresAt'] = dropExpiresAt ? new Date(dropExpiresAt) : null;
 
     if (Object.keys(data).length === 0) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'No updatable fields' });

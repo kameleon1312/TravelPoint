@@ -34,8 +34,8 @@ const RANK_LABELS: Record<string, string> = {
 
 const RANK_THRESHOLDS: Record<string, { next: string | null; required: number }> = {
   NEWCOMER: { next: 'EXPLORER', required: 50 },
-  EXPLORER: { next: 'TRUSTED',  required: 200 },
-  TRUSTED:  { next: 'INSIDER',  required: 500 },
+  EXPLORER: { next: 'TRUSTED',  required: 150 },
+  TRUSTED:  { next: 'INSIDER',  required: 400 },
   INSIDER:  { next: 'LEGEND',   required: 1000 },
   LEGEND:   { next: null,        required: 1000 },
 };
@@ -49,8 +49,8 @@ const TIER_BADGE_COLORS: Record<string, { border: string; bg: string; text: stri
 const RANK_START: Record<string, number> = {
   NEWCOMER: 0,
   EXPLORER: 50,
-  TRUSTED:  200,
-  INSIDER:  500,
+  TRUSTED:  150,
+  INSIDER:  400,
   LEGEND:   1000,
 };
 

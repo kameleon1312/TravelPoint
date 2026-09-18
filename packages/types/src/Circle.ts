@@ -6,7 +6,8 @@ export interface Circle {
   slug: string;
   description?: string;
   isInviteOnly: boolean;
-  memberCount: number;
+  memberCount?: number;
+  _count?: { members: number };
   createdAt: string;
 }
 
