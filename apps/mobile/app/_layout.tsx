@@ -32,6 +32,7 @@ import * as Notifications from 'expo-notifications';
 import { Colors } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
 import { useRecordingStore } from '@/stores/recording';
+import { api } from '@/lib/api';
 import { hydrateQueryCache, subscribeQueryPersistence } from '@/lib/queryPersistence';
 
 SplashScreen.preventAutoHideAsync();
@@ -65,6 +66,22 @@ const queryClient = new QueryClient({
   },
 });
 
+async function registerPushToken() {
+  if (Platform.OS === 'web') return;
+  try {
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    const finalStatus =
+      existing === 'granted'
+        ? existing
+        : (await Notifications.requestPermissionsAsync()).status;
+    if (finalStatus !== 'granted') return;
+    const { data: token } = await Notifications.getExpoPushTokenAsync();
+    await api.post('/api/explorers/me/push-token', { token });
+  } catch {
+    // Non-fatal — push unavailable in Expo Go dev mode without projectId
+  }
+}
+
 function AuthGate() {
   const { rehydrate, initialize, isLoading, isAuthenticated } = useAuthStore();
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
@@ -87,6 +104,8 @@ function AuthGate() {
       } else if (type === 'spot_unlocked' && data['id']) {
         router.push(`/spot/${String(data['id'])}`);
       } else if (type === 'secret_drop' && data['id']) {
+        router.push(`/spot/${String(data['id'])}`);
+      } else if (type === 'nearby_spot' && data['id']) {
         router.push(`/spot/${String(data['id'])}`);
       }
     });
@@ -118,6 +137,9 @@ function AuthGate() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/(auth)/join');
+    }
+    if (!isLoading && isAuthenticated) {
+      void registerPushToken();
     }
   }, [isLoading, isAuthenticated]);
 

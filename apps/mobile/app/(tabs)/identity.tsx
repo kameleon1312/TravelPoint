@@ -8,7 +8,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { useMarkSignalsSeen, useSignals, SIGNAL_LABELS, SIGNAL_ICONS } from '@/hooks/useSignals';
+import { useMarkSignalsSeen, useInfiniteSignals, SIGNAL_LABELS, SIGNAL_ICONS } from '@/hooks/useSignals';
 import { formatRelative } from '@travelpoint/utils';
 import { api } from '@/lib/api';
 import { socketManager } from '@/lib/socket';
@@ -312,8 +312,9 @@ type ExportPayload = {
 
 export default function IdentityScreen() {
   const { explorer, logout, setExplorer, deleteAccount } = useAuthStore();
-  const { mutate: markSeen } = useMarkSignalsSeen();
-  const { data: signals } = useSignals();
+  const { mutate: markSeen, isPending: markingAllSeen } = useMarkSignalsSeen();
+  const signalsQuery = useInfiniteSignals();
+  const allSignals = signalsQuery.data?.pages.flatMap((p) => p.signals) ?? [];
   const avatarUpload = useAvatarUpload();
   const [editVisible, setEditVisible]               = useState(false);
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
@@ -638,12 +639,36 @@ export default function IdentityScreen() {
           </GlassCard>
         )}
 
-        {signals && signals.length > 0 && (
+        {allSignals.length > 0 && (
           <GlassCard style={styles.section}>
-            <Text style={styles.sectionLabel}>Sygnały</Text>
-            {signals.slice(0, 8).map((sig) => (
+            <View style={styles.signalsSectionHeader}>
+              <Text style={styles.sectionLabel}>Sygnały</Text>
+              {allSignals.some((s) => !s.seenAt) && (
+                <Pressable
+                  onPress={() => markSeen()}
+                  disabled={markingAllSeen}
+                  hitSlop={8}
+                >
+                  <Text style={styles.markSeenBtn}>
+                    {markingAllSeen ? '…' : 'Oznacz wszystkie'}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+            {allSignals.map((sig) => (
               <SignalRow key={sig.id} sig={sig} />
             ))}
+            {signalsQuery.hasNextPage && (
+              <Pressable
+                style={styles.loadMoreBtn}
+                onPress={() => void signalsQuery.fetchNextPage()}
+                disabled={signalsQuery.isFetchingNextPage}
+              >
+                <Text style={styles.loadMoreText}>
+                  {signalsQuery.isFetchingNextPage ? '…' : '↓ Więcej sygnałów'}
+                </Text>
+              </Pressable>
+            )}
           </GlassCard>
         )}
 
@@ -876,6 +901,13 @@ const styles = StyleSheet.create({
   signalTime: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost },
   signalDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.aurora },
   signalChevron: { fontFamily: 'GeneralSans-Regular', fontSize: 18, color: Colors.starGhost },
+  signalsSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  markSeenBtn: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.signal },
+  loadMoreBtn: {
+    paddingVertical: Spacing.sm, alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: Colors.steel, marginTop: Spacing.xs,
+  },
+  loadMoreText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.signal, letterSpacing: 0.5 },
 
   // Billing
   billingRow: { gap: Spacing.xs },

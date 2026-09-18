@@ -14,6 +14,8 @@ import {
   validatePhoto,
 } from '../services/storage';
 import { pushSignal } from './signals';
+import { sendPushToExplorer } from '../services/push';
+import { pushStrings } from '../lib/pushStrings';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] as const;
 const MAX_PHOTO_BYTES = 20_000_000;
@@ -407,6 +409,13 @@ export async function spotsRoutes(app: FastifyInstance) {
             'NEARBY_SPOT',
             { spotId: spot.id, title: spot.title, category: spot.category },
             `nearby-spot:${spot.id}:${r.explorerId}`,
+          );
+          void sendPushToExplorer(
+            app.prisma,
+            r.explorerId,
+            pushStrings.nearbySpot.title,
+            pushStrings.nearbySpot.body(spot.title),
+            { type: 'nearby_spot', id: spot.id },
           );
         }
       } catch {

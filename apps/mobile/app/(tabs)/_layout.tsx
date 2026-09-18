@@ -1,9 +1,15 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue, useAnimatedStyle,
+  withRepeat, withSequence, withTiming, withDelay,
+} from 'react-native-reanimated';
+import { useEffect, useState } from 'react';
 import { Colors, Spacing } from '@travelpoint/theme';
 import { pl } from '@/i18n/pl';
 import { useUnseenSignalsCount } from '@/hooks/useSignals';
+import { socketManager, type SocketStatus } from '@/lib/socket';
 
 const TAB_ICONS: Record<string, string> = {
   index:    '◉',
@@ -23,6 +29,56 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   );
 }
 
+function IdentityTabIcon({ focused, unseenCount }: { focused: boolean; unseenCount: number }) {
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    if (unseenCount > 0) {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(1.35, { duration: 600 }),
+          withDelay(200, withTiming(1, { duration: 600 })),
+        ),
+        -1,
+      );
+    } else {
+      pulse.value = withTiming(1, { duration: 300 });
+    }
+  }, [unseenCount > 0]);
+
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+
+  return (
+    <View style={styles.tabIcon}>
+      <Animated.Text
+        style={[
+          styles.icon,
+          { color: focused ? Colors.aurora : Colors.starGhost },
+          unseenCount > 0 && animStyle,
+        ]}
+      >
+        {TAB_ICONS['identity']}
+      </Animated.Text>
+    </View>
+  );
+}
+
+function SocketBanner() {
+  const [status, setStatus] = useState<SocketStatus>(socketManager.status);
+
+  useEffect(() => {
+    return socketManager.onStatusChange(setStatus);
+  }, []);
+
+  if (status === 'connected' || status === 'disconnected') return null;
+
+  return (
+    <View style={styles.banner}>
+      <Text style={styles.bannerText}>◌ Łączenie z siecią…</Text>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   const { data: unseenCount = 0 } = useUnseenSignalsCount();
   const insets = useSafeAreaInsets();
@@ -30,9 +86,11 @@ export default function TabsLayout() {
   const tabBarHeight = 56 + insets.bottom;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
+    <>
+      <SocketBanner />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
         tabBarStyle: {
           // NOT position: 'absolute' — the tab bar top edge is the hard viewport boundary
           // for every section. Content stops here, nothing slides under.
@@ -81,12 +139,15 @@ export default function TabsLayout() {
         name="identity"
         options={{
           title: pl.nav.identity,
-          tabBarIcon: ({ focused }) => <TabIcon name="identity" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <IdentityTabIcon focused={focused} unseenCount={unseenCount} />
+          ),
           tabBarBadge: unseenCount > 0 ? (unseenCount > 9 ? '9+' : unseenCount) : undefined,
           tabBarBadgeStyle: styles.badge,
         }}
       />
     </Tabs>
+    </>
   );
 }
 
@@ -102,5 +163,18 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
+  },
+  banner: {
+    backgroundColor: Colors.signal + '22',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.signal + '40',
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  bannerText: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: 10,
+    color: Colors.signal,
+    letterSpacing: 1,
   },
 });

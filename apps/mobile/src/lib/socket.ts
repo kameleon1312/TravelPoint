@@ -2,9 +2,19 @@ import { io, type Socket } from 'socket.io-client';
 
 const BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:4000';
 
+export type SocketStatus = 'connected' | 'disconnected' | 'reconnecting';
+type StatusHandler = (status: SocketStatus) => void;
+
 class SocketManager {
   private _socket: Socket | null = null;
   private _listeners: Map<string, ((...args: unknown[]) => void)[]> = new Map();
+  private _statusHandlers: Set<StatusHandler> = new Set();
+  private _status: SocketStatus = 'disconnected';
+
+  private _setStatus(s: SocketStatus) {
+    this._status = s;
+    this._statusHandlers.forEach((h) => h(s));
+  }
 
   connect(token: string): Socket {
     if (this._socket?.connected) return this._socket;
@@ -17,24 +27,38 @@ class SocketManager {
       transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 2000,
-      reconnectionAttempts: 5,
+      reconnectionDelayMax: 10000,
+      reconnectionAttempts: 10,
       timeout: 10000,
     });
 
     // Re-attach persistent listeners after reconnect
     this._socket.on('connect', () => {
+      this._setStatus('connected');
       this._listeners.forEach((handlers, event) => {
         handlers.forEach((fn) => this._socket?.on(event, fn));
       });
     });
 
+    this._socket.on('disconnect', () => this._setStatus('disconnected'));
+    this._socket.io.on('reconnect_attempt', () => this._setStatus('reconnecting'));
+    this._socket.io.on('reconnect', () => this._setStatus('connected'));
+
     return this._socket;
   }
+
+  onStatusChange(handler: StatusHandler): () => void {
+    this._statusHandlers.add(handler);
+    return () => this._statusHandlers.delete(handler);
+  }
+
+  get status(): SocketStatus { return this._status; }
 
   disconnect(): void {
     this._socket?.disconnect();
     this._socket = null;
     this._listeners.clear();
+    this._setStatus('disconnected');
   }
 
   on(event: string, handler: (...args: unknown[]) => void): void {
