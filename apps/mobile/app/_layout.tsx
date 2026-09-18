@@ -123,6 +123,7 @@ function AuthGate() {
     const appStateSub = AppState.addEventListener('change', (nextState) => {
       if (appState.current.match(/inactive|background/) && nextState === 'active') {
         void replayOfflineQueue();
+        void recoverRecording();
       }
       appState.current = nextState;
     });

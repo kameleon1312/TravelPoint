@@ -35,11 +35,13 @@ interface RecordingState {
   journeyTitle: string | null;
   startedAt: Date | null;
   points: LocationPoint[];
+  accuracy: number | null;
+  lastPointAt: number | null;
   startRecording: (journeyId: string, journeyTitle: string) => Promise<boolean>;
   stopRecording: () => Promise<RecordingResult | null>;
   cancelRecording: () => Promise<void>;
   recoverRecording: () => Promise<void>;
-  addPoint: (point: LocationPoint) => void;
+  addPoint: (point: LocationPoint, accuracy?: number) => void;
 }
 
 async function readSession(): Promise<PersistedSession | null> {
@@ -87,11 +89,14 @@ function buildGeoJson(points: LocationPoint[]): RouteGeoJson {
 }
 
 function addLocation(location: Location.LocationObject): void {
-  useRecordingStore.getState().addPoint({
-    lat: location.coords.latitude,
-    lng: location.coords.longitude,
-    timestamp: location.timestamp,
-  });
+  useRecordingStore.getState().addPoint(
+    {
+      lat:       location.coords.latitude,
+      lng:       location.coords.longitude,
+      timestamp: location.timestamp,
+    },
+    location.coords.accuracy ?? undefined,
+  );
 }
 
 let taskManager: typeof import('expo-task-manager') | null = null;
@@ -152,6 +157,8 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   journeyTitle: null,
   startedAt: null,
   points: [],
+  accuracy: null,
+  lastPointAt: null,
 
   startRecording: async (journeyId, journeyTitle) => {
     const foreground = await Location.requestForegroundPermissionsAsync();
@@ -167,7 +174,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
     const startedAt = new Date();
     const session = { journeyId, journeyTitle, startedAt: startedAt.toISOString(), points: [] };
     await writeSession(session);
-    set({ isRecording: true, journeyId, journeyTitle, startedAt, points: [] });
+    set({ isRecording: true, journeyId, journeyTitle, startedAt, points: [], accuracy: null, lastPointAt: null });
 
     if (useBackgroundTask) {
       await Location.startLocationUpdatesAsync(LOCATION_TASK, {
@@ -197,7 +204,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
     if (!journeyId || !startedAt) return null;
     await stopTracking();
     await clearSession();
-    set({ isRecording: false, journeyId: null, journeyTitle: null, startedAt: null, points: [] });
+    set({ isRecording: false, journeyId: null, journeyTitle: null, startedAt: null, points: [], accuracy: null, lastPointAt: null });
     if (points.length < 2) return null;
     let distanceKm = 0;
     for (let index = 1; index < points.length; index += 1) {
@@ -215,18 +222,21 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   cancelRecording: async () => {
     await stopTracking();
     await clearSession();
-    set({ isRecording: false, journeyId: null, journeyTitle: null, startedAt: null, points: [] });
+    set({ isRecording: false, journeyId: null, journeyTitle: null, startedAt: null, points: [], accuracy: null, lastPointAt: null });
   },
 
   recoverRecording: async () => {
     const session = await readSession();
     if (!session) return;
+    const lastPoint = session.points[session.points.length - 1];
     set({
       isRecording: true,
       journeyId: session.journeyId,
       journeyTitle: session.journeyTitle,
       startedAt: new Date(session.startedAt),
       points: session.points,
+      lastPointAt: lastPoint?.timestamp ?? null,
+      accuracy: null,
     });
 
     if (!await canUseBackgroundTask()) {
@@ -235,8 +245,12 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
     }
   },
 
-  addPoint: (point) => {
-    set((state) => ({ points: [...state.points, point] }));
+  addPoint: (point, accuracy) => {
+    set((state) => ({
+      points:      [...state.points, point],
+      lastPointAt: point.timestamp,
+      accuracy:    accuracy !== undefined ? accuracy : state.accuracy,
+    }));
     const state = get();
     if (state.journeyId && state.journeyTitle && state.startedAt) {
       void writeSession({

@@ -35,6 +35,16 @@ const ACCESS_PIN_COLORS: Record<string, string> = {
 };
 
 const SPOT_CATEGORIES = ['ABANDONED', 'CAFE', 'BEACH', 'ROUTE', 'UNDERGROUND', 'VIEWPOINT', 'CAMP'] as const;
+
+const IDLE_WARN_MS      = 3  * 60 * 1000;
+const IDLE_AUTO_STOP_MS = 10 * 60 * 1000;
+
+function accuracyColor(acc: number | null): string {
+  if (acc === null)  return Colors.starGhost;
+  if (acc < 15)      return Colors.aurora;
+  if (acc < 40)      return Colors.sand;
+  return Colors.ember;
+}
 const CHIP_ICONS: Record<string, string> = {
   ABANDONED: '◈', CAFE: '◎', BEACH: '◎',
   ROUTE: '◉', UNDERGROUND: '◈', VIEWPOINT: '◎', CAMP: '◉',
@@ -204,40 +214,79 @@ function PresenceToggle({ active, onToggle }: { active: boolean; onToggle: () =>
 function RecordingBar({
   startedAt,
   pointCount,
+  accuracy,
+  lastPointAt,
   onStop,
   onCancel,
 }: {
   startedAt: Date;
   pointCount: number;
+  accuracy: number | null;
+  lastPointAt: number | null;
   onStop:   () => void;
   onCancel: () => void;
 }) {
   const [elapsed, setElapsed] = useState(0);
+  const [idleMs, setIdleMs]   = useState(0);
   const dot = useSharedValue(1);
 
+  const lastPointAtRef = useRef(lastPointAt);
+  useEffect(() => { lastPointAtRef.current = lastPointAt; }, [lastPointAt]);
+
   useEffect(() => {
-    // Pulsing red dot
     dot.value = withRepeat(
       withSequence(withTiming(0.3, { duration: 600 }), withTiming(1, { duration: 600 })),
       -1,
     );
-    // Elapsed time counter
     const id = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startedAt.getTime()) / 1000));
+      const now = Date.now();
+      setElapsed(Math.floor((now - startedAt.getTime()) / 1000));
+      if (lastPointAtRef.current !== null) {
+        setIdleMs(now - lastPointAtRef.current);
+      }
     }, 1000);
     return () => clearInterval(id);
   }, []);
 
+  // Auto-stop: fires IDLE_AUTO_STOP_MS after the last received GPS point
+  useEffect(() => {
+    if (lastPointAt === null || pointCount < 2) return;
+    const remaining = IDLE_AUTO_STOP_MS - (Date.now() - lastPointAt);
+    if (remaining <= 0) { onStop(); return; }
+    const id = setTimeout(onStop, remaining);
+    return () => clearTimeout(id);
+  }, [lastPointAt, pointCount, onStop]);
+
   const dotStyle = useAnimatedStyle(() => ({ opacity: dot.value }));
 
-  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-  const ss = String(elapsed % 60).padStart(2, '0');
+  const mm  = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss  = String(elapsed % 60).padStart(2, '0');
+  const acc = accuracyColor(accuracy);
+  const isIdle = idleMs > IDLE_WARN_MS;
 
   return (
-    <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)} style={styles.recordingBar}>
+    <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)} style={[styles.recordingBar, isIdle && styles.recordingBarIdle]}>
       <Animated.View style={[styles.recordingDot, dotStyle]} />
       <Text style={styles.recordingTime}>{mm}:{ss}</Text>
-      <Text style={styles.recordingPts}>{pointCount} pkt</Text>
+
+      {/* GPS accuracy + point count */}
+      <View style={styles.recordingMeta}>
+        <Text style={styles.recordingPts}>{pointCount} pkt</Text>
+        <View style={styles.accuracyBadge}>
+          <View style={[styles.accuracyDot, { backgroundColor: acc }]} />
+          <Text style={[styles.accuracyText, { color: acc }]}>
+            {accuracy !== null ? `${Math.round(accuracy)}m` : '---'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Idle warning label */}
+      {isIdle && (
+        <Text style={styles.idleText}>
+          ⏸{Math.floor(idleMs / 60000)}m
+        </Text>
+      )}
+
       <View style={styles.recordingActions}>
         <Pressable style={styles.recordingCancelBtn} onPress={onCancel} hitSlop={8}>
           <Text style={styles.recordingCancelText}>✕</Text>
@@ -373,7 +422,7 @@ export default function AtlasScreen() {
 
   // Recording state
   const {
-    isRecording, startedAt, points,
+    isRecording, startedAt, points, accuracy, lastPointAt,
     startRecording, stopRecording, cancelRecording,
   } = useRecordingStore();
 
@@ -771,6 +820,8 @@ export default function AtlasScreen() {
           <RecordingBar
             startedAt={startedAt}
             pointCount={points.length}
+            accuracy={accuracy}
+            lastPointAt={lastPointAt}
             onStop={handleStopRecording}
             onCancel={handleCancelRecording}
           />
@@ -897,18 +948,29 @@ const styles = StyleSheet.create({
   // ── Recording bar ────────────────────────────────────────────────────────────
   recordingBarWrapper: { position: 'absolute', left: Spacing.xl, right: Spacing.xl },
   recordingBar: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
     backgroundColor: Colors.graphite + 'F0',
     borderRadius: 14, borderWidth: 1, borderColor: Colors.ember + '60',
     paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm,
   },
-  recordingDot:      { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.ember },
-  recordingTime:     { fontFamily: 'SpaceMono-Regular', fontSize: 13, color: Colors.ember, minWidth: 46 },
-  recordingPts:      { fontFamily: 'SpaceMono-Regular', fontSize: 10, color: Colors.starFaint, flex: 1 },
-  recordingActions:  { flexDirection: 'row', gap: Spacing.sm },
+  recordingBarIdle: {
+    borderColor: Colors.sand + '80',
+  },
+  recordingDot:  { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.ember },
+  recordingTime: { fontFamily: 'SpaceMono-Regular', fontSize: 13, color: Colors.ember, minWidth: 46 },
+  recordingMeta: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  recordingPts:  { fontFamily: 'SpaceMono-Regular', fontSize: 10, color: Colors.starFaint },
+  accuracyBadge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  accuracyDot:   { width: 5, height: 5, borderRadius: 3 },
+  accuracyText:  { fontFamily: 'SpaceMono-Regular', fontSize: 9 },
+  idleText: {
+    fontFamily: 'SpaceMono-Regular', fontSize: 9,
+    color: Colors.sand, letterSpacing: 0.5,
+  },
+  recordingActions:   { flexDirection: 'row', gap: Spacing.sm },
   recordingCancelBtn: { padding: Spacing.sm },
   recordingCancelText:{ fontFamily: 'GeneralSans-Regular', fontSize: 12, color: Colors.starGhost },
-  recordingStopBtn:  {
+  recordingStopBtn: {
     backgroundColor: Colors.ember, borderRadius: 8,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
   },
