@@ -28,12 +28,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const CATEGORY_LABELS = pl.spotCategories as Record<string, string>;
 
-const ACCESS_LABELS: Record<string, string> = {
-  PUBLIC:      pl.spotAccess.PUBLIC,
-  TRUSTED:     'Tylko zaufani',
-  CIRCLE_ONLY: pl.spotAccess.CIRCLE_ONLY,
-  SECRET_DROP: pl.spotAccess.SECRET_DROP,
-};
+const ACCESS_LABELS = pl.spotAccess as Record<string, string>;
 
 const ACCESS_COLORS: Record<string, string> = {
   PUBLIC:      Colors.aurora,

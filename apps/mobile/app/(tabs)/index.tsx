@@ -134,7 +134,7 @@ function RecordingBar({
           <Text style={styles.recordingCancelText}>✕</Text>
         </Pressable>
         <Pressable style={styles.recordingStopBtn} onPress={onStop}>
-          <Text style={styles.recordingStopText}>⏹ Zatrzymaj</Text>
+          <Text style={styles.recordingStopText}>{pl.recording.stopBtn}</Text>
         </Pressable>
       </View>
     </Animated.View>
@@ -603,7 +603,7 @@ export default function AtlasScreen() {
               accessibilityLabel={pl.recording.startRecording}
             >
               <View style={styles.recordBtnDot} />
-              <Text style={styles.recordBtnText}>Nagraj</Text>
+              <Text style={styles.recordBtnText}>{pl.recording.recordBtn}</Text>
             </Pressable>
           </View>
         ) : (

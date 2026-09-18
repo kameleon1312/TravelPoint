@@ -57,6 +57,8 @@ export const pl = {
   recording: {
     startRecording:      'Nagraj Journey',
     stopRecording:       'Zatrzymaj nagrywanie',
+    stopBtn:             '⏹ Zatrzymaj',
+    recordBtn:           'Nagraj',
     journeyNameLabel:    'Nazwa Journey',
     journeyNameHint:     'np. Poranny urbex w Łodzi...',
     startBtn:            'Rozpocznij',
@@ -139,6 +141,60 @@ export const pl = {
     FOUNDER: 'Założyciel',
     GUIDE:   'Przewodnik',
     MEMBER:  'Członek',
+  },
+
+  // Signal type labels (in-app notifications)
+  signalLabels: {
+    NEARBY_EXPLORER: 'Explorer w pobliżu',
+    NEARBY_SPOT:     'Nowy spot w pobliżu',
+    SPOT_UNLOCKED:   'Spot odblokowany',
+    SPOT_COMMENT:    'Komentarz do spotu',
+    CIRCLE_INVITE:   'Zaproszenie do circle',
+    SECRET_DROP:     'Secret drop aktywny',
+    JOURNEY_LIKE:    'Reakcja na journey',
+    TRANSMISSION:    'Nowa transmisja',
+    FORUM_REPLY:     'Odpowiedź na forum',
+    RANK_UP:         'Nowa ranga!',
+  },
+
+  // Signal type icons
+  signalIcons: {
+    NEARBY_EXPLORER: '◎',
+    NEARBY_SPOT:     '◉',
+    SPOT_UNLOCKED:   '◈',
+    SPOT_COMMENT:    '◇',
+    CIRCLE_INVITE:   '◑',
+    SECRET_DROP:     '◉',
+    JOURNEY_LIKE:    '◎',
+    TRANSMISSION:    '◐',
+    FORUM_REPLY:     '◇',
+    RANK_UP:         '◈',
+  },
+
+  // Spot category icons (Terra Mare visual symbols)
+  spotCategoryIcons: {
+    ABANDONED:   '◈',
+    CAFE:        '◎',
+    BEACH:       '◎',
+    ROUTE:       '◉',
+    UNDERGROUND: '◈',
+    VIEWPOINT:   '◎',
+    CAMP:        '◉',
+  },
+
+  // Spot locked overlay strings
+  spotLock: {
+    title:          'Zablokowane',
+    hintCircleOnly: 'Dołącz do odpowiedniego circle żeby odblokować ten spot.',
+    hintDefault:    'Zwiększ swój rank lub odblokuj wyższy plan dostępu.',
+    unlockWithPlan: (plan: string) => `Odblokuj z planem ${plan}`,
+  },
+
+  // Subscription tier display names
+  tierNames: {
+    FREE:       'Explorer',
+    PRO:        'Explorer PRO',
+    EXPEDITION: 'Expedition',
   },
 
   // Feed activity type labels

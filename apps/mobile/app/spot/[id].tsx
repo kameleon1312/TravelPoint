@@ -35,22 +35,9 @@ const SCREEN_W = Dimensions.get('window').width;
 const PHOTO_W  = SCREEN_W * 0.72;
 const PHOTO_H  = PHOTO_W * 0.68;
 
-const CATEGORY_ICONS: Record<string, string> = {
-  ABANDONED: '◈', CAFE: '◎', BEACH: '◎',
-  ROUTE: '◉', UNDERGROUND: '◈', VIEWPOINT: '◎', CAMP: '◉',
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  ABANDONED: 'Opuszczone', CAFE: 'Kawiarnia', BEACH: 'Plaża',
-  ROUTE: 'Trasa', UNDERGROUND: 'Podziemia', VIEWPOINT: 'Widok', CAMP: 'Baza',
-};
-
-const ACCESS_LABELS: Record<string, string> = {
-  PUBLIC:      'Publiczne',
-  TRUSTED:     'Wymaga rangi Zaufanego',
-  CIRCLE_ONLY: 'Tylko dla Circle',
-  SECRET_DROP: 'Tajny Drop',
-};
+const CATEGORY_ICONS   = pl.spotCategoryIcons as Record<string, string>;
+const CATEGORY_LABELS  = pl.spotCategories    as Record<string, string>;
+const ACCESS_LABELS    = pl.spotAccess        as Record<string, string>;
 
 // ─── Locked overlay ───────────────────────────────────────────────────────────
 function LockedOverlay({
@@ -79,12 +66,12 @@ function LockedOverlay({
   return (
     <GlassCard style={styles.lockedCard}>
       <Animated.Text style={[styles.lockIcon, style]}>◈</Animated.Text>
-      <Text style={styles.lockTitle}>Zablokowane</Text>
+      <Text style={styles.lockTitle}>{pl.spotLock.title}</Text>
       <Text style={styles.lockDesc}>{ACCESS_LABELS[requiredAccess] ?? requiredAccess}</Text>
       <Text style={styles.lockHint}>
         {requiredAccess === 'CIRCLE_ONLY'
-          ? 'Dołącz do odpowiedniego circle żeby odblokować ten spot.'
-          : 'Zwiększ swój rank lub odblokuj wyższy plan dostępu.'}
+          ? pl.spotLock.hintCircleOnly
+          : pl.spotLock.hintDefault}
       </Text>
       {requiredTier && (
         <Pressable
@@ -92,7 +79,7 @@ function LockedOverlay({
           onPress={() => setPaywallVisible(true)}
         >
           <Text style={styles.lockUpgradeBtnText}>
-            Odblokuj z planem {requiredTier === 'PRO' ? 'Explorer PRO' : 'Expedition'}
+            {pl.spotLock.unlockWithPlan(pl.tierNames[requiredTier])}
           </Text>
         </Pressable>
       )}

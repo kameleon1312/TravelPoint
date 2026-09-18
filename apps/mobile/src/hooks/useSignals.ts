@@ -3,34 +3,12 @@ import { useEffect } from 'react';
 import { api } from '../lib/api';
 import { socketManager } from '../lib/socket';
 import type { Signal, SignalType } from '@travelpoint/types';
+import { pl } from '../i18n/pl';
 
-const SIGNAL_LABELS: Record<SignalType, string> = {
-  NEARBY_EXPLORER: 'Explorer w pobliżu',
-  NEARBY_SPOT:     'Nowy spot w pobliżu',
-  SPOT_UNLOCKED:   'Spot odblokowany',
-  SPOT_COMMENT:    'Komentarz do spotu',
-  CIRCLE_INVITE:   'Zaproszenie do circle',
-  SECRET_DROP:     'Secret drop aktywny',
-  JOURNEY_LIKE:    'Reakcja na journey',
-  TRANSMISSION:    'Nowa transmisja',
-  FORUM_REPLY:     'Odpowiedź na forum',
-  RANK_UP:         'Nowa ranga!',
-};
+type SignalsResponse = { signals: Signal[]; nextCursor: string | null };
 
-const SIGNAL_ICONS: Record<SignalType, string> = {
-  NEARBY_EXPLORER: '◎',
-  NEARBY_SPOT:     '◉',
-  SPOT_UNLOCKED:   '◈',
-  SPOT_COMMENT:    '◇',
-  CIRCLE_INVITE:   '◑',
-  SECRET_DROP:     '◉',
-  JOURNEY_LIKE:    '◎',
-  TRANSMISSION:    '◐',
-  FORUM_REPLY:     '◇',
-  RANK_UP:         '◈',
-};
-
-export { SIGNAL_LABELS, SIGNAL_ICONS };
+export const SIGNAL_LABELS = pl.signalLabels as Record<SignalType, string>;
+export const SIGNAL_ICONS  = pl.signalIcons  as Record<SignalType, string>;
 
 // ─── Raw list ────────────────────────────────────────────────────────────────
 function useSignalsQuery() {
@@ -38,7 +16,8 @@ function useSignalsQuery() {
 
   const query = useQuery({
     queryKey: ['signals'],
-    queryFn: () => api.get<Signal[]>('/api/signals'),
+    queryFn: () => api.get<SignalsResponse>('/api/signals'),
+    select: (data) => data.signals,
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 60,
   });
@@ -56,10 +35,10 @@ function useSignalsQuery() {
 export function useUnseenSignalsCount() {
   return useQuery({
     queryKey: ['signals'],
-    queryFn: () => api.get<Signal[]>('/api/signals'),
+    queryFn: () => api.get<SignalsResponse>('/api/signals'),
+    select: (data) => data.signals.filter((s) => !s.seenAt).length,
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 60,
-    select: (signals) => signals.filter((s) => !s.seenAt).length,
   });
 }
 
