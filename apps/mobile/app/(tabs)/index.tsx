@@ -1,17 +1,18 @@
 import {
   View, Text, StyleSheet, Platform, Pressable, Alert,
-  Modal, TextInput, KeyboardAvoidingView,
+  Modal, TextInput, KeyboardAvoidingView, ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle, useSharedValue, withRepeat, withSequence,
   withTiming, withSpring, FadeIn, FadeOut,
 } from 'react-native-reanimated';
-import { useEffect, useRef, useState } from 'react';
+import Supercluster from 'supercluster';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
-import { Colors, FontSize, Spacing, Shadow } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, Shadow, BorderRadius } from '@travelpoint/theme';
 import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
 
 const TOP_BAR_HEIGHT = 56;
@@ -32,6 +33,114 @@ const ACCESS_PIN_COLORS: Record<string, string> = {
   SECRET_DROP: Colors.ember,
   CIRCLE_ONLY: Colors.violet,
 };
+
+const SPOT_CATEGORIES = ['ABANDONED', 'CAFE', 'BEACH', 'ROUTE', 'UNDERGROUND', 'VIEWPOINT', 'CAMP'] as const;
+const CHIP_ICONS: Record<string, string> = {
+  ABANDONED: '◈', CAFE: '◎', BEACH: '◎',
+  ROUTE: '◉', UNDERGROUND: '◈', VIEWPOINT: '◎', CAMP: '◉',
+};
+
+// ── Category filter chips ─────────────────────────────────────────────────────
+function CategoryChips({ active, onChange, top }: { active: string | null; onChange: (cat: string | null) => void; top: number }) {
+  const cats = pl.spotCategories as Record<string, string>;
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={[styles.chipRow, { top }]}
+      contentContainerStyle={styles.chipRowContent}
+    >
+      <Pressable
+        style={[styles.chip, active === null && styles.chipActive]}
+        onPress={() => onChange(null)}
+        hitSlop={4}
+      >
+        <Text style={[styles.chipText, active === null && styles.chipTextActive]}>◉ Wszystkie</Text>
+      </Pressable>
+      {SPOT_CATEGORIES.map((cat) => (
+        <Pressable
+          key={cat}
+          style={[styles.chip, active === cat && styles.chipActive]}
+          onPress={() => onChange(active === cat ? null : cat)}
+          hitSlop={4}
+        >
+          <Text style={[styles.chipText, active === cat && styles.chipTextActive]}>
+            {CHIP_ICONS[cat]}{'  '}{cats[cat] ?? cat}
+          </Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
+// ── Secret drop pulsing pin ───────────────────────────────────────────────────
+function SecretDropPin({ countdown }: { countdown?: string }) {
+  const ring = useSharedValue(1);
+
+  useEffect(() => {
+    ring.value = withRepeat(
+      withSequence(
+        withTiming(1.8, { duration: 700 }),
+        withTiming(1,   { duration: 700 }),
+      ),
+      -1,
+    );
+  }, []);
+
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: ring.value }],
+    opacity: Math.max(0, 2.5 - ring.value),
+  }));
+
+  return (
+    <View style={styles.secretDropWrapper}>
+      <Animated.View style={[styles.secretPulseRing, ringStyle]} />
+      <View style={[styles.spotPin, { backgroundColor: Colors.ember }]} />
+      {countdown ? (
+        <View style={[styles.ephemeralBadge, { borderColor: Colors.ember, marginTop: 2 }]}>
+          <Text style={[styles.ephemeralText, { color: Colors.ember }]}>{countdown}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+// ── Cluster count pin ─────────────────────────────────────────────────────────
+function ClusterPin({ count }: { count: number }) {
+  return (
+    <View style={styles.clusterPin}>
+      <Text style={styles.clusterCount}>{count > 99 ? '99+' : count}</Text>
+    </View>
+  );
+}
+
+// ── Map loading skeleton ──────────────────────────────────────────────────────
+function MapSkeleton({ loaded }: { loaded: boolean }) {
+  const opacity   = useSharedValue(1);
+  const glowScale = useSharedValue(0.8);
+
+  useEffect(() => {
+    if (loaded) {
+      opacity.value = withTiming(0, { duration: 600 });
+    } else {
+      opacity.value   = 1;
+      glowScale.value = withRepeat(
+        withSequence(withTiming(1.2, { duration: 1000 }), withTiming(0.8, { duration: 1000 })),
+        -1,
+      );
+    }
+  }, [loaded]);
+
+  const overlayStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const glowStyle    = useAnimatedStyle(() => ({ transform: [{ scale: glowScale.value }] }));
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, styles.skeletonOverlay, overlayStyle]} pointerEvents="none">
+      <Animated.View style={[styles.skeletonGlow, glowStyle]} />
+      <Text style={styles.skeletonIcon}>◈</Text>
+    </Animated.View>
+  );
+}
 
 const DEFAULT_REGION: Region = {
   latitude:      52.2297,
@@ -243,8 +352,14 @@ export default function AtlasScreen() {
   const [showStartModal, setShowStartModal] = useState(false);
   const [previewSpot, setPreviewSpot]       = useState<SpotForViewer | null>(null);
   const [mapError, setMapError]             = useState(false);
+  const [mapLoaded, setMapLoaded]           = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const mapReadyRef   = useRef(false);
   const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clusterIndex = useRef(
+    new Supercluster<{ cluster: false; spotId: string; spot: SpotForViewer }>({ radius: 60, maxZoom: 16, minPoints: 3 }),
+  );
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -273,6 +388,45 @@ export default function AtlasScreen() {
 
   const { mutateAsync: createJourney } = useCreateJourney();
   const { mutateAsync: updateJourney } = useUpdateJourney();
+
+  // ── Clustering ────────────────────────────────────────────────────────────────
+  const filteredSpots = useMemo(() => {
+    if (!spots) return [] as SpotForViewer[];
+    if (!activeCategory) return spots as SpotForViewer[];
+    return (spots as SpotForViewer[]).filter((s) => {
+      const cat = 'category' in s ? (s as { category: string }).category : null;
+      return cat === activeCategory;
+    });
+  }, [spots, activeCategory]);
+
+  const mapClusters = useMemo(() => {
+    if (filteredSpots.length === 0) return [];
+    clusterIndex.current.load(
+      filteredSpots.map((spot) => ({
+        type:       'Feature' as const,
+        geometry:   { type: 'Point' as const, coordinates: [spot.lng, spot.lat] as [number, number] },
+        properties: { cluster: false as const, spotId: spot.id, spot },
+      })),
+    );
+    const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+    const bounds: [number, number, number, number] = [
+      longitude - longitudeDelta / 2,
+      latitude  - latitudeDelta  / 2,
+      longitude + longitudeDelta / 2,
+      latitude  + latitudeDelta  / 2,
+    ];
+    const zoom = Math.min(20, Math.max(0, Math.round(Math.log2(360 / latitudeDelta))));
+    return clusterIndex.current.getClusters(bounds, zoom);
+  }, [region, filteredSpots]);
+
+  function handleClusterPress(clusterId: number, lat: number, lng: number) {
+    const zoom = clusterIndex.current.getClusterExpansionZoom(clusterId);
+    const delta = 360 / Math.pow(2, zoom);
+    mapRef.current?.animateToRegion(
+      { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta },
+      400,
+    );
+  }
 
   // ── Socket: nearby explorers via presence ────────────────────────────────────
   useEffect(() => {
@@ -483,30 +637,59 @@ export default function AtlasScreen() {
           onMapReady={() => {
             mapReadyRef.current = true;
             setMapError(false);
+            setMapLoaded(true);
             if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
           }}
         >
-          {/* Spot pins */}
-          {spots?.map((spot: SpotForViewer) => {
+          {/* Spot pins — clustered */}
+          {mapClusters.map((item) => {
+            const coords = item.geometry.coordinates as [number, number];
+            const lng = coords[0];
+            const lat = coords[1];
+            const props = item.properties;
+
+            if ('cluster' in props && props.cluster) {
+              const { cluster_id, point_count } = props as { cluster: true; cluster_id: number; point_count: number };
+              return (
+                <Marker
+                  key={`cluster-${cluster_id}`}
+                  coordinate={{ latitude: lat, longitude: lng }}
+                  onPress={() => handleClusterPress(cluster_id, lat, lng)}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  tracksViewChanges={false}
+                >
+                  <ClusterPin count={point_count} />
+                </Marker>
+              );
+            }
+
+            const { spot } = props as { cluster: false; spotId: string; spot: SpotForViewer };
             const isLocked    = 'locked' in spot ? spot.locked : false;
             const accessLevel = 'accessLevel' in spot ? (spot as { accessLevel: string }).accessLevel : 'PUBLIC';
-            const color       = isLocked ? Colors.starGhost : (ACCESS_PIN_COLORS[accessLevel] ?? Colors.aurora);
-            const countdown   = 'dropExpiresAt' in spot && spot.dropExpiresAt ? formatDropCountdown(spot.dropExpiresAt) : '';
+            const isSecretDrop = accessLevel === 'SECRET_DROP' && !isLocked;
+            const color        = isLocked ? Colors.starGhost : (ACCESS_PIN_COLORS[accessLevel] ?? Colors.aurora);
+            const countdown    = 'dropExpiresAt' in spot && spot.dropExpiresAt ? formatDropCountdown(spot.dropExpiresAt) : '';
+
             return (
               <Marker
                 key={spot.id}
-                coordinate={{ latitude: spot.lat, longitude: spot.lng }}
+                coordinate={{ latitude: lat, longitude: lng }}
                 onPress={() => setPreviewSpot(spot)}
                 anchor={{ x: 0.5, y: countdown ? 1 : 0.5 }}
+                tracksViewChanges={isSecretDrop}
               >
-                <View style={styles.pinWrapper}>
-                  <View style={[styles.spotPin, { backgroundColor: color, opacity: isLocked ? 0.6 : 1 }]} />
-                  {countdown !== '' && (
-                    <View style={[styles.ephemeralBadge, { borderColor: color }]}>
-                      <Text style={[styles.ephemeralText, { color }]}>{countdown}</Text>
-                    </View>
-                  )}
-                </View>
+                {isSecretDrop ? (
+                  <SecretDropPin countdown={countdown} />
+                ) : (
+                  <View style={styles.pinWrapper}>
+                    <View style={[styles.spotPin, { backgroundColor: color, opacity: isLocked ? 0.6 : 1 }]} />
+                    {countdown !== '' && (
+                      <View style={[styles.ephemeralBadge, { borderColor: color }]}>
+                        <Text style={[styles.ephemeralText, { color }]}>{countdown}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </Marker>
             );
           })}
@@ -542,6 +725,9 @@ export default function AtlasScreen() {
         <View style={[StyleSheet.absoluteFill, styles.mapPlaceholder]} />
       )}
 
+      {/* Map loading skeleton */}
+      {Platform.OS !== 'web' && <MapSkeleton loaded={mapLoaded} />}
+
       {/* Map error overlay — shown only after timeout if map never initialized */}
       {mapError && (
         <View style={[StyleSheet.absoluteFill, styles.mapErrorOverlay]} pointerEvents="none">
@@ -570,9 +756,18 @@ export default function AtlasScreen() {
         </View>
       </SafeAreaView>
 
+      {/* Category filter chips — hidden while recording to avoid overlap */}
+      {!isRecording && locationActive && (
+        <CategoryChips
+          active={activeCategory}
+          onChange={setActiveCategory}
+          top={insets.top + TOP_BAR_HEIGHT + 4}
+        />
+      )}
+
       {/* Recording status bar */}
       {isRecording && startedAt && (
-        <View style={[styles.recordingBarWrapper, { top: insets.top + TOP_BAR_HEIGHT }]}>
+        <View style={[styles.recordingBarWrapper, { top: insets.top + TOP_BAR_HEIGHT, zIndex: 15 }]}>
           <RecordingBar
             startedAt={startedAt}
             pointCount={points.length}
@@ -756,6 +951,82 @@ const styles = StyleSheet.create({
   presenceInner: {
     width: 12, height: 12, borderRadius: 6,
     backgroundColor: Colors.aurora, borderWidth: 2, borderColor: Colors.abyss,
+  },
+
+  // ── Category filter chips ────────────────────────────────────────────────────
+  chipRow: {
+    position: 'absolute',
+    left: 0, right: 0,
+    zIndex: 10,
+  },
+  chipRowContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  chip: {
+    backgroundColor: Colors.graphite + 'E8',
+    borderRadius: BorderRadius.pill,
+    borderWidth: 1,
+    borderColor: Colors.steel,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+  },
+  chipActive: {
+    backgroundColor: Colors.aurora + '22',
+    borderColor: Colors.aurora + '70',
+  },
+  chipText: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: 12,
+    color: Colors.starFaint,
+  },
+  chipTextActive: {
+    color: Colors.aurora,
+    fontFamily: 'GeneralSans-Semibold',
+  },
+
+  // ── Secret drop pin ──────────────────────────────────────────────────────────
+  secretDropWrapper: { alignItems: 'center', gap: 2 },
+  secretPulseRing: {
+    position: 'absolute',
+    width: 24, height: 24, borderRadius: 12,
+    borderWidth: 2, borderColor: Colors.ember,
+    alignSelf: 'center',
+  },
+
+  // ── Cluster pin ──────────────────────────────────────────────────────────────
+  clusterPin: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.signal,
+    borderWidth: 2, borderColor: Colors.signal + '50',
+    alignItems: 'center', justifyContent: 'center',
+    ...Shadow.card,
+  },
+  clusterCount: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: 11,
+    color: Colors.void,
+    fontWeight: '700',
+  },
+
+  // ── Map skeleton ─────────────────────────────────────────────────────────────
+  skeletonOverlay: {
+    backgroundColor: Colors.abyss,
+    zIndex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skeletonGlow: {
+    width: 160, height: 160, borderRadius: 80,
+    backgroundColor: Colors.aurora + '18',
+    position: 'absolute',
+  },
+  skeletonIcon: {
+    fontFamily: 'ClashDisplay-Bold',
+    fontSize: 36,
+    color: Colors.aurora + '50',
   },
 
   // ── Quick-create modal ───────────────────────────────────────────────────────
