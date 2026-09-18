@@ -17,7 +17,7 @@ import { api } from '@/lib/api';
 import { socketManager } from '@/lib/socket';
 import { supabase } from '@/lib/supabase';
 import type { Signal } from '@travelpoint/types';
-import { RANK_THRESHOLDS, RANK_LABELS, RANK_START, RANK_ORDER } from '@travelpoint/types';
+import { RANK_THRESHOLDS, RANK_LABELS, RANK_START } from '@travelpoint/types';
 import type { Rank, Archetype } from '@travelpoint/types';
 import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 
