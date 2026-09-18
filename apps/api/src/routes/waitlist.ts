@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { WaitlistSchema, InviteRequestSchema } from '@travelpoint/validation';
 import { sendWaitlistConfirmationEmail } from '../services/email';
 
+const WAITLIST_RATE_LIMIT = { max: 5, timeWindow: '1 minute' };
+
 export async function waitlistRoutes(app: FastifyInstance) {
   // POST /api/waitlist — from landing page FinalCTA
-  app.post('/api/waitlist', async (req, reply) => {
+  app.post('/api/waitlist', { config: { rateLimit: WAITLIST_RATE_LIMIT } }, async (req, reply) => {
     const parsed = WaitlistSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
@@ -33,7 +35,7 @@ export async function waitlistRoutes(app: FastifyInstance) {
   });
 
   // POST /api/invite-request — alias used by Next.js web app route
-  app.post('/api/invite-request', async (req, reply) => {
+  app.post('/api/invite-request', { config: { rateLimit: WAITLIST_RATE_LIMIT } }, async (req, reply) => {
     const parsed = InviteRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });

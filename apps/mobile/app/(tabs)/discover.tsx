@@ -35,21 +35,8 @@ const CATEGORIES = ['ABANDONED', 'CAFE', 'BEACH', 'ROUTE', 'UNDERGROUND', 'VIEWP
 
 const CATEGORY_PL = pl.spotCategories as Record<string, string>;
 
-const FEED_TYPE_LABELS: Record<string, string> = {
-  SPOT_CREATED:       'dodał nowy Spot',
-  JOURNEY_PUBLISHED:  'opublikował Journey',
-  SPOT_COMMENT:       'skomentował Spot',
-  REACTION_RECEIVED:  'zareagował',
-  CIRCLE_ACTIVITY:    'aktywny w Circle',
-};
-
-const FEED_TYPE_ICONS: Record<string, string> = {
-  SPOT_CREATED:      '◉',
-  JOURNEY_PUBLISHED: '◎',
-  SPOT_COMMENT:      '◇',
-  REACTION_RECEIVED: '♥',
-  CIRCLE_ACTIVITY:   '◑',
-};
+const FEED_TYPE_LABELS = pl.feedTypes as Record<string, string>;
+const FEED_TYPE_ICONS  = pl.feedIcons  as Record<string, string>;
 
 // ── Spot card ─────────────────────────────────────────────────────────────────
 

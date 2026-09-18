@@ -4,6 +4,7 @@ import { CreateJourneySchema, UpdateJourneySchema } from '@travelpoint/validatio
 import { requireAuth } from '../middleware/requireAuth';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
 import { sendPushToExplorer } from '../services/push';
+import { pushStrings } from '../lib/pushStrings';
 
 export async function journeyRoutes(app: FastifyInstance) {
   // GET /api/journeys/me — own journeys
@@ -141,8 +142,8 @@ export async function journeyRoutes(app: FastifyInstance) {
     void sendPushToExplorer(
       app.prisma,
       journey.explorerId,
-      'Nowy sygnał',
-      'Ktoś polubił Twoją podróż',
+      pushStrings.journeyLike.title,
+      pushStrings.journeyLike.body,
       { type: 'journey_like', journeyId: id, explorerId: req.explorerId },
     );
     return reply.status(201).send(like);

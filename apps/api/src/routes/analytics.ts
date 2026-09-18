@@ -11,8 +11,13 @@ const AnalyticsEventSchema = z.object({
   payload: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
+const ANALYTICS_RATE_LIMIT = { max: 30, timeWindow: '1 minute' };
+
 export async function analyticsRoutes(app: FastifyInstance) {
-  app.post('/api/analytics/events', { preHandler: [requireAuthOptional] }, async (req, reply) => {
+  app.post('/api/analytics/events', {
+    preHandler: [requireAuthOptional],
+    config: { rateLimit: ANALYTICS_RATE_LIMIT },
+  }, async (req, reply) => {
     const parsed = AnalyticsEventSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });

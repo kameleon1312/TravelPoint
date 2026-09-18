@@ -77,7 +77,7 @@ export async function forumRoutes(app: FastifyInstance) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
     const baseSlug = slugify(parsed.data.title);
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = globalThis.crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36).slice(0, 8);
     const post = await app.prisma.forumPost.create({
       data: {
         ...parsed.data,

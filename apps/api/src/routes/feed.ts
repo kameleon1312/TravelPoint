@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { requireAuth } from '../middleware/requireAuth';
+import { fuzzCoordinates } from '@travelpoint/geo';
 import type { FeedItem } from '@travelpoint/types';
 
 export async function feedRoutes(app: FastifyInstance) {
@@ -66,22 +67,29 @@ export async function feedRoutes(app: FastifyInstance) {
       }),
     ]);
 
+    // Stable daily seed per spot — prevents triangulation, pins don't jump on reload
+    const today = Math.floor(Date.now() / 86_400_000);
+
     const items: FeedItem[] = [
-      ...spots.map((s) => ({
-        id:            `spot:${s.id}`,
-        type:          'SPOT_CREATED' as const,
-        actorHandle:   s.owner.handle,
-        actorAvatarUrl: s.owner.avatarUrl ?? undefined,
-        actorRank:     s.owner.rank,
-        payload: {
-          spotId:   s.id,
-          title:    s.title,
-          category: s.category,
-          lat:      s.lat,
-          lng:      s.lng,
-        },
-        createdAt: s.createdAt.toISOString(),
-      })),
+      ...spots.map((s) => {
+        const seed = today ^ s.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        const { lat, lng } = fuzzCoordinates(s.lat, s.lng, 500, seed);
+        return {
+          id:            `spot:${s.id}`,
+          type:          'SPOT_CREATED' as const,
+          actorHandle:   s.owner.handle,
+          actorAvatarUrl: s.owner.avatarUrl ?? undefined,
+          actorRank:     s.owner.rank,
+          payload: {
+            spotId:   s.id,
+            title:    s.title,
+            category: s.category,
+            lat,
+            lng,
+          },
+          createdAt: s.createdAt.toISOString(),
+        };
+      }),
       ...journeys.map((j) => ({
         id:            `journey:${j.id}`,
         type:          'JOURNEY_PUBLISHED' as const,

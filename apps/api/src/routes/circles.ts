@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { pushSignal } from './signals';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
 import { sendPushToExplorer } from '../services/push';
+import { pushStrings } from '../lib/pushStrings';
 
 export async function circleRoutes(app: FastifyInstance) {
   // GET /api/circles — list public circles
@@ -263,8 +264,8 @@ export async function circleRoutes(app: FastifyInstance) {
       void sendPushToExplorer(
         app.prisma,
         recipientId,
-        'Zaproszenie do circle',
-        `Zostałeś zaproszony do circle ${circle.name}`,
+        pushStrings.circleInvite.title,
+        pushStrings.circleInvite.body(circle.name),
         { type: 'circle_invite', circleId: circle.id, circleName: circle.name, code },
       );
     }

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { CreateSpotSchema, SpotQuerySchema, UpdateSpotSchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
@@ -13,6 +14,32 @@ import {
   validatePhoto,
 } from '../services/storage';
 import { pushSignal } from './signals';
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] as const;
+const MAX_PHOTO_BYTES = 20_000_000;
+
+const PhotoUploadUrlSchema = z.object({
+  mimeType:  z.enum(ALLOWED_MIME_TYPES),
+  sizeBytes: z.number().int().min(1).max(MAX_PHOTO_BYTES),
+});
+
+const PhotoCompleteSchema = z.object({
+  objectKey:    z.string().min(1).max(500),
+  mimeType:     z.string().max(100).optional(),
+  sizeBytes:    z.number().int().min(0).optional(),
+  caption:      z.string().max(300).optional(),
+});
+
+const ReactionSchema = z.object({
+  type: z.enum(['LIKE', 'INSIGHTFUL', 'HIDDEN_GEM']),
+});
+
+const VerifySchema = z.object({
+  decision: z.enum(['CONFIRMED', 'REJECTED']),
+  note:     z.string().max(500).optional(),
+});
+
+const STATS_RATE_LIMIT = { max: 60, timeWindow: '1 minute' };
 
 // Haversine distance in km — replaces PostGIS ST_DWithin (no extension required)
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -123,7 +150,7 @@ async function syncSpotLocation(app: FastifyInstance, spotId: string, lat: numbe
 
 export async function spotsRoutes(app: FastifyInstance) {
   // Public: live spot count for social proof on the landing page — no auth required.
-  app.get('/api/stats/spots', async (_req, reply) => {
+  app.get('/api/stats/spots', { config: { rateLimit: STATS_RATE_LIMIT } }, async (_req, reply) => {
     const count = await app.prisma.spot.count({ where: { deletedAt: null } });
     return reply.send({ count });
   });
@@ -438,15 +465,19 @@ export async function spotsRoutes(app: FastifyInstance) {
   // url can be a data URI (base64) for mobile uploads or a remote https URL
   app.post('/api/spots/:id/photos/upload-url', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { mimeType, sizeBytes } = req.body as { mimeType?: string; sizeBytes?: number };
+    const parsed = PhotoUploadUrlSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
+    const { mimeType, sizeBytes } = parsed.data;
     const spot = await app.prisma.spot.findUnique({ where: { id } });
     if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
     if (!await requireExactSpotAccess(spot, req.explorerId)) {
       return reply.status(404).send({ code: 'NOT_FOUND' });
     }
     try {
-      validatePhoto(mimeType ?? '', sizeBytes ?? 0);
-      return reply.send(await createPhotoUpload(req.explorerId, mimeType!, sizeBytes!));
+      validatePhoto(mimeType, sizeBytes);
+      return reply.send(await createPhotoUpload(req.explorerId, mimeType, sizeBytes));
     } catch (error) {
       const code = error instanceof Error ? error.message : 'UPLOAD_FAILED';
       const status = code === 'STORAGE_NOT_CONFIGURED' ? 503
@@ -458,13 +489,12 @@ export async function spotsRoutes(app: FastifyInstance) {
 
   app.post('/api/spots/:id/photos/complete', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { objectKey, mimeType, sizeBytes, caption } = req.body as {
-      objectKey?: string;
-      mimeType?: string;
-      sizeBytes?: number;
-      caption?: string;
-    };
-    if (!objectKey?.startsWith(`photos/${req.explorerId}/`)) {
+    const parsed = PhotoCompleteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
+    const { objectKey, mimeType, sizeBytes, caption } = parsed.data;
+    if (!objectKey.startsWith(`photos/${req.explorerId}/`)) {
       return reply.status(400).send({ code: 'INVALID_OBJECT_KEY' });
     }
     const spot = await app.prisma.spot.findUnique({ where: { id } });
@@ -537,10 +567,11 @@ export async function spotsRoutes(app: FastifyInstance) {
   // POST /api/spots/:id/reactions — toggles: same type removes, different type switches
   app.post('/api/spots/:id/reactions', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { type } = req.body as { type?: 'LIKE' | 'INSIGHTFUL' | 'HIDDEN_GEM' };
-    if (!type || !['LIKE', 'INSIGHTFUL', 'HIDDEN_GEM'].includes(type)) {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR' });
+    const parsed = ReactionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
+    const { type } = parsed.data;
     const spot = await app.prisma.spot.findFirst({ where: { id, deletedAt: null } });
     if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
     if (!await requireExactSpotAccess(spot, req.explorerId)) {
@@ -593,13 +624,11 @@ export async function spotsRoutes(app: FastifyInstance) {
 
   app.post('/api/spots/:id/verify', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { decision, note } = req.body as {
-      decision?: 'CONFIRMED' | 'REJECTED';
-      note?: string;
-    };
-    if (!decision || !['CONFIRMED', 'REJECTED'].includes(decision) || (note?.length ?? 0) > 500) {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR' });
+    const parsed = VerifySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
+    const { decision, note } = parsed.data;
     const spot = await app.prisma.spot.findFirst({ where: { id, deletedAt: null } });
     if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
     if (!await requireExactSpotAccess(spot, req.explorerId)) {

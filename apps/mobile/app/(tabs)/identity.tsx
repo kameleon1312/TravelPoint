@@ -14,6 +14,7 @@ import { api } from '@/lib/api';
 import { socketManager } from '@/lib/socket';
 import { supabase } from '@/lib/supabase';
 import type { Signal } from '@travelpoint/types';
+import { RANK_THRESHOLDS, RANK_LABELS, RANK_START } from '@travelpoint/types';
 import { useAvatarUpload } from '@/hooks/useAvatarUpload';
 
 const RANK_COLORS: Record<string, string> = {
@@ -24,34 +25,10 @@ const RANK_COLORS: Record<string, string> = {
   LEGEND:   Colors.ember,
 };
 
-const RANK_LABELS: Record<string, string> = {
-  NEWCOMER: 'Nowicjusz',
-  EXPLORER: 'Explorer',
-  TRUSTED:  'Zaufany',
-  INSIDER:  'Wtajemniczony',
-  LEGEND:   'Legenda',
-};
-
-const RANK_THRESHOLDS: Record<string, { next: string | null; required: number }> = {
-  NEWCOMER: { next: 'EXPLORER', required: 50 },
-  EXPLORER: { next: 'TRUSTED',  required: 150 },
-  TRUSTED:  { next: 'INSIDER',  required: 400 },
-  INSIDER:  { next: 'LEGEND',   required: 1000 },
-  LEGEND:   { next: null,        required: 1000 },
-};
-
 const TIER_BADGE_COLORS: Record<string, { border: string; bg: string; text: string; label: string }> = {
   FREE:       { border: Colors.starGhost + '60', bg: 'transparent',        text: Colors.starFaint, label: 'Explorer' },
   PRO:        { border: Colors.signal + '60',    bg: Colors.signal + '18', text: Colors.signal,    label: 'Explorer PRO' },
   EXPEDITION: { border: Colors.ember + '60',     bg: Colors.ember + '18',  text: Colors.ember,     label: 'Expedition' },
-};
-
-const RANK_START: Record<string, number> = {
-  NEWCOMER: 0,
-  EXPLORER: 50,
-  TRUSTED:  150,
-  INSIDER:  400,
-  LEGEND:   1000,
 };
 
 const NAVIGABLE_SIGNAL_TYPES = new Set([
@@ -622,7 +599,7 @@ export default function IdentityScreen() {
         <View style={styles.statsRow}>
           {[
             { label: 'Reputacja', value: String(explorer.trustScore) },
-            { label: 'Plan', value: explorer.tier },
+            { label: 'Plan', value: TIER_BADGE_COLORS[explorer.tier]?.label ?? explorer.tier },
             { label: 'Archetyp', value: explorer.archetype ?? '—' },
           ].map((stat) => (
             <GlassCard key={stat.label} style={styles.statCard}>

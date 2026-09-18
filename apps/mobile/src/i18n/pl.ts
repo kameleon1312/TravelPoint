@@ -141,6 +141,24 @@ export const pl = {
     MEMBER:  'Członek',
   },
 
+  // Feed activity type labels
+  feedTypes: {
+    SPOT_CREATED:      'dodał nowy Spot',
+    JOURNEY_PUBLISHED: 'opublikował Journey',
+    SPOT_COMMENT:      'skomentował Spot',
+    REACTION_RECEIVED: 'zareagował',
+    CIRCLE_ACTIVITY:   'aktywny w Circle',
+  },
+
+  // Feed activity type icons
+  feedIcons: {
+    SPOT_CREATED:      '◉',
+    JOURNEY_PUBLISHED: '◎',
+    SPOT_COMMENT:      '◇',
+    REACTION_RECEIVED: '♥',
+    CIRCLE_ACTIVITY:   '◑',
+  },
+
   // Common
   common: {
     save:   'Zapisz',

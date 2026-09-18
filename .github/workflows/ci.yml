@@ -133,6 +133,33 @@ jobs:
       - name: Build Web
         run: pnpm --filter @travelpoint/web build
 
+  # ── Migration drift check ─────────────────────────────────────────────────────
+  migration-check:
+    name: Migration drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @travelpoint/api db:generate
+
+      - name: Check for unapplied migrations
+        # Exits with code 1 if schema.prisma is out of sync with migrations folder
+        run: pnpm --filter @travelpoint/api exec prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --shadow-database-url "$SHADOW_DATABASE_URL" --exit-code || (echo "Schema drift detected — run prisma migrate dev to generate a migration" && exit 1)
+        env:
+          SHADOW_DATABASE_URL: ${{ secrets.SHADOW_DATABASE_URL }}
+        continue-on-error: true
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest

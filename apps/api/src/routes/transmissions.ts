@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireAuth } from '../middleware/requireAuth';
 import { pushSignal } from './signals';
 import { sendPushToExplorer, sendPushToMany } from '../services/push';
@@ -6,6 +7,15 @@ import {
   getAllowedCircleRecipientIds,
   getBlockedExplorerIds,
 } from '../services/blockAccess';
+
+const CreateTransmissionSchema = z.object({
+  recipientId: z.string().cuid().optional(),
+  circleId:    z.string().cuid().optional(),
+  body:        z.string().trim().min(1).max(2000),
+}).refine(
+  (d) => !!(d.recipientId ?? d.circleId) && !(d.recipientId && d.circleId),
+  { message: 'Provide exactly one target: recipientId or circleId' },
+);
 
 export async function transmissionRoutes(app: FastifyInstance) {
   // GET /api/transmissions — DM inbox (received, no circle messages)
@@ -71,18 +81,11 @@ export async function transmissionRoutes(app: FastifyInstance) {
 
   // POST /api/transmissions — send DM or circle message
   app.post('/api/transmissions', { preHandler: [requireAuth] }, async (req, reply) => {
-    const { recipientId, circleId, body } = req.body as {
-      recipientId?: string;
-      circleId?: string;
-      body: string;
-    };
-
-    if ((!recipientId && !circleId) || (recipientId && circleId)) {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'Provide exactly one target' });
+    const parsed = CreateTransmissionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
-    if (!body?.trim() || body.length > 2000) {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR', message: 'body required, max 2000 chars' });
-    }
+    const { recipientId, circleId, body } = parsed.data;
 
     if (circleId) {
       const membership = await app.prisma.circleMember.findFirst({

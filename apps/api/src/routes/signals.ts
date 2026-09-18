@@ -1,18 +1,30 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@prisma/client';
-import type { SignalType as PrismaSignalType } from '@prisma/client';
 import { requireAuth } from '../middleware/requireAuth';
 import type { SignalType } from '@travelpoint/types';
 
 export async function signalRoutes(app: FastifyInstance) {
-  // GET /api/signals — unseen signals for current explorer
+  // GET /api/signals — signals for current explorer, newest first
+  // Query params: before=<ISO datetime> for cursor pagination, limit=<1-50>
   app.get('/api/signals', { preHandler: [requireAuth] }, async (req, reply) => {
+    const query = req.query as { before?: string; limit?: string };
+    const limit = Math.min(Math.max(Number(query.limit ?? 50), 1), 50);
+    const cursor = query.before ? new Date(query.before) : undefined;
+    if (cursor && isNaN(cursor.getTime())) {
+      return reply.status(400).send({ code: 'INVALID_CURSOR' });
+    }
     const signals = await app.prisma.signal.findMany({
-      where: { explorerId: req.explorerId, seenAt: null },
+      where: {
+        explorerId: req.explorerId,
+        ...(cursor ? { createdAt: { lt: cursor } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: limit + 1,
     });
-    return reply.send(signals);
+    const hasMore = signals.length > limit;
+    const items = hasMore ? signals.slice(0, limit) : signals;
+    const nextCursor = hasMore ? items[items.length - 1]?.createdAt.toISOString() : null;
+    return reply.send({ signals: items, nextCursor });
   });
 
   // PATCH /api/signals/seen — mark all signals as seen
@@ -33,8 +45,7 @@ export async function pushSignal(
   payload: Record<string, unknown>,
   dedupeKey?: string,
 ): Promise<void> {
-  // Cast needed: packages/types includes FORUM_REPLY which is pending migration on DB
-  const data = { explorerId, type: type as PrismaSignalType, payload: payload as Prisma.InputJsonValue, dedupeKey };
+  const data = { explorerId, type, payload: payload as Prisma.InputJsonValue, dedupeKey };
   const signal = dedupeKey
     ? await app.prisma.signal.upsert({
         where: { dedupeKey },

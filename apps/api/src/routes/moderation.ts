@@ -1,47 +1,64 @@
 import type { FastifyInstance } from 'fastify';
-import type { ReportReason, ReportStatus } from '@prisma/client';
+import type { ReportStatus } from '@prisma/client';
+import { z } from 'zod';
 import { requireAuth, requireModerator } from '../middleware/requireAuth';
 import { runRetention } from '../services/retention';
 import { env } from '../config/env';
 import { setExplorerTier } from '../services/trustScore';
 
-const REPORT_REASONS = ['SAFETY', 'HARASSMENT', 'SPAM', 'ILLEGAL_CONTENT', 'PRIVACY', 'OTHER'];
-const REPORT_STATUSES = ['OPEN', 'REVIEWING', 'RESOLVED', 'DISMISSED'];
+const ReportReasonEnum = z.enum(['SAFETY', 'HARASSMENT', 'SPAM', 'ILLEGAL_CONTENT', 'PRIVACY', 'OTHER']);
+const ReportStatusEnum = z.enum(['OPEN', 'REVIEWING', 'RESOLVED', 'DISMISSED']);
+const TierEnum         = z.enum(['FREE', 'PRO', 'EXPEDITION']);
+
+const CreateReportSchema = z.object({
+  targetExplorerId: z.string().cuid().optional(),
+  spotId:           z.string().cuid().optional(),
+  transmissionId:   z.string().cuid().optional(),
+  forumPostId:      z.string().cuid().optional(),
+  forumReplyId:     z.string().cuid().optional(),
+  reason:           ReportReasonEnum,
+  details:          z.string().max(1000).optional(),
+}).refine(
+  (d) => [d.targetExplorerId, d.spotId, d.transmissionId, d.forumPostId, d.forumReplyId].filter(Boolean).length === 1,
+  { message: 'Exactly one target required' },
+);
+
+const UpdateReportSchema = z.object({
+  status:     ReportStatusEnum,
+  resolution: z.string().max(1000).optional(),
+});
+
+const SuspendSchema = z.object({
+  reason:   z.string().trim().min(1).max(1000),
+  reportId: z.string().cuid().optional(),
+});
+
+const AdminTierSchema = z.object({
+  tier:      TierEnum,
+  reason:    z.string().trim().min(1).max(1000),
+  expiresAt: z.string().datetime().nullable().optional(),
+});
 
 export async function moderationRoutes(app: FastifyInstance) {
   app.post('/api/reports', { preHandler: [requireAuth] }, async (req, reply) => {
-    const body = req.body as {
-      targetExplorerId?: string;
-      spotId?: string;
-      transmissionId?: string;
-      forumPostId?: string;
-      forumReplyId?: string;
-      reason?: ReportReason;
-      details?: string;
-    };
-    const targetCount = [
-      body.targetExplorerId,
-      body.spotId,
-      body.transmissionId,
-      body.forumPostId,
-      body.forumReplyId,
-    ].filter(Boolean).length;
-    if (targetCount !== 1 || !body.reason || !REPORT_REASONS.includes(body.reason) || (body.details?.length ?? 0) > 1000) {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR' });
+    const parsed = CreateReportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
-    if (body.targetExplorerId === req.explorerId) {
+    const { targetExplorerId, spotId, transmissionId, forumPostId, forumReplyId, reason, details } = parsed.data;
+    if (targetExplorerId === req.explorerId) {
       return reply.status(400).send({ code: 'SELF_REPORT' });
     }
     const report = await app.prisma.report.create({
       data: {
         reporterId: req.explorerId,
-        targetExplorerId: body.targetExplorerId,
-        spotId: body.spotId,
-        transmissionId: body.transmissionId,
-        forumPostId: body.forumPostId,
-        forumReplyId: body.forumReplyId,
-        reason: body.reason,
-        details: body.details?.trim(),
+        targetExplorerId,
+        spotId,
+        transmissionId,
+        forumPostId,
+        forumReplyId,
+        reason,
+        details: details?.trim(),
       },
     });
     return reply.status(201).send(report);
@@ -88,7 +105,7 @@ export async function moderationRoutes(app: FastifyInstance) {
       : {};
 
     const where = {
-      ...(status && REPORT_STATUSES.includes(status) ? { status } : {}),
+      ...(status && ReportStatusEnum.safeParse(status).success ? { status } : {}),
       ...typeFilter,
     };
 
@@ -114,10 +131,11 @@ export async function moderationRoutes(app: FastifyInstance) {
 
   app.patch('/api/admin/reports/:id', { preHandler: [requireModerator] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { status, resolution } = req.body as { status?: ReportStatus; resolution?: string };
-    if (!status || !REPORT_STATUSES.includes(status) || (resolution?.length ?? 0) > 1000) {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR' });
+    const parsed = UpdateReportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
+    const { status, resolution } = parsed.data;
     const report = await app.prisma.report.update({
       where: { id },
       data: {
@@ -131,10 +149,14 @@ export async function moderationRoutes(app: FastifyInstance) {
 
   app.post('/api/admin/explorers/:id/suspend', { preHandler: [requireModerator] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { reason, reportId } = req.body as { reason?: string; reportId?: string };
-    if (!reason?.trim() || reason.length > 1000 || id === req.explorerId) {
+    const parsed = SuspendSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
+    if (id === req.explorerId) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR' });
     }
+    const { reason, reportId } = parsed.data;
     await app.prisma.$transaction([
       app.prisma.explorer.update({
         where: { id },
@@ -174,18 +196,12 @@ export async function moderationRoutes(app: FastifyInstance) {
 
   app.patch('/api/admin/explorers/:id/tier', { preHandler: [requireModerator] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { tier, reason, expiresAt } = req.body as {
-      tier?: 'FREE' | 'PRO' | 'EXPEDITION';
-      reason?: string;
-      expiresAt?: string | null;
-    };
-    if (!tier || !['FREE', 'PRO', 'EXPEDITION'].includes(tier) || !reason?.trim()) {
-      return reply.status(400).send({ code: 'VALIDATION_ERROR' });
+    const parsed = AdminTierSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
+    const { tier, reason, expiresAt } = parsed.data;
     const parsedExpiry = expiresAt ? new Date(expiresAt) : null;
-    if (parsedExpiry && Number.isNaN(parsedExpiry.getTime())) {
-      return reply.status(400).send({ code: 'INVALID_EXPIRY' });
-    }
     await setExplorerTier(app.prisma, id, tier, reason, parsedExpiry);
     return reply.status(204).send();
   });

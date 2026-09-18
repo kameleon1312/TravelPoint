@@ -57,6 +57,30 @@ export const RANK_ORDER: Record<Rank, number> = {
   LEGEND: 4,
 };
 
+export const RANK_THRESHOLDS: Record<Rank, { next: Rank | null; required: number }> = {
+  NEWCOMER: { next: 'EXPLORER', required: 50 },
+  EXPLORER: { next: 'TRUSTED',  required: 150 },
+  TRUSTED:  { next: 'INSIDER',  required: 400 },
+  INSIDER:  { next: 'LEGEND',   required: 1000 },
+  LEGEND:   { next: null,       required: 1000 },
+};
+
+export const RANK_START: Record<Rank, number> = {
+  NEWCOMER: 0,
+  EXPLORER: 50,
+  TRUSTED:  150,
+  INSIDER:  400,
+  LEGEND:   1000,
+};
+
+export const RANK_LABELS: Record<Rank, string> = {
+  NEWCOMER: 'Nowicjusz',
+  EXPLORER: 'Explorer',
+  TRUSTED:  'Zaufany',
+  INSIDER:  'Wtajemniczony',
+  LEGEND:   'Legenda',
+};
+
 export function rankAtLeast(rank: Rank, minimum: Rank): boolean {
   return RANK_ORDER[rank] >= RANK_ORDER[minimum];
 }
