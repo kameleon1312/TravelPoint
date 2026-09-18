@@ -14,6 +14,7 @@ import { CoordLabel } from '@/components/ui/CoordLabel';
 import { useNearbySpots } from '@/hooks/useSpots';
 import { useFeed } from '@/hooks/useFeed';
 import { formatRelative } from '@travelpoint/utils';
+import { pl } from '@/i18n/pl';
 import type { SpotForViewer, FeedItem } from '@travelpoint/types';
 
 const ACCESS_COLORS: Record<string, string> = {
@@ -32,10 +33,7 @@ const ACCESS_ICONS: Record<string, string> = {
 
 const CATEGORIES = ['ABANDONED', 'CAFE', 'BEACH', 'ROUTE', 'UNDERGROUND', 'VIEWPOINT', 'CAMP'] as const;
 
-const CATEGORY_PL: Record<string, string> = {
-  ABANDONED: 'Opuszczone', CAFE: 'Kawiarnia', BEACH: 'Plaża',
-  ROUTE: 'Trasa', UNDERGROUND: 'Podziemia', VIEWPOINT: 'Widok', CAMP: 'Baza',
-};
+const CATEGORY_PL = pl.spotCategories as Record<string, string>;
 
 const FEED_TYPE_LABELS: Record<string, string> = {
   SPOT_CREATED:       'dodał nowy Spot',

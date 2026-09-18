@@ -94,6 +94,53 @@ export const pl = {
     addBtn:            'Dodaj ◎',
   },
 
+  // New spot form
+  newSpot: {
+    eyebrow:          'Nowe odkrycie',
+    titleLabel:       'Nazwa miejsca',
+    titlePlaceholder: 'np. Opuszczona fabryka przy dworcu...',
+    storyLabel:       'Historia (opcjonalnie)',
+    storyPlaceholder: 'Co kryje to miejsce? Jak tam trafiłeś?',
+    categoryLabel:    'Kategoria',
+    accessLabel:      'Poziom dostępu',
+    circleLabel:      'Circle',
+    noCircleMsg:      'Nie należysz do żadnego circle. Dołącz lub stwórz circle, by ograniczyć dostęp.',
+    dropTitle:        '⬡ Tajny Drop',
+    dropSub:          'Spot zniknie po wybranym czasie. Tylko dla uprawnionych eksploratorów.',
+    dropDuration:     'Czas trwania',
+    expiryLabel:      'Wygaśnie:',
+    expiryRequired:   'Wybierz czas trwania Secret Drop',
+    gpsFetching:      'Pobieranie lokalizacji...',
+    gpsDenied:        'Brak dostępu do lokalizacji — koordynaty nie zostaną zapisane.',
+    saveError:        'Błąd zapisu. Sprawdź połączenie i spróbuj ponownie.',
+  },
+
+  // Spot categories
+  spotCategories: {
+    ABANDONED:   'Opuszczone',
+    CAFE:        'Kawiarnia',
+    BEACH:       'Plaża',
+    ROUTE:       'Trasa',
+    UNDERGROUND: 'Podziemia',
+    VIEWPOINT:   'Widok',
+    CAMP:        'Baza',
+  },
+
+  // Access level labels
+  spotAccess: {
+    PUBLIC:      'Publiczne',
+    TRUSTED:     'Zaufani',
+    CIRCLE_ONLY: 'Tylko Circle',
+    SECRET_DROP: 'Tajny Drop',
+  },
+
+  // Circle member roles
+  roles: {
+    FOUNDER: 'Założyciel',
+    GUIDE:   'Przewodnik',
+    MEMBER:  'Członek',
+  },
+
   // Common
   common: {
     save:   'Zapisz',

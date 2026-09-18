@@ -10,6 +10,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { useMyCircles } from '@/hooks/useCircles';
 import { useAuthStore } from '@/stores/auth';
+import { pl } from '@/i18n/pl';
 
 const ROLE_COLORS: Record<string, string> = {
   FOUNDER: Colors.ember,
@@ -23,11 +24,7 @@ const ROLE_ICONS: Record<string, string> = {
   MEMBER:  '◎',
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  FOUNDER: 'Założyciel',
-  GUIDE:   'Przewodnik',
-  MEMBER:  'Członek',
-};
+const ROLE_LABELS = pl.roles as Record<string, string>;
 
 export default function CirclesScreen() {
   const insets = useSafeAreaInsets();

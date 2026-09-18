@@ -10,28 +10,21 @@ import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '@travelpoint/theme';
 import { CoordLabel } from '../ui/CoordLabel';
+import { pl } from '@/i18n/pl';
 import type { SpotForViewer } from '@travelpoint/types';
 
 const CATEGORY_ICONS: Record<string, string> = {
   ABANDONED: '◈', CAFE: '◎', BEACH: '◎',
   ROUTE: '◉', UNDERGROUND: '◈', VIEWPOINT: '◎', CAMP: '◉',
 };
-const CATEGORY_LABELS: Record<string, string> = {
-  ABANDONED: 'Opuszczone', CAFE: 'Kawiarnia', BEACH: 'Plaża',
-  ROUTE: 'Trasa', UNDERGROUND: 'Podziemia', VIEWPOINT: 'Widok', CAMP: 'Baza',
-};
+const CATEGORY_LABELS = pl.spotCategories as Record<string, string>;
 const ACCESS_COLORS: Record<string, string> = {
   PUBLIC: Colors.aurora,
   TRUSTED: Colors.signal,
   SECRET_DROP: Colors.ember,
   CIRCLE_ONLY: Colors.violet,
 };
-const ACCESS_LABELS: Record<string, string> = {
-  PUBLIC: 'Publiczne',
-  TRUSTED: 'Zaufani',
-  SECRET_DROP: 'Tajny Drop',
-  CIRCLE_ONLY: 'Tylko Circle',
-};
+const ACCESS_LABELS = pl.spotAccess as Record<string, string>;
 
 interface Props {
   spot: SpotForViewer | null;

@@ -98,7 +98,7 @@ export default function SavedWorldsScreen() {
           </Text>
           <SignalButton
             label="Otwórz mapę"
-            onPress={() => router.push('/(tabs)/')}
+            onPress={() => router.push('/')}
             variant="aurora"
             size="md"
             haptic="light"

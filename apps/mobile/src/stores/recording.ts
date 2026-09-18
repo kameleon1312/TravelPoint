@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Colors } from '@travelpoint/theme';
 import type { RouteGeoJson } from '@travelpoint/validation';
 
 const LOCATION_TASK = 'travelpoint-background-journey';
@@ -178,7 +179,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         foregroundService: {
           notificationTitle: 'TravelPoint rejestruje journey',
           notificationBody: journeyTitle,
-          notificationColor: '#5CB88C',
+          notificationColor: Colors.aurora,
         },
       });
     } else {

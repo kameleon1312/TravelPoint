@@ -12,9 +12,11 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { PaywallModal } from '@/components/ui/PaywallModal';
 import { CreateSpotSchema, type CreateSpotInput } from '@travelpoint/validation';
 import { useCreateSpot } from '@/hooks/useSpots';
 import { useMyCircles } from '@/hooks/useCircles';
+import { useBillingStatus } from '@/hooks/useBilling';
 import { pl } from '@/i18n/pl';
 
 const CATEGORIES = ['ABANDONED', 'CAFE', 'BEACH', 'ROUTE', 'UNDERGROUND', 'VIEWPOINT', 'CAMP'] as const;
@@ -24,16 +26,13 @@ const CATEGORY_ICONS: Record<string, string> = {
   ABANDONED: '◈', CAFE: '◎', BEACH: '◎', ROUTE: '◉', UNDERGROUND: '◈', VIEWPOINT: '◎', CAMP: '◉',
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  ABANDONED: 'Opuszczone', CAFE: 'Kawiarnia', BEACH: 'Plaża',
-  ROUTE: 'Trasa', UNDERGROUND: 'Podziemia', VIEWPOINT: 'Widok', CAMP: 'Baza',
-};
+const CATEGORY_LABELS = pl.spotCategories as Record<string, string>;
 
 const ACCESS_LABELS: Record<string, string> = {
-  PUBLIC:      'Publiczne',
+  PUBLIC:      pl.spotAccess.PUBLIC,
   TRUSTED:     'Tylko zaufani',
-  CIRCLE_ONLY: 'Tylko Circle',
-  SECRET_DROP: 'Tajny Drop',
+  CIRCLE_ONLY: pl.spotAccess.CIRCLE_ONLY,
+  SECRET_DROP: pl.spotAccess.SECRET_DROP,
 };
 
 const ACCESS_COLORS: Record<string, string> = {
@@ -54,9 +53,11 @@ const DROP_PRESETS = [
 export default function NewSpotModal() {
   const { mutateAsync: createSpot } = useCreateSpot();
   const { data: myCircles } = useMyCircles();
+  const { data: billing } = useBillingStatus();
   const [serverError, setServerError] = useState('');
-  const [gpsLabel, setGpsLabel] = useState('Pobieranie lokalizacji...');
+  const [gpsLabel, setGpsLabel] = useState<string>(pl.newSpot.gpsFetching);
   const [selectedDropPreset, setSelectedDropPreset] = useState<number | null>(null);
+  const [paywallVisible, setPaywallVisible] = useState(false);
 
   const {
     control, handleSubmit, watch, setValue,
@@ -75,7 +76,7 @@ export default function NewSpotModal() {
     void (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setGpsLabel('Brak dostępu do lokalizacji — koordynaty nie zostaną zapisane.');
+        setGpsLabel(pl.newSpot.gpsDenied);
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -93,7 +94,7 @@ export default function NewSpotModal() {
       await createSpot(data);
       router.back();
     } catch {
-      setServerError('Błąd zapisu. Sprawdź połączenie i spróbuj ponownie.');
+      setServerError(pl.newSpot.saveError);
     }
   }
 
@@ -117,7 +118,7 @@ export default function NewSpotModal() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>Nowe odkrycie</Text>
+            <Text style={styles.eyebrow}>{pl.newSpot.eyebrow}</Text>
             <Text style={styles.title}>{pl.spots.dropSpot}</Text>
           </View>
 
@@ -127,10 +128,10 @@ export default function NewSpotModal() {
             name="title"
             render={({ field: { onChange, value } }) => (
               <View style={styles.field}>
-                <Text style={styles.label}>Nazwa miejsca</Text>
+                <Text style={styles.label}>{pl.newSpot.titleLabel}</Text>
                 <TextInput
                   style={[styles.input, errors.title && styles.inputError]}
-                  placeholder="np. Opuszczona fabryka przy dworcu..."
+                  placeholder={pl.newSpot.titlePlaceholder}
                   placeholderTextColor={Colors.starGhost}
                   value={value}
                   onChangeText={onChange}
@@ -147,10 +148,10 @@ export default function NewSpotModal() {
             name="story"
             render={({ field: { onChange, value } }) => (
               <View style={styles.field}>
-                <Text style={styles.label}>Historia (opcjonalnie)</Text>
+                <Text style={styles.label}>{pl.newSpot.storyLabel}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Co kryje to miejsce? Jak tam trafiłeś?"
+                  placeholder={pl.newSpot.storyPlaceholder}
                   placeholderTextColor={Colors.starGhost}
                   value={value ?? ''}
                   onChangeText={onChange}
@@ -164,7 +165,7 @@ export default function NewSpotModal() {
 
           {/* Category */}
           <View style={styles.field}>
-            <Text style={styles.label}>Kategoria</Text>
+            <Text style={styles.label}>{pl.newSpot.categoryLabel}</Text>
             <Controller
               control={control}
               name="category"
@@ -194,7 +195,7 @@ export default function NewSpotModal() {
 
           {/* Access level */}
           <View style={styles.field}>
-            <Text style={styles.label}>Poziom dostępu</Text>
+            <Text style={styles.label}>{pl.newSpot.accessLabel}</Text>
             <Controller
               control={control}
               name="accessLevel"
@@ -214,6 +215,10 @@ export default function NewSpotModal() {
                           },
                         ]}
                         onPress={() => {
+                          if (lvl === 'SECRET_DROP' && billing?.tier !== 'EXPEDITION') {
+                            setPaywallVisible(true);
+                            return;
+                          }
                           onChange(lvl);
                           if (lvl !== 'SECRET_DROP') {
                             setValue('dropExpiresAt', undefined);
@@ -245,12 +250,10 @@ export default function NewSpotModal() {
           {isCircleOnly && (
             <Animated.View entering={FadeInDown.duration(280)}>
               <View style={styles.field}>
-                <Text style={styles.label}>Circle</Text>
+                <Text style={styles.label}>{pl.newSpot.circleLabel}</Text>
                 {!myCircles || myCircles.length === 0 ? (
                   <GlassCard style={styles.infoCard}>
-                    <Text style={styles.infoText}>
-                      Nie należysz do żadnego circle. Dołącz lub stwórz circle, by ograniczyć dostęp.
-                    </Text>
+                    <Text style={styles.infoText}>{pl.newSpot.noCircleMsg}</Text>
                   </GlassCard>
                 ) : (
                   <Controller
@@ -291,13 +294,11 @@ export default function NewSpotModal() {
           {isSecretDrop && (
             <Animated.View entering={FadeInDown.duration(280)}>
               <GlassCard style={styles.dropCard}>
-                <Text style={styles.dropTitle}>⬡ Tajny Drop</Text>
-                <Text style={styles.dropSub}>
-                  Spot zniknie po wybranym czasie. Tylko dla uprawnio&shy;nych eksploratorów.
-                </Text>
+                <Text style={styles.dropTitle}>{pl.newSpot.dropTitle}</Text>
+                <Text style={styles.dropSub}>{pl.newSpot.dropSub}</Text>
 
                 <View style={styles.field}>
-                  <Text style={styles.label}>Czas trwania</Text>
+                  <Text style={styles.label}>{pl.newSpot.dropDuration}</Text>
                   <View style={styles.chips}>
                     {DROP_PRESETS.map((preset, i) => (
                       <Pressable
@@ -321,7 +322,7 @@ export default function NewSpotModal() {
 
                 {dropExpiresAt && (
                   <View style={styles.expiryRow}>
-                    <Text style={styles.expiryLabel}>Wygaśnie:</Text>
+                    <Text style={styles.expiryLabel}>{pl.newSpot.expiryLabel}</Text>
                     <Text style={styles.expiryValue}>
                       {new Date(dropExpiresAt).toLocaleString('pl-PL', {
                         day: 'numeric', month: 'short',
@@ -332,7 +333,7 @@ export default function NewSpotModal() {
                 )}
 
                 {isSecretDrop && !dropExpiresAt && (
-                  <Text style={styles.error}>Wybierz czas trwania Secret Drop</Text>
+                  <Text style={styles.error}>{pl.newSpot.expiryRequired}</Text>
                 )}
               </GlassCard>
             </Animated.View>
@@ -356,7 +357,7 @@ export default function NewSpotModal() {
               haptic="heavy"
             />
             <SignalButton
-              label="Anuluj"
+              label={pl.common.cancel}
               onPress={() => router.back()}
               variant="ghost"
               size="md"
@@ -365,6 +366,12 @@ export default function NewSpotModal() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <PaywallModal
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+        requiredTier="EXPEDITION"
+        featureLabel={pl.spotAccess.SECRET_DROP}
+      />
     </SafeAreaView>
   );
 }

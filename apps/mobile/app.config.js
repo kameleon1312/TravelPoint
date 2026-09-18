@@ -103,7 +103,7 @@ module.exports = () => {
         'expo-notifications',
         {
           icon: './assets/images/icon.png',
-          color: '#5CB88C',
+          color: '#5CB88C', // Colors.aurora from @travelpoint/theme (plain JS — cannot import)
         },
       ],
       [

@@ -29,6 +29,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
+import { Colors } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
 import { useRecordingStore } from '@/stores/recording';
 import { hydrateQueryCache, subscribeQueryPersistence } from '@/lib/queryPersistence';
@@ -52,7 +53,7 @@ if (Platform.OS === 'android') {
     description:      'Sygnały, transmisje i secret dropy',
     importance:       Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor:       '#5CB88C',
+    lightColor:       Colors.aurora,
     enableVibrate:    true,
     showBadge:        true,
   });
