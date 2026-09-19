@@ -16,7 +16,7 @@ export function setStoredToken(token: string): void {
   try {
     sessionStorage.setItem(STORAGE_KEY, token);
     // Mirror to cookie so Next.js middleware can read it for admin route protection
-    document.cookie = `tp_access_token=${token}; path=/; max-age=86400; SameSite=Strict`;
+    document.cookie = `tp_access_token=${token}; path=/; max-age=86400; SameSite=Strict; Secure`;
   } catch {
     // ignore
   }
