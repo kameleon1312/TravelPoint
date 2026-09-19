@@ -1158,9 +1158,9 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: {
     width: 96, height: 96,
+    alignItems: 'center', justifyContent: 'center',
   },
   avatarRing: {
-    position: 'absolute', top: 4, left: 4,
     width: 88, height: 88, borderRadius: 44, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 4,
