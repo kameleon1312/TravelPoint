@@ -45,7 +45,7 @@ function IdentityTabIcon({ focused, unseenCount }: { focused: boolean; unseenCou
     } else {
       pulse.value = withTiming(1, { duration: 300 });
     }
-  }, [unseenCount > 0]);
+  }, [unseenCount]);
 
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 

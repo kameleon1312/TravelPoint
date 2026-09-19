@@ -59,15 +59,17 @@ export async function createPhotoUpload(explorerId: string, mimeType: string, si
 export async function finalizePhoto(
   objectKey: string,
   expectedMimeType: string,
-  expectedSizeBytes: number,
+  expectedSizeBytes: number | undefined,
 ) {
-  validatePhoto(expectedMimeType, expectedSizeBytes);
+  if (expectedSizeBytes !== undefined) {
+    validatePhoto(expectedMimeType, expectedSizeBytes);
+  }
   const { s3, bucket, publicUrl } = configured();
   const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: objectKey }));
   const actualSize = Number(head.ContentLength ?? 0);
   const actualMime = head.ContentType ?? '';
   validatePhoto(actualMime, actualSize);
-  if (actualMime !== expectedMimeType || actualSize !== expectedSizeBytes) {
+  if (actualMime !== expectedMimeType || (expectedSizeBytes !== undefined && actualSize !== expectedSizeBytes)) {
     throw new Error('UPLOAD_METADATA_MISMATCH');
   }
 

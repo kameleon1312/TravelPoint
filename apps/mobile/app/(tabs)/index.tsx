@@ -784,7 +784,7 @@ export default function AtlasScreen() {
             <Text style={styles.mapErrorIcon}>◈</Text>
             <Text style={styles.mapErrorTitle}>Mapa niedostępna</Text>
             <Text style={styles.mapErrorDesc}>
-              Włącz "Maps SDK for Android" w Google Cloud Console dla klucza API.
+              Mapa chwilowo niedostępna. Spróbuj ponownie za chwilę.
             </Text>
           </View>
         </View>

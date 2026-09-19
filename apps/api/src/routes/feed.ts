@@ -25,13 +25,20 @@ export async function feedRoutes(app: FastifyInstance) {
       : [];
     const circlematIds = circlemates.map((m) => m.explorerId);
 
+    const blockedRows = await app.prisma.block.findMany({
+      where: { blockerId: explorerId },
+      select: { blockedId: true },
+    });
+    const blockedIds = blockedRows.map((b) => b.blockedId);
+    const visibleIds = circlematIds.filter((id) => !blockedIds.includes(id));
+
     // 1. New spots by circlemates (last 7 days)
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     const [spots, journeys, comments] = await Promise.all([
       app.prisma.spot.findMany({
         where: {
-          ownerId: { in: circlematIds },
+          ownerId: { in: visibleIds },
           deletedAt: null,
           accessLevel: { in: ['PUBLIC', 'TRUSTED'] },
           createdAt: { gte: since },
@@ -43,7 +50,7 @@ export async function feedRoutes(app: FastifyInstance) {
       // 2. Public journeys by circlemates
       app.prisma.journey.findMany({
         where: {
-          explorerId: { in: circlematIds },
+          explorerId: { in: visibleIds },
           isPrivate: false,
           createdAt: { gte: since },
         },
@@ -55,7 +62,9 @@ export async function feedRoutes(app: FastifyInstance) {
       app.prisma.spotComment.findMany({
         where: {
           spot: { ownerId: explorerId, deletedAt: null },
-          explorerId: { not: explorerId },
+          explorerId: blockedIds.length > 0
+            ? { notIn: [explorerId, ...blockedIds] }
+            : { not: explorerId },
           createdAt: { gte: since },
         },
         include: {

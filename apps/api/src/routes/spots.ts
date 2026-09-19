@@ -314,7 +314,12 @@ export async function spotsRoutes(app: FastifyInstance) {
     const resolved = await resolveForExplorer(spot, req.explorerId);
     if (!resolved) return reply.status(404).send({ code: 'NOT_FOUND' });
 
-    return reply.send(resolved);
+    const save = await app.prisma.spotSave.findUnique({
+      where: { spotId_explorerId: { spotId: id, explorerId: req.explorerId } },
+      select: { spotId: true },
+    });
+
+    return reply.send({ ...resolved, isSaved: save !== null });
   });
 
   // PATCH /api/spots/:id — owner edits title, story, accessLevel, dropExpiresAt
@@ -513,7 +518,7 @@ export async function spotsRoutes(app: FastifyInstance) {
     }
     let stored;
     try {
-      stored = await finalizePhoto(objectKey, mimeType ?? '', sizeBytes ?? 0);
+      stored = await finalizePhoto(objectKey, mimeType ?? '', sizeBytes);
     } catch (error) {
       const code = error instanceof Error ? error.message : 'UPLOAD_FAILED';
       return reply.status(code === 'STORAGE_NOT_CONFIGURED' ? 503 : 400).send({ code });

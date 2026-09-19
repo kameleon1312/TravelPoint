@@ -10,6 +10,7 @@ export type ExplorerPublicProfile = {
   bio?: string | null;
   obsessions: string[];
   rank: string;
+  isBlockedByMe: boolean;
 };
 
 export type ExplorerPublicSpot = {

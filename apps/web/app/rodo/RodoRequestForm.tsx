@@ -128,7 +128,7 @@ export function RodoRequestForm(): React.JSX.Element {
       </div>
 
       {status === 'error' && (
-        <p className="font-sans text-xs text-danger">{errorMsg}</p>
+        <p className="font-sans text-xs text-ember">{errorMsg}</p>
       )}
 
       <button

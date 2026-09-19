@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, verifySupabaseJwt } from '../middleware/requireAuth';
 import { auditAccess } from '../middleware/auditLog';
 import { logger } from '../lib/logger';
 import { env } from '../config/env';
@@ -399,7 +399,29 @@ export async function explorerRoutes(app: FastifyInstance) {
       },
     });
     if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
-    return reply.send(explorer);
+
+    let isBlockedByMe = false;
+    const auth = req.headers['authorization'];
+    if (auth?.startsWith('Bearer ')) {
+      try {
+        const payload = verifySupabaseJwt(auth.slice(7));
+        const viewer = await app.prisma.explorer.findFirst({
+          where: { supabaseId: payload.sub, deletedAt: null },
+          select: { id: true },
+        });
+        if (viewer) {
+          const block = await app.prisma.block.findUnique({
+            where: { blockerId_blockedId: { blockerId: viewer.id, blockedId: explorer.id } },
+            select: { blockedId: true },
+          });
+          isBlockedByMe = block !== null;
+        }
+      } catch {
+        // invalid token — treat as unauthenticated, isBlockedByMe stays false
+      }
+    }
+
+    return reply.send({ ...explorer, isBlockedByMe });
   });
 
   // ─── GET /api/explorers/:handle/spots — public spots of an explorer ────────

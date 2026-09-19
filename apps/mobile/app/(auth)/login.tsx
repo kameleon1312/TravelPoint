@@ -110,7 +110,7 @@ export default function LoginScreen() {
               <View style={styles.row}>
                 <Text style={styles.rowText}>{pl.auth.noAccount} </Text>
                 <Text style={styles.rowLink} onPress={() => router.push('/(auth)/join')}>
-                  Request Access
+                  {pl.auth.joinCta}
                 </Text>
               </View>
             </View>

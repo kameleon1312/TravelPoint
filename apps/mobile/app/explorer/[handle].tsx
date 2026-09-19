@@ -5,7 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -73,6 +73,12 @@ export default function ExplorerProfileScreen() {
   const [blocked, setBlocked] = useState(false);
 
   const { data: profile, isLoading, isError } = useExplorerProfile(handle ?? '');
+
+  useEffect(() => {
+    if (profile) {
+      setBlocked(profile.isBlockedByMe);
+    }
+  }, [profile]);
   const { data: spots, isLoading: spotsLoading } = useExplorerSpots(
     handle ?? '',
     !isLoading && !isError,

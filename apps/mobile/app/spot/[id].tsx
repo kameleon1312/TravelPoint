@@ -567,6 +567,12 @@ export default function SpotDetailScreen() {
   const [addingPhoto, setAddingPhoto] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
 
+  useEffect(() => {
+    if (spot && !spot.locked) {
+      setSaved(spot.isSaved);
+    }
+  }, [spot]);
+
   function handleDelete() {
     Alert.alert(
       'Usuń spot',

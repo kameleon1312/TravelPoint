@@ -244,7 +244,7 @@ export default function TransmissionsModal() {
     if (!composeTo.trim() || !composeBody.trim()) return;
     const handle = composeTo.trim().replace('@', '');
     try {
-      const recipient = await api.get<{ id: string; handle: string }>(`/api/explorers/${handle}`);
+      const recipient = await api.get<{ id: string; handle: string }>(`/api/explorers/${encodeURIComponent(handle)}`);
       await sendDM.mutateAsync({ recipientId: recipient.id, body: composeBody.trim() });
       setComposeTo('');
       setComposeBody('');

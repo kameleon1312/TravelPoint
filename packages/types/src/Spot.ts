@@ -43,4 +43,4 @@ export interface LockedSpot {
   requiredAccess: AccessLevel;
 }
 
-export type SpotForViewer = (Spot & { locked: false }) | LockedSpot;
+export type SpotForViewer = (Spot & { locked: false; isSaved: boolean }) | LockedSpot;
