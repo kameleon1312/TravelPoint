@@ -86,15 +86,26 @@ try {
     }
   }
 
-  // ── D. Ensure supabaseId column always exists on Explorer ────────────────
-  // Scenario C baselines migrations without running their SQL, so critical
-  // columns added by later migrations can silently disappear after a DB reset.
-  // These are safe no-ops when the column/index already exist.
+  // ── D. Ensure critical schema additions always exist ─────────────────────
+  // Scenario C baselines migrations without running their SQL, so columns and
+  // enum values added by later migrations can silently disappear after a DB reset.
+  // Every statement uses IF NOT EXISTS / DO-EXCEPTION guards — safe no-ops.
   if (appExists) {
+    // supabaseId column + indexes (from 20260921000001_add_supabase_auth_columns)
     await client.query(`ALTER TABLE "Explorer" ADD COLUMN IF NOT EXISTS "supabaseId" TEXT`);
     await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS "Explorer_supabaseId_key" ON "Explorer"("supabaseId")`);
     await client.query(`CREATE INDEX IF NOT EXISTS "Explorer_supabaseId_idx" ON "Explorer"("supabaseId")`);
-    console.log('[ensure-db] supabaseId column verified');
+    // passwordHash must be nullable so Supabase-only users can register
+    await client.query(`ALTER TABLE "Explorer" ALTER COLUMN "passwordHash" DROP NOT NULL`);
+
+    // SignalType enum values added across multiple migrations
+    for (const val of ['NEARBY_SPOT', 'SPOT_COMMENT', 'FORUM_REPLY', 'RANK_UP']) {
+      await client.query(
+        `DO $$ BEGIN ALTER TYPE "SignalType" ADD VALUE IF NOT EXISTS '${val}'; EXCEPTION WHEN duplicate_object THEN NULL; END $$`
+      );
+    }
+
+    console.log('[ensure-db] schema additions verified');
   }
 
   console.log('[ensure-db] Ready');

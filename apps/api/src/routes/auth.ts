@@ -57,6 +57,20 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(200).send(existing);
       }
 
+      // Self-healing: Explorer istnieje po emailu ale supabaseId=NULL (po resecie bazy)
+      const existingByEmail = await app.prisma.explorer.findFirst({
+        where: { email: userEmail, supabaseId: null },
+        select: { id: true, handle: true, rank: true, emailVerified: true },
+      });
+      if (existingByEmail) {
+        const linked = await app.prisma.explorer.update({
+          where: { id: existingByEmail.id },
+          data: { supabaseId: supabaseUserId },
+          select: { id: true, handle: true, rank: true, emailVerified: true },
+        });
+        return reply.status(200).send(linked);
+      }
+
       const parsed = CompleteSignupSchema.safeParse(req.body);
       if (!parsed.success) {
         return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });

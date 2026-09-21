@@ -21,17 +21,35 @@ export async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
   }
 
   let supabaseUserId: string;
+  let supabaseEmail: string | undefined;
   try {
     const payload = verifySupabaseJwt(auth.slice(7));
     supabaseUserId = payload.sub;
+    supabaseEmail = payload.email;
   } catch {
     return reply.status(401).send({ code: 'UNAUTHORIZED', message: 'Invalid or expired token' });
   }
 
-  const explorer = await req.server.prisma.explorer.findFirst({
+  let explorer = await req.server.prisma.explorer.findFirst({
     where: { supabaseId: supabaseUserId, deletedAt: null },
     select: { id: true, suspendedAt: true },
   });
+
+  // Self-healing: after a DB reset the supabaseId column is re-created but all rows
+  // have NULL. Find by email (always present in Supabase JWT) and auto-link.
+  if (!explorer && supabaseEmail) {
+    const byEmail = await req.server.prisma.explorer.findFirst({
+      where: { email: supabaseEmail, supabaseId: null, deletedAt: null },
+      select: { id: true, suspendedAt: true },
+    });
+    if (byEmail) {
+      await req.server.prisma.explorer.update({
+        where: { id: byEmail.id },
+        data: { supabaseId: supabaseUserId },
+      });
+      explorer = byEmail;
+    }
+  }
 
   if (!explorer) {
     return reply.status(401).send({ code: 'ACCOUNT_NOT_FOUND', message: 'Explorer profile not found. Complete signup first.' });
