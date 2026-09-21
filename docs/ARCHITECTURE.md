@@ -6,7 +6,7 @@ TravelPoint consists of two deliberately separated worlds:
 
 | Layer | App | Role | Priority |
 |---|---|---|---|
-| **WORLD** | `apps/web` (Next.js 14) | Public magazine, forum, SEO, growth funnel | 35% |
+| **WORLD** | `apps/web` (Next.js 15) | Public magazine, forum, SEO, growth funnel | 35% |
 | **CORE** | `apps/mobile` (Expo/RN) | Private explorer network, maps, circles, hidden layer | 60% |
 | **ENGINE** | `apps/api` (Fastify) | Auth, geo, realtime, hidden layer logic | 5% (high weight) |
 
@@ -20,7 +20,7 @@ TravelPoint consists of two deliberately separated worlds:
 ```
 travelpoint/
 ├── apps/mobile        # CORE (Expo + React Native)
-├── apps/web           # WORLD (Next.js 14 App Router)
+├── apps/web           # WORLD (Next.js 15 App Router)
 ├── apps/api           # ENGINE (Fastify + Prisma + PostGIS)
 ├── packages/
 │   ├── theme          # Design tokens — single source of truth
