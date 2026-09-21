@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: travelpoint-api
+    runtime: node
+    # Render runs all commands from the monorepo root — matches nixpacks.toml behaviour.
+    buildCommand: corepack enable && corepack prepare pnpm@11.0.8 --activate && pnpm install --frozen-lockfile && pnpm --filter @travelpoint/api build
+    startCommand: pnpm --filter @travelpoint/api db:deploy && node apps/api/dist/server.js
+    healthCheckPath: /health
+    plan: free
+    # Render injects PORT automatically (default 10000). Fastify reads process.env.PORT.
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # ── Database (Supabase) ──────────────────────────────────────────────────
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      # ── Supabase Auth ────────────────────────────────────────────────────────
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # ── JWT ──────────────────────────────────────────────────────────────────
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      # ── Encryption ───────────────────────────────────────────────────────────
+      - key: ENCRYPTION_KEY
+        sync: false
+      # ── Cloudflare R2 ────────────────────────────────────────────────────────
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+      # ── Email (Resend) ───────────────────────────────────────────────────────
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: DPO_EMAIL
+        sync: false
+      # ── CORS — ustaw na domenę Vercel po deploymencie ────────────────────────
+      # np. https://travelpointdemo.vercel.app,https://twojadomena.pl
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: API_URL
+        sync: false
