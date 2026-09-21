@@ -49,9 +49,9 @@ const ARCHETYPE_LABELS: Record<string, string> = {
 };
 
 const TIER_LABELS: Record<string, string> = {
-  FREE: 'Explorer Free',
-  CORE: 'Explorer Core',
-  LEGEND: 'Explorer Legend',
+  FREE:       'Explorer Free',
+  PRO:        'Explorer Pro',
+  EXPEDITION: 'Explorer Expedition',
 };
 
 export default function ProfilePage() {
