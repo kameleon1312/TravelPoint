@@ -49,6 +49,17 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.supabase.co' },
     ],
   },
+  // In dev, proxy /render-api/* to the Render API so the browser never
+  // makes a cross-origin request (avoids CORS issues with localhost).
+  rewrites: async () => {
+    if (!isDev) return [];
+    return [
+      {
+        source: '/render-api/:path*',
+        destination: 'https://travelpointdemo.onrender.com/:path*',
+      },
+    ];
+  },
   headers: async () => [
     {
       source: '/(.*)',

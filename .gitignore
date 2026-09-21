@@ -44,3 +44,9 @@ apps/api/prisma/dev.db-journal
 
 # Sentry
 .sentryclirc
+
+# Supabase CLI temp files
+supabase/.temp/
+
+# Claude Code agent files
+.claude/
