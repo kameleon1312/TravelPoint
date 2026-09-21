@@ -17,6 +17,8 @@ import { execSync } from 'node:child_process';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+
 const { Pool } = pg;
 const pool = new Pool({ connectionString: process.env['DATABASE_URL'], max: 1 });
 const client = await pool.connect();

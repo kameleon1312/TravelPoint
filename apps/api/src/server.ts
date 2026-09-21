@@ -95,7 +95,20 @@ async function bootstrap() {
     void checkPushReceipts(app.prisma);
   }, RECEIPT_INTERVAL_MS);
 
-  // Graceful shutdown on SIGTERM
+  // Self-ping every 4 minutes to prevent Railway from sleeping the container.
+  // Railway (Hobby plan) puts services to sleep after a period of no incoming traffic.
+  // RAILWAY_PUBLIC_DOMAIN is automatically injected by Railway in production.
+  const railwayDomain = process.env['RAILWAY_PUBLIC_DOMAIN'];
+  if (railwayDomain) {
+    const keepAliveUrl = `https://${railwayDomain}/health`;
+    const KEEP_ALIVE_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes < Railway's ~5 min sleep threshold
+    setInterval(() => {
+      fetch(keepAliveUrl).catch(() => { /* ignore — server might be restarting */ });
+    }, KEEP_ALIVE_INTERVAL_MS);
+    logger.info(`Keep-alive: pinging ${keepAliveUrl} every 4 minutes`);
+  }
+
+  // Graceful shutdown on SIGTERM (sent by Railway when stopping/sleeping the container)
   const shutdown = async () => {
     logger.info('SIGTERM received — shutting down gracefully');
     await app.close();

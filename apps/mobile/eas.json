@@ -8,7 +8,9 @@
       "node": "22.13.0",
       "environment": "development",
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://doekrkqgsoayovycfizd.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWtya3Fnc29heW92eWNmaXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDg4NzIsImV4cCI6MjA4MDE4NDg3Mn0.14YnpwX5MIf223MDWGqiUh5iLxBp_ufC_sA17CvtXUI"
       },
       "developmentClient": true,
       "distribution": "internal",
@@ -22,7 +24,11 @@
       "environment": "preview",
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "EXPO_PUBLIC_API_URL": "https://travelpointdemo.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://travelpointdemo.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyCTfjvzLc2X-waxCvA4BVH6Z-3x_G3DIZE",
+        "EXPO_PUBLIC_MAPBOX_TOKEN": "pk.eyJ1Ijoic2ltb25hcnQiLCJhIjoiY210ZWl6MnkyMThvMTJ5c2V5ZHM1YnllcSJ9.sI03nEWwvzxCqrdePVFvDg",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://doekrkqgsoayovycfizd.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWtya3Fnc29heW92eWNmaXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDg4NzIsImV4cCI6MjA4MDE4NDg3Mn0.14YnpwX5MIf223MDWGqiUh5iLxBp_ufC_sA17CvtXUI"
       },
       "distribution": "internal",
       "android": {
@@ -35,7 +41,11 @@
       "environment": "production",
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "EXPO_PUBLIC_API_URL": "https://travelpointdemo.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://travelpointdemo.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyCTfjvzLc2X-waxCvA4BVH6Z-3x_G3DIZE",
+        "EXPO_PUBLIC_MAPBOX_TOKEN": "pk.eyJ1Ijoic2ltb25hcnQiLCJhIjoiY210ZWl6MnkyMThvMTJ5c2V5ZHM1YnllcSJ9.sI03nEWwvzxCqrdePVFvDg",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://doekrkqgsoayovycfizd.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWtya3Fnc29heW92eWNmaXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDg4NzIsImV4cCI6MjA4MDE4NDg3Mn0.14YnpwX5MIf223MDWGqiUh5iLxBp_ufC_sA17CvtXUI"
       },
       "autoIncrement": true,
       "android": {
