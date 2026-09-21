@@ -47,7 +47,7 @@ export function SpotPanel({ spot, onClose }: Props): React.JSX.Element {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 340, opacity: 0 }}
           transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute top-4 right-4 bottom-4 w-80 z-10 flex flex-col pointer-events-auto"
+          className="absolute top-[88px] right-4 bottom-4 w-80 z-10 flex flex-col pointer-events-auto"
         >
           <div className="flex-1 overflow-y-auto rounded-2xl border border-steel bg-abyss/95 backdrop-blur-xl flex flex-col">
             {/* Header */}
