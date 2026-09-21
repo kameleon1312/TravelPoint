@@ -3,7 +3,7 @@ services:
     name: travelpoint-api
     runtime: node
     # Render runs all commands from the monorepo root — matches nixpacks.toml behaviour.
-    buildCommand: corepack enable && corepack prepare pnpm@11.0.8 --activate && pnpm install --frozen-lockfile && pnpm --filter @travelpoint/api build
+    buildCommand: npm install -g pnpm@11.0.8 && pnpm install --frozen-lockfile && pnpm --filter @travelpoint/api build
     startCommand: pnpm --filter @travelpoint/api db:deploy && node apps/api/dist/server.js
     healthCheckPath: /health
     plan: free
