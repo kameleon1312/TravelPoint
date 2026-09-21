@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { getStoredToken, clearStoredToken } from '@/lib/webAuth';
 
 interface WorldNavProps {
   onJoinClick?: () => void;
@@ -17,15 +18,30 @@ const NAV_LINKS = [
 ];
 
 export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
-  const [scrolled, setScrolled]   = useState(false);
-  const [menuOpen, setMenuOpen]   = useState(false);
+  const [scrolled, setScrolled]       = useState(false);
+  const [menuOpen, setMenuOpen]       = useState(false);
+  const [isLoggedIn, setIsLoggedIn]   = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  useEffect(() => {
+    setIsLoggedIn(!!getStoredToken());
+    const onStorage = () => setIsLoggedIn(!!getStoredToken());
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  function handleSignOut() {
+    clearStoredToken();
+    setIsLoggedIn(false);
+    router.push('/forum');
+  }
 
   // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);
@@ -114,14 +130,31 @@ export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
 
         {/* Right: CTA + mobile menu */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleJoinClick}
-            className="px-5 py-2.5 rounded-xl font-sans text-sm font-semibold text-starlight bg-signal-gradient glow-signal
-                       transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
-          >
-            <span className="hidden sm:inline">Dołącz do sieci</span>
-            <span className="sm:hidden">Dołącz</span>
-          </button>
+          {isLoggedIn ? (
+            <div className="hidden md:flex items-center gap-2">
+              <Link
+                href="/profile"
+                className="px-4 py-2 rounded-xl font-sans text-sm font-semibold text-starlight border border-steel/60 hover:border-aurora/50 hover:text-aurora transition-colors duration-150"
+              >
+                Mój profil
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="px-4 py-2 rounded-xl font-sans text-sm text-starFaint hover:text-star transition-colors duration-150"
+              >
+                Wyloguj
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleJoinClick}
+              className="px-5 py-2.5 rounded-xl font-sans text-sm font-semibold text-starlight bg-signal-gradient glow-signal
+                         transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
+            >
+              <span className="hidden sm:inline">Dołącz do sieci</span>
+              <span className="sm:hidden">Dołącz</span>
+            </button>
+          )}
 
           {/* Mobile hamburger */}
           <button
@@ -173,6 +206,29 @@ export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
               </div>
             )
           ))}
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/profile"
+                className="flex items-center px-5 py-4 font-sans text-sm text-starFaint hover:text-star hover:bg-graphite/50 border-t border-steel/30 transition-colors"
+              >
+                Mój profil
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center w-full px-5 py-4 font-sans text-sm text-starFaint hover:text-star hover:bg-graphite/50 border-t border-steel/30 transition-colors"
+              >
+                Wyloguj
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => { setMenuOpen(false); handleJoinClick(); }}
+              className="flex items-center w-full px-5 py-4 font-sans text-sm font-semibold text-aurora hover:bg-aurora/5 border-t border-steel/30 transition-colors"
+            >
+              Dołącz do sieci
+            </button>
+          )}
         </motion.div>
       )}
     </motion.nav>

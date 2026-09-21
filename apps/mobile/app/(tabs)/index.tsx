@@ -920,6 +920,7 @@ const styles = StyleSheet.create({
   // ── Top bar ──────────────────────────────────────────────────────────────────
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
+    zIndex: 200,
     paddingHorizontal: Spacing.xl, paddingTop: Spacing.md,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },

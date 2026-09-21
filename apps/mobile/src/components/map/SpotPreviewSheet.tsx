@@ -90,8 +90,13 @@ export function SpotPreviewSheet({ spot, onDismiss }: Props) {
             sheetStyle,
           ]}
         >
-          {/* Drag handle */}
-          <View style={styles.handle} />
+          {/* Header: drag handle + dismiss */}
+          <View style={styles.sheetHeader}>
+            <View style={styles.handle} />
+            <Pressable onPress={onDismiss} style={styles.dismissBtn} hitSlop={12}>
+              <Text style={styles.dismissBtnText}>✕</Text>
+            </Pressable>
+          </View>
 
           {/* Eyebrow — category */}
           <Text style={styles.eyebrow}>
@@ -144,13 +149,27 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     ...Shadow.card,
   },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
   handle: {
     width: 36,
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.steel,
-    alignSelf: 'center',
-    marginBottom: Spacing.xs,
+  },
+  dismissBtn: {
+    position: 'absolute',
+    right: 0,
+    padding: Spacing.xs,
+  },
+  dismissBtnText: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: 16,
+    color: Colors.starFaint,
   },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
