@@ -62,7 +62,9 @@ there can read."*
 
 #### Accents
 - `aurora` `#5CB88C` — seagrass green (primary — discovery, CTA)
+- `auroraDeep` `#3A8C6A` — darker seagrass
 - `signal` `#1E9AB0` — deep teal ocean (links, navigation, presence)
+- `signalGlow` `#3DBDD4` — brighter teal for glow effects
 - `ember` `#C86840` — terracotta canyon (alerts, secret drops, urgency)
 - `violet` `#7A6D9E` — dusk lavender (circles, trusted items)
 
@@ -75,6 +77,17 @@ there can read."*
 - `star` `#C4B9AC` — secondary text
 - `starFaint` `#8A827A` — tertiary text
 - `starGhost` `#5A5550` — placeholder / disabled
+
+#### Glass (warm organic tint — NOT cold steel)
+- `glass` `rgba(237,232,223,0.05)` — subtle warm overlay
+- `glassBorder` `rgba(237,232,223,0.10)` — glass border
+- `glassStrong` `rgba(237,232,223,0.09)` — stronger glass
+
+#### Status
+- `success` `#5CB88C` — alias aurora
+- `warning` `#C8A456` — alias sand
+- `danger` `#C85040` — deep red-terracotta
+- `info` `#1E9AB0` — alias signal
 
 ### Motion patterns (unchanged names, new descriptions)
 - `signalPulse` — seagrass ripple on water surface

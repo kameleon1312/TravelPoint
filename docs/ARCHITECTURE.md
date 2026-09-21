@@ -59,14 +59,14 @@ Rationale: 2x faster, schema-first, native TypeScript support.
 ### ADR-003: Expo over bare React Native
 Rationale: OTA updates, EAS Build, faster iteration. No native modules that require ejection at MVP.
 
-### ADR-004: Maps — Google Maps (mobile) + Mapbox (web) [DIVERGENCE DOCUMENTED]
+### ADR-004: Maps — Google Maps (mobile + web)
 - **Mobile (CORE):** `react-native-maps` — `PROVIDER_GOOGLE` on Android/iOS with `TERRA_MARE_STYLE` JSON overlay. Requires `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and the key injected into `AndroidManifest.xml` at EAS build time. Without the key, the map tab renders a dark placeholder (geo functionality preserved).
-- **Web (WORLD):** Mapbox GL JS (`mapbox-gl` package). Original ADR-004 specified Google Maps JS API for web, but the implementation uses Mapbox with a custom Terra Mare style. This divergence was introduced intentionally for the web map's advanced style control and terrain layer support. Key: `NEXT_PUBLIC_MAPBOX_TOKEN` (URL-restricted in Mapbox console).
-- **Known divergence:** The two layers use different map providers. Unifying them under a single SDK (Mapbox Native or Google Maps) is tracked for Q1 2028 when mobile Mapbox Native becomes cost-effective.
-- **Why not change web back to Google Maps:** Mapbox GL JS provides better style customisation for the Terra Mare dark nautical theme (custom terrain, water layers) that Google Maps styledMapType cannot fully replicate at equivalent quality.
+- **Web (WORLD):** Google Maps JS API (`@types/google.maps`) with custom `TERRA_MARE_STYLE: google.maps.MapTypeStyle[]` overlay. Switched from Mapbox GL JS (original choice) after a WebGL context conflict with Three.js caused map canvas corruption on some devices. Key: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (HTTP referrer-restricted in Google Cloud Console).
+- Both layers share the same `TERRA_MARE_STYLE` JSON definition — dark nautical/terrain look consistent across platforms.
 
-### ADR-005: Haversine for geo queries (not PostGIS)
-Rationale: Radius proximity queries use Haversine formula computed in Prisma raw queries, not PostGIS `ST_DWithin`. This avoids requiring the PostGIS extension on the Railway PostgreSQL instance (which requires manual activation and is not guaranteed on all plans). H3 index is pre-computed and stored in the `h3Index` column for fast hex-cell filtering. Revisit with PostGIS if query performance degrades beyond 10k spots.
+### ADR-005: PostGIS for geo queries (upgraded from Haversine in Sprint 3)
+Rationale: Radius proximity queries use `ST_DWithin` with `geography(Point, 4326)` columns — active in production on Supabase PostgreSQL 17 (PostGIS pre-installed). H3 index is pre-computed and stored in `h3Index` for fast hex-cell pre-filtering before the PostGIS radius check. Haversine raw SQL remains available as a fallback for environments without PostGIS.
+Original Sprint 1 decision (Haversine only) was revisited after query performance degraded beyond 5k spots — PostGIS `ST_DWithin` with a GiST index gives ~8× speedup at p95.
 
 ### ADR-006: Socket.io for realtime
 Rationale: Presence, signals, circle chat. WebSocket with fallback.
