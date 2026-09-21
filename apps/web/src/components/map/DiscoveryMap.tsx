@@ -109,10 +109,14 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
   const [mapError, setMapError]       = useState(false);
 
   // ── Load spots ──────────────────────────────────────────────────────────────
+  // Fetch client-side directly to the API (bypasses Next.js serverless proxy which
+  // has a ~10s timeout — Render free tier cold start takes ~45s and would always
+  // time out server-side, returning an empty list).
   useEffect(() => {
+    const apiUrl = (process.env['NEXT_PUBLIC_API_URL'] ?? '').replace(/\/$/, '');
     const params = new URLSearchParams();
     if (category) params.set('category', category);
-    fetch(`/api/spots?${params.toString()}`)
+    fetch(`${apiUrl}/api/spots/public?${params.toString()}`)
       .then((r) => r.json())
       .then((data: unknown) => {
         setSpots(Array.isArray(data) ? (data as PublicSpot[]) : []);
