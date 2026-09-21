@@ -86,17 +86,6 @@ try {
     }
   }
 
-  // ── D. Ensure supabaseId column always exists on Explorer ────────────────
-  // Scenario C baselines migrations without running their SQL, so critical
-  // columns added by later migrations can silently disappear after a DB reset.
-  // These are safe no-ops when the column/index already exist.
-  if (appExists) {
-    await client.query(`ALTER TABLE "Explorer" ADD COLUMN IF NOT EXISTS "supabaseId" TEXT`);
-    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS "Explorer_supabaseId_key" ON "Explorer"("supabaseId")`);
-    await client.query(`CREATE INDEX IF NOT EXISTS "Explorer_supabaseId_idx" ON "Explorer"("supabaseId")`);
-    console.log('[ensure-db] supabaseId column verified');
-  }
-
   console.log('[ensure-db] Ready');
 } finally {
   client.release();
