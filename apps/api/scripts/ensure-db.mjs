@@ -18,7 +18,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
 const { Pool } = pg;
-const pool = new Pool({ connectionString: process.env['DATABASE_URL'], max: 1 });
+
+// Supabase requires SSL; rejectUnauthorized scoped to this pool only (not the whole process).
+const sslConfig = process.env['NODE_ENV'] === 'production' || process.env['DATABASE_URL']?.includes('supabase')
+  ? { rejectUnauthorized: false }
+  : false;
+
+const pool = new Pool({ connectionString: process.env['DATABASE_URL'], max: 1, ssl: sslConfig });
 const client = await pool.connect();
 
 async function tableExists(name) {
