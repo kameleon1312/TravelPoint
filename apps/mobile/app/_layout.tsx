@@ -88,7 +88,8 @@ function AuthGate() {
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
   const appState = useRef(AppState.currentState);
 
-  // Check for OTA updates on every cold start and apply immediately.
+  // Download OTA updates silently in the background.
+  // The new bundle is applied on the next cold start to avoid interrupting navigation.
   useEffect(() => {
     if (__DEV__) return;
     void (async () => {
@@ -96,7 +97,6 @@ function AuthGate() {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
         }
       } catch {
         // Non-fatal — app continues with current bundle
