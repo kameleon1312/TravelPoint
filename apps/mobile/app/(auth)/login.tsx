@@ -53,7 +53,7 @@ export default function LoginScreen() {
       resizeMode="cover"
     >
       <LinearGradient
-        colors={['rgba(7,10,12,0.60)', 'rgba(12,16,20,0.70)', 'rgba(15,30,42,0.78)']}
+        colors={['rgba(27,43,47,0.35)', 'rgba(27,43,47,0.45)', 'rgba(27,43,47,0.52)']}
         style={{ flex: 1 }}
       >
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -67,60 +67,62 @@ export default function LoginScreen() {
                 <Text style={styles.title}>{pl.auth.loginTitle}</Text>
               </View>
 
-              <View style={styles.form}>
-                <Controller
-                  control={control}
-                  name="email"
-                  render={({ field: { onChange, value } }) => (
-                    <View style={styles.fieldGroup}>
-                      <TextInput
-                        style={[styles.input, errors.email && styles.inputError]}
-                        placeholder={pl.auth.emailPlaceholder}
-                        placeholderTextColor={Colors.starGhost}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        value={value}
-                        onChangeText={onChange}
-                      />
-                    </View>
-                  )}
-                />
+              <View style={styles.glassPanel}>
+                <View style={styles.form}>
+                  <Controller
+                    control={control}
+                    name="email"
+                    render={({ field: { onChange, value } }) => (
+                      <View style={styles.fieldGroup}>
+                        <TextInput
+                          style={[styles.input, errors.email && styles.inputError]}
+                          placeholder={pl.auth.emailPlaceholder}
+                          placeholderTextColor={Colors.starGhost}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoComplete="email"
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                      </View>
+                    )}
+                  />
 
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, value } }) => (
-                    <View style={styles.fieldGroup}>
-                      <TextInput
-                        style={[styles.input, errors.password && styles.inputError]}
-                        placeholder={pl.auth.passwordPlaceholder}
-                        placeholderTextColor={Colors.starGhost}
-                        secureTextEntry
-                        value={value}
-                        onChangeText={onChange}
-                      />
-                    </View>
-                  )}
-                />
+                  <Controller
+                    control={control}
+                    name="password"
+                    render={({ field: { onChange, value } }) => (
+                      <View style={styles.fieldGroup}>
+                        <TextInput
+                          style={[styles.input, errors.password && styles.inputError]}
+                          placeholder={pl.auth.passwordPlaceholder}
+                          placeholderTextColor={Colors.starGhost}
+                          secureTextEntry
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                      </View>
+                    )}
+                  />
 
-                {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
+                  {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
 
-                <SignalButton
-                  label={pl.auth.loginCta}
-                  onPress={handleSubmit(onSubmit)}
-                  variant="signal"
-                  size="lg"
-                  loading={isSubmitting}
-                  fullWidth
-                  haptic="medium"
-                />
+                  <SignalButton
+                    label={pl.auth.loginCta}
+                    onPress={handleSubmit(onSubmit)}
+                    variant="signal"
+                    size="lg"
+                    loading={isSubmitting}
+                    fullWidth
+                    haptic="medium"
+                  />
 
-                <View style={styles.row}>
-                  <Text style={styles.rowText}>{pl.auth.noAccount} </Text>
-                  <Text style={styles.rowLink} onPress={() => router.push('/(auth)/join')}>
-                    {pl.auth.joinCta}
-                  </Text>
+                  <View style={styles.row}>
+                    <Text style={styles.rowText}>{pl.auth.noAccount} </Text>
+                    <Text style={styles.rowLink} onPress={() => router.push('/(auth)/join')}>
+                      {pl.auth.joinCta}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </ScrollView>
@@ -132,23 +134,36 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: Spacing.xl, justifyContent: 'center', gap: Spacing.xxl },
+  container: { flexGrow: 1, padding: Spacing.xl, justifyContent: 'center', gap: Spacing.xl },
   header: { alignItems: 'center', gap: Spacing.md },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
     fontSize: FontSize.micro,
-    color: Colors.starFaint,
+    color: Colors.textOnDark,
     letterSpacing: 3,
     textTransform: 'uppercase',
+    opacity: 0.82,
   },
   title: {
     fontFamily: 'ClashDisplay-Bold',
     fontSize: FontSize.h1,
-    color: Colors.starlight,
+    color: Colors.textOnDark,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
-  form: { gap: Spacing.lg },
+  glassPanel: {
+    backgroundColor: Colors.glassStrong,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    shadowColor: Colors.glassShadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  form: { gap: Spacing.lg, padding: Spacing.xl },
   fieldGroup: { gap: Spacing.xs },
   input: {
     height: 52,
@@ -168,6 +183,6 @@ const styles = StyleSheet.create({
     color: Colors.danger,
   },
   row: { flexDirection: 'row', justifyContent: 'center' },
-  rowText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
+  rowText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star },
   rowLink: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.aurora },
 });

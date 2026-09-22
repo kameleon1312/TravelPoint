@@ -1,44 +1,67 @@
 export const Colors = {
-  // ─── Deep surfaces (ocean floor meets dark stone) ───
-  void:         '#070A0C',   // deepest — ocean abyss
-  abyss:        '#0C1014',   // main background — deep water
-  graphite:     '#131A1F',   // cards — wet dark rock
-  graphiteSoft: '#1B2328',   // hover / nested surface
-  steel:        '#253035',   // borders, dividers
+  // ─── Backgrounds (light, natural) ─────────────────────────────────────────
+  void:            '#F8FAF6',   // primary background — natural off-white
+  abyss:           '#F4F7F4',   // secondary background
+  backgroundSky:   '#E3F4FA',   // sky / map / travel sections
+  backgroundGreen: '#E8F3E8',   // nature / success / profile sections
 
-  // ─── Ocean depth tones ───
-  midnight:     '#0F1E2A',
-  deepBlue:     '#133040',
-  cosmicBlue:   '#1A4055',
+  // ─── Surfaces ─────────────────────────────────────────────────────────────
+  graphite:        '#FFFFFF',   // cards, modals, inputs
+  graphiteSoft:    '#F7F8F3',   // hover / nested surfaces
+  surfaceSand:     '#FFF7E8',   // warm travel content
 
-  // ─── Accents ───
-  aurora:       '#5CB88C',   // seagrass green — primary accent
-  auroraDeep:   '#3A8C6A',   // darker seagrass
-  signal:       '#1E9AB0',   // deep teal ocean — links / navigation
-  signalGlow:   '#3DBDD4',   // brighter teal for glow
-  ember:        '#C86840',   // terracotta canyon — rare warm accent
-  violet:       '#7A6D9E',   // dusk lavender — circles / trusted
+  // ─── Borders ──────────────────────────────────────────────────────────────
+  steel:           '#D7E0D8',   // default border
+  borderStrong:    '#B8C9BA',   // active input / selected card
+  borderSand:      '#E4D0AE',   // sand element borders
+  borderSky:       '#B3DDF0',   // sky element borders
 
-  // ─── Terra accents ───
-  sand:         '#C8A456',   // dry sand, golden hour
-  moss:         '#4A8A6A',   // deep forest moss
+  // ─── Depth / sky tones ────────────────────────────────────────────────────
+  midnight:        '#E3F4FA',   // sky background (was deep blue)
+  deepBlue:        '#B3E5FC',   // sky light
+  cosmicBlue:      '#64B5F6',   // sky blue
 
-  // ─── Text (warm cream tones — paper, not cold screen) ───
-  starlight:    '#EDE8DF',   // primary text — warm cream
-  star:         '#C4B9AC',   // secondary text
-  starFaint:    '#8A827A',   // tertiary text
-  starGhost:    '#5A5550',   // placeholder / disabled
+  // ─── Primary accent — Natural Green ───────────────────────────────────────
+  aurora:          '#2E7D32',   // primary green — CTA, active elements
+  auroraDeep:      '#256628',   // pressed / darker green
 
-  // ─── Glass (warmer organic tint) ───
-  glass:        'rgba(237,232,223,0.05)',
-  glassBorder:  'rgba(237,232,223,0.10)',
-  glassStrong:  'rgba(237,232,223,0.09)',
+  // ─── Secondary accent — Sky Blue ──────────────────────────────────────────
+  signal:          '#0288D1',   // sky link / navigation
+  signalGlow:      '#42A5F5',   // info blue / glow
 
-  // ─── Status ───
-  success:      '#5CB88C',
-  warning:      '#C8A456',
-  danger:       '#C85040',
-  info:         '#1E9AB0',
+  // ─── Warm accents ─────────────────────────────────────────────────────────
+  ember:           '#F9A825',   // warm amber — alerts / signals
+  violet:          '#5C8FA8',   // ocean blue-gray — circles / trusted
+
+  // ─── Natural tones ────────────────────────────────────────────────────────
+  sand:            '#F4E1C1',   // warm sand surface
+  sandDark:        '#D7B892',   // sand border / separator
+  moss:            '#81C784',   // green light — hover / secondary green
+
+  // ─── Text ─────────────────────────────────────────────────────────────────
+  starlight:       '#1B2B2F',   // primary text
+  star:            '#546E7A',   // secondary text / descriptions
+  starFaint:       '#78909C',   // tertiary text / metadata
+  starGhost:       '#78909C',   // placeholder / disabled
+  textOnDark:      '#FFFFFF',   // text on photo / dark overlay / green CTA
+
+  // ─── Glass (light, natural) ───────────────────────────────────────────────
+  glass:           'rgba(255,255,255,0.78)',
+  glassBorder:     'rgba(255,255,255,0.55)',
+  glassStrong:     'rgba(255,255,255,0.88)',
+  glassShadow:     'rgba(27,43,47,0.12)',
+
+  // ─── Photo overlays (login / registration) ────────────────────────────────
+  overlayDark:       'rgba(27,43,47,0.42)',
+  overlayDarkStrong: 'rgba(27,43,47,0.58)',
+  overlayGreen:      'rgba(46,125,50,0.22)',
+  overlayLight:      'rgba(255,255,255,0.16)',
+
+  // ─── Status ───────────────────────────────────────────────────────────────
+  success:         '#43A047',
+  warning:         '#F9A825',
+  danger:          '#EF5350',
+  info:            '#42A5F5',
 } as const;
 
 export type ColorToken = keyof typeof Colors;

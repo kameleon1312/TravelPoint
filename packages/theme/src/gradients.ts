@@ -1,9 +1,18 @@
 export const Gradients = {
-  aurora:  ['#3A8C6A', '#5CB88C', '#1E9AB0'],   // seagrass → ocean
-  cosmic:  ['#070A0C', '#0F1E2A', '#133040'],    // ocean depth
-  signal:  ['#1E9AB0', '#5CB88C'],               // ocean teal → seagrass
-  ember:   ['#C86840', '#7A6D9E'],               // terracotta → dusk
-  sheen:   ['rgba(237,232,223,0.12)', 'rgba(237,232,223,0.00)'],
+  // Primary natural gradient — green CTA, active elements
+  aurora:  ['#256628', '#2E7D32', '#43A047'],
+
+  // Sky / travel / map gradient
+  cosmic:  ['#E3F4FA', '#B3E5FC', '#64B5F6'],
+
+  // Navigation / info gradient
+  signal:  ['#0288D1', '#42A5F5'],
+
+  // Warm sand gradient — onboarding, featured cards
+  ember:   ['#F4E1C1', '#D7B892'],
+
+  // Subtle light sheen
+  sheen:   ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.00)'],
 } as const;
 
 export type GradientToken = keyof typeof Gradients;

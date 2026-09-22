@@ -124,16 +124,16 @@ export default function JoinScreen() {
         resizeMode="cover"
       >
         <LinearGradient
-          colors={['rgba(7,10,12,0.60)', 'rgba(12,16,20,0.70)', 'rgba(15,30,42,0.78)']}
+          colors={['rgba(27,43,47,0.35)', 'rgba(27,43,47,0.45)', 'rgba(27,43,47,0.52)']}
           style={{ flex: 1 }}
         >
           <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl }} edges={['top', 'bottom']}>
-            <Text style={styles.eyebrow}>Prawie gotowe</Text>
-            <Text style={[styles.title, { marginVertical: Spacing.lg }]}>Potwierdź e-mail</Text>
-            <Text style={[styles.subtitle, { textAlign: 'center' }]}>
-              Wysłaliśmy link potwierdzający na podany adres. Kliknij go, a następnie wróć i zaloguj się.
-            </Text>
-            <View style={{ marginTop: Spacing.xl }}>
+            <View style={[styles.glassPanel, { alignItems: 'center', gap: Spacing.lg }]}>
+              <Text style={styles.eyebrow}>Prawie gotowe</Text>
+              <Text style={styles.confirmTitle}>Potwierdź e-mail</Text>
+              <Text style={styles.confirmSubtitle}>
+                Wysłaliśmy link potwierdzający na podany adres. Kliknij go, a następnie wróć i zaloguj się.
+              </Text>
               <SignalButton
                 label="Mam już konto — zaloguj się"
                 onPress={() => router.replace('/(auth)/login')}
@@ -156,7 +156,7 @@ export default function JoinScreen() {
       resizeMode="cover"
     >
       <LinearGradient
-        colors={['rgba(7,10,12,0.60)', 'rgba(12,16,20,0.70)', 'rgba(15,30,42,0.78)']}
+        colors={['rgba(27,43,47,0.35)', 'rgba(27,43,47,0.45)', 'rgba(27,43,47,0.52)']}
         style={{ flex: 1 }}
       >
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -171,135 +171,136 @@ export default function JoinScreen() {
             <View style={styles.header}>
               <Text style={styles.eyebrow}>Sieć dla obsesjonatów odkrywania</Text>
               <Text style={styles.title}>{pl.auth.joinTitle}</Text>
-              <Text style={styles.subtitle}>{pl.auth.joinSubtitle}</Text>
             </View>
 
-            <View style={styles.form}>
-              <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.fieldGroup}>
-                    <TextInput
-                      style={[styles.input, errors.email && styles.inputError]}
-                      placeholder={pl.auth.emailPlaceholder}
-                      placeholderTextColor={Colors.starGhost}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoComplete="email"
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                    {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
-                  </View>
-                )}
-              />
+            <View style={styles.glassPanel}>
+              <View style={styles.form}>
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldGroup}>
+                      <TextInput
+                        style={[styles.input, errors.email && styles.inputError]}
+                        placeholder={pl.auth.emailPlaceholder}
+                        placeholderTextColor={Colors.starGhost}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                      {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+                    </View>
+                  )}
+                />
 
-              <Controller
-                control={control}
-                name="handle"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.fieldGroup}>
-                    <TextInput
-                      style={[styles.input, errors.handle && styles.inputError]}
-                      placeholder={pl.auth.handlePlaceholder}
-                      placeholderTextColor={Colors.starGhost}
-                      autoCapitalize="none"
-                      value={value}
-                      onChangeText={(v) => onChange(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                    />
-                    {errors.handle && <Text style={styles.error}>{errors.handle.message}</Text>}
-                  </View>
-                )}
-              />
+                <Controller
+                  control={control}
+                  name="handle"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldGroup}>
+                      <TextInput
+                        style={[styles.input, errors.handle && styles.inputError]}
+                        placeholder={pl.auth.handlePlaceholder}
+                        placeholderTextColor={Colors.starGhost}
+                        autoCapitalize="none"
+                        value={value}
+                        onChangeText={(v) => onChange(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                      />
+                      {errors.handle && <Text style={styles.error}>{errors.handle.message}</Text>}
+                    </View>
+                  )}
+                />
 
-              <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.fieldGroup}>
-                    <TextInput
-                      style={[styles.input, errors.password && styles.inputError]}
-                      placeholder={pl.auth.passwordPlaceholder}
-                      placeholderTextColor={Colors.starGhost}
-                      secureTextEntry
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                    <Text style={styles.hint}>Min. 12 znaków · wielka litera · cyfra · znak specjalny</Text>
-                    {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
-                  </View>
-                )}
-              />
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldGroup}>
+                      <TextInput
+                        style={[styles.input, errors.password && styles.inputError]}
+                        placeholder={pl.auth.passwordPlaceholder}
+                        placeholderTextColor={Colors.starGhost}
+                        secureTextEntry
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                      <Text style={styles.hint}>Min. 12 znaków · wielka litera · cyfra · znak specjalny</Text>
+                      {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
+                    </View>
+                  )}
+                />
 
-              <Controller
-                control={control}
-                name="acceptTerms"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.consentGroup}>
-                    <Pressable
-                      style={styles.consentRow}
-                      onPress={() => onChange(!value)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: value }}
-                    >
-                      <View style={[styles.checkbox, value && styles.checkboxChecked]}>
-                        {value && <Text style={styles.checkmark}>✓</Text>}
-                      </View>
-                      <Text style={styles.consentText}>{pl.auth.acceptTerms}</Text>
-                    </Pressable>
-                    <Pressable onPress={() => void Linking.openURL(`${webUrl}/regulamin`)}>
-                      <Text style={styles.legalLink}>Przeczytaj regulamin</Text>
-                    </Pressable>
-                    {errors.acceptTerms && <Text style={styles.error}>{errors.acceptTerms.message}</Text>}
-                  </View>
-                )}
-              />
+                <Controller
+                  control={control}
+                  name="acceptTerms"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.consentGroup}>
+                      <Pressable
+                        style={styles.consentRow}
+                        onPress={() => onChange(!value)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: value }}
+                      >
+                        <View style={[styles.checkbox, value && styles.checkboxChecked]}>
+                          {value && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <Text style={styles.consentText}>{pl.auth.acceptTerms}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => void Linking.openURL(`${webUrl}/regulamin`)}>
+                        <Text style={styles.legalLink}>Przeczytaj regulamin</Text>
+                      </Pressable>
+                      {errors.acceptTerms && <Text style={styles.error}>{errors.acceptTerms.message}</Text>}
+                    </View>
+                  )}
+                />
 
-              <Controller
-                control={control}
-                name="acceptPrivacy"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.consentGroup}>
-                    <Pressable
-                      style={styles.consentRow}
-                      onPress={() => onChange(!value)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: value }}
-                    >
-                      <View style={[styles.checkbox, value && styles.checkboxChecked]}>
-                        {value && <Text style={styles.checkmark}>✓</Text>}
-                      </View>
-                      <Text style={styles.consentText}>{pl.auth.acceptPrivacy}</Text>
-                    </Pressable>
-                    <Pressable onPress={() => void Linking.openURL(`${webUrl}/polityka-prywatnosci`)}>
-                      <Text style={styles.legalLink}>Przeczytaj politykę prywatności</Text>
-                    </Pressable>
-                    {errors.acceptPrivacy && <Text style={styles.error}>{errors.acceptPrivacy.message}</Text>}
-                  </View>
-                )}
-              />
+                <Controller
+                  control={control}
+                  name="acceptPrivacy"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.consentGroup}>
+                      <Pressable
+                        style={styles.consentRow}
+                        onPress={() => onChange(!value)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: value }}
+                      >
+                        <View style={[styles.checkbox, value && styles.checkboxChecked]}>
+                          {value && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <Text style={styles.consentText}>{pl.auth.acceptPrivacy}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => void Linking.openURL(`${webUrl}/polityka-prywatnosci`)}>
+                        <Text style={styles.legalLink}>Przeczytaj politykę prywatności</Text>
+                      </Pressable>
+                      {errors.acceptPrivacy && <Text style={styles.error}>{errors.acceptPrivacy.message}</Text>}
+                    </View>
+                  )}
+                />
 
-              {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
+                {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
 
-              <SignalButton
-                label={pl.auth.joinCta}
-                onPress={handleSubmit(onSubmit)}
-                variant="ember"
-                size="lg"
-                loading={isSubmitting}
-                fullWidth
-                haptic="medium"
-              />
+                <SignalButton
+                  label={pl.auth.joinCta}
+                  onPress={handleSubmit(onSubmit)}
+                  variant="ember"
+                  size="lg"
+                  loading={isSubmitting}
+                  fullWidth
+                  haptic="medium"
+                />
 
-              <View style={styles.loginRow}>
-                <Text style={styles.loginText}>{pl.auth.haveAccount} </Text>
-                <Text
-                  style={styles.loginLink}
-                  onPress={() => router.push('/(auth)/login')}
-                >
-                  {pl.auth.loginCta}
-                </Text>
+                <View style={styles.loginRow}>
+                  <Text style={styles.loginText}>{pl.auth.haveAccount} </Text>
+                  <Text
+                    style={styles.loginLink}
+                    onPress={() => router.push('/(auth)/login')}
+                  >
+                    {pl.auth.loginCta}
+                  </Text>
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -311,27 +312,48 @@ export default function JoinScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: Spacing.xl, justifyContent: 'center', gap: Spacing.xxl },
+  container: { flexGrow: 1, padding: Spacing.xl, justifyContent: 'center', gap: Spacing.xl },
   header: { alignItems: 'center', gap: Spacing.md },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
     fontSize: FontSize.micro,
-    color: Colors.starFaint,
+    color: Colors.textOnDark,
     letterSpacing: 3,
     textTransform: 'uppercase',
+    opacity: 0.82,
   },
   title: {
     fontFamily: 'ClashDisplay-Bold',
     fontSize: FontSize.h1,
+    color: Colors.textOnDark,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  confirmTitle: {
+    fontFamily: 'ClashDisplay-Bold',
+    fontSize: FontSize.h2,
     color: Colors.starlight,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
-  subtitle: {
+  confirmSubtitle: {
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.bodySm,
     color: Colors.star,
     textAlign: 'center',
+  },
+  glassPanel: {
+    backgroundColor: Colors.glassStrong,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    shadowColor: Colors.glassShadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 8,
+    overflow: 'hidden',
+    padding: Spacing.xl,
   },
   form: { gap: Spacing.lg },
   fieldGroup: { gap: Spacing.xs },
@@ -372,12 +394,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: { borderColor: Colors.aurora, backgroundColor: Colors.aurora },
-  checkmark: { color: Colors.void, fontSize: 14, fontWeight: '700' },
+  checkmark: { color: Colors.textOnDark, fontSize: 14, fontWeight: '700' },
   consentText: {
     flex: 1,
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.bodySm,
-    color: Colors.star,
+    color: Colors.starlight,
   },
   legalLink: {
     marginLeft: 22 + Spacing.md,
@@ -386,6 +408,6 @@ const styles = StyleSheet.create({
     color: Colors.signal,
   },
   loginRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  loginText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
+  loginText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star },
   loginLink: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.aurora },
 });
