@@ -549,6 +549,26 @@ export default function AtlasScreen() {
     }
   }
 
+  // ── Prompt for location on first login ───────────────────────────────────────
+  useEffect(() => {
+    if (!explorer) return;
+    void (async () => {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status === 'granted' && !explorer.locationConsent) {
+        await grantLocationConsent();
+      } else if (status === 'undetermined') {
+        Alert.alert(
+          'Pokaż swoją pozycję na mapie',
+          'TravelPoint użyje lokalizacji, żeby wycentrować mapę i pokazać spoty w pobliżu. Twoja pozycja publiczna jest zawsze zaokrąglana o co najmniej 500 m.',
+          [
+            { text: 'Teraz nie', style: 'cancel' },
+            { text: 'Włącz lokalizację', onPress: () => void grantLocationConsent() },
+          ],
+        );
+      }
+    })();
+  }, [explorer?.id]);
+
   // ── Presence consent ─────────────────────────────────────────────────────────
   async function grantPresenceConsent() {
     try {
