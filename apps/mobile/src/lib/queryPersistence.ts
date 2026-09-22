@@ -1,9 +1,13 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Updates from 'expo-updates';
 import type { QueryClient } from '@tanstack/react-query';
 
 const CACHE_FILE = `${FileSystem.documentDirectory ?? ''}travelpoint-query-cache.json`;
 const CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24;
 const WRITE_DEBOUNCE_MS = 1500;
+
+// Changes after every OTA update — used to invalidate stale cache automatically.
+const BUNDLE_ID: string = Updates.updateId ?? '__dev__';
 
 interface PersistedQuery {
   queryKey: readonly unknown[];
@@ -13,6 +17,7 @@ interface PersistedQuery {
 
 interface PersistedCache {
   version: 1;
+  bundleId: string;
   savedAt: number;
   queries: PersistedQuery[];
 }
@@ -26,7 +31,14 @@ export async function hydrateQueryCache(queryClient: QueryClient): Promise<void>
     if (!info.exists) return;
     const raw = await FileSystem.readAsStringAsync(CACHE_FILE);
     const cache = JSON.parse(raw) as PersistedCache;
-    if (cache.version !== 1 || Date.now() - cache.savedAt > CACHE_MAX_AGE_MS) return;
+    if (
+      cache.version !== 1 ||
+      cache.bundleId !== BUNDLE_ID ||
+      Date.now() - cache.savedAt > CACHE_MAX_AGE_MS
+    ) {
+      await FileSystem.deleteAsync(CACHE_FILE, { idempotent: true }).catch(() => undefined);
+      return;
+    }
     for (const query of cache.queries) {
       queryClient.setQueryData(query.queryKey, query.data, {
         updatedAt: query.dataUpdatedAt,
@@ -59,6 +71,7 @@ async function persistQueryCache(queryClient: QueryClient): Promise<void> {
     }));
   const payload: PersistedCache = {
     version: 1,
+    bundleId: BUNDLE_ID,
     savedAt: Date.now(),
     queries,
   };
