@@ -4,7 +4,7 @@ services:
     runtime: node
     # Render runs all commands from the monorepo root — matches nixpacks.toml behaviour.
     buildCommand: npm install -g pnpm@11.0.8 && pnpm install --frozen-lockfile && pnpm --filter @travelpoint/api build
-    startCommand: pnpm --filter @travelpoint/api db:safe-deploy && node apps/api/dist/server.js
+    startCommand: node apps/api/dist/server.js
     healthCheckPath: /health
     plan: free
     # Render injects PORT automatically (default 10000). Fastify reads process.env.PORT.
