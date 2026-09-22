@@ -119,7 +119,7 @@ function TabItem({
         <Animated.View style={iconAnimStyle}>
           <Ionicons
             name={focused ? cfg.icon : cfg.iconOff}
-            size={name === 'index' ? 24 : 22}
+            size={22}
             color={focused ? Colors.aurora : Colors.starGhost}
           />
         </Animated.View>
@@ -239,22 +239,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.graphite,
     borderTopWidth: 1,
     borderTopColor: Colors.steel,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 20,
+    shadowColor: '#1B2B2F',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 16,
   },
   topLine: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 1,
+    height: 1.5,
   },
   tabsRow: {
     flexDirection: 'row',
-    height: 62,
+    height: 64,
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
   },
@@ -264,42 +264,40 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 62,
+    height: 64,
   },
   tabInner: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 4,
     position: 'relative',
   },
 
-  // ── Aurora glow capsule ──────────────────────────────────────────────────────
+  // ── Green capsule ────────────────────────────────────────────────────────────
   capsule: {
     position: 'absolute',
-    width: 58,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: Colors.aurora + '14',
+    width: 54,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.aurora + '12',
     borderWidth: 1,
-    borderColor: Colors.aurora + '28',
-    // subtle inner glow via shadow
+    borderColor: Colors.aurora + '30',
     shadowColor: Colors.aurora,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
     shadowRadius: 8,
   },
 
   // ── Labels ───────────────────────────────────────────────────────────────────
   tabLabel: {
-    fontFamily: 'SpaceMono-Regular',
-    fontSize: 9,
+    fontFamily: 'GeneralSans-Medium',
+    fontSize: 10,
     color: Colors.starGhost,
-    letterSpacing: 0.2,
-    marginTop: 1,
+    letterSpacing: 0.1,
   },
   tabLabelActive: {
     color: Colors.aurora,
-    fontFamily: 'SpaceMono-Regular',
+    fontFamily: 'GeneralSans-Semibold',
   },
 
   // ── Badge ────────────────────────────────────────────────────────────────────

@@ -24,39 +24,39 @@ export const BorderRadius = {
 
 export const Shadow = {
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 32,
-    elevation: 12,
+    shadowColor: '#1B2B2F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
   auroraGlow: {
-    shadowColor: '#5CB88C',   // seagrass green — Terra Mare
+    shadowColor: '#2E7D32',   // primary green — Natural Harmony
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 32,
-    elevation: 8,
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    elevation: 5,
   },
   signalGlow: {
-    shadowColor: '#1E9AB0',   // ocean teal — Terra Mare
+    shadowColor: '#0288D1',   // sky blue — Natural Harmony
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 6,
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    elevation: 4,
   },
   emberGlow: {
-    shadowColor: '#C86840',   // terracotta canyon — Terra Mare
+    shadowColor: '#F9A825',   // warm amber — Natural Harmony
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 40,
-    elevation: 10,
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    elevation: 5,
   },
 } as const;
 
 // CSS box-shadow equivalents for web
 export const CssShadow = {
-  card: '0 8px 32px rgba(0,0,0,0.45)',
-  auroraGlow: '0 0 32px rgba(92,184,140,0.35)',    // #5CB88C
-  signalGlow: '0 0 24px rgba(30,154,176,0.40)',    // #1E9AB0
-  emberGlow: '0 0 40px rgba(200,104,64,0.45)',     // #C86840
+  card: '0 2px 10px rgba(27,43,47,0.08)',
+  auroraGlow: '0 0 18px rgba(46,125,50,0.22)',     // #2E7D32
+  signalGlow: '0 0 14px rgba(2,136,209,0.22)',     // #0288D1
+  emberGlow:  '0 0 18px rgba(249,168,37,0.25)',    // #F9A825
 } as const;

@@ -14,32 +14,29 @@ export function GlassCard({
   style,
   ...props
 }: GlassCardProps) {
-  const glowStyle = glow !== 'none' ? Shadow[`${glow}Glow` as keyof typeof Shadow] : {};
+  const glowStyle = glow !== 'none' ? Shadow[`${glow}Glow` as keyof typeof Shadow] : Shadow.card;
 
   return (
     <View
       style={[
-        styles.background,
-        { borderRadius: radius, overflow: 'hidden' },
+        styles.card,
+        { borderRadius: radius },
         glowStyle,
         style as ViewStyle,
       ]}
       {...props}
     >
-      <View style={[styles.border, { borderRadius: radius }]} />
       <View style={[styles.content, { borderRadius: radius }]}>{children}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    backgroundColor: Colors.glass,
-  },
-  border: {
-    ...StyleSheet.absoluteFillObject,
+  card: {
+    backgroundColor: Colors.graphite,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: Colors.steel,
+    overflow: 'hidden',
   },
   content: {
     padding: Spacing.lg,
