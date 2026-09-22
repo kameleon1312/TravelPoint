@@ -1,4 +1,5 @@
-import { Tabs } from 'expo-router';
+import type { ComponentType } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -6,11 +7,25 @@ import Animated, {
   withSpring, withTiming, withSequence,
   withRepeat, withDelay,
 } from 'react-native-reanimated';
-import { useEffect, useState } from 'react';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+
+// @expo/vector-icons is bundled with expo but not a direct dep — use require to avoid TS resolution error
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Ionicons } = require('@expo/vector-icons') as {
+  Ionicons: ComponentType<{ name: string; size: number; color: string }>;
+};
+
+type NavRoute = { key: string; name: string };
+type TabBarProps = {
+  state: { index: number; routes: NavRoute[] };
+  navigation: {
+    emit: (e: { type: string; target: string; canPreventDefault?: boolean }) => { defaultPrevented: boolean };
+    navigate: (name: string) => void;
+  };
+  descriptors: Record<string, unknown>;
+};
 import { Colors, Spacing } from '@travelpoint/theme';
 import { pl } from '@/i18n/pl';
 import { useUnseenSignalsCount } from '@/hooks/useSignals';
@@ -19,7 +34,7 @@ import { socketManager, type SocketStatus } from '@/lib/socket';
 
 // ── Tab config ────────────────────────────────────────────────────────────────
 type TabName = 'index' | 'discover' | 'circles' | 'journeys' | 'identity';
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+type IoniconName = string;
 
 const TAB_CONFIG: Record<TabName, { icon: IoniconName; iconOff: IoniconName; label: string }> = {
   index:    { icon: 'map',            iconOff: 'map-outline',            label: pl.nav.atlas },
@@ -131,7 +146,7 @@ function TabItem({
 }
 
 // ── Custom tab bar ────────────────────────────────────────────────────────────
-function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+function CustomTabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const { data: unseenCount = 0 }          = useUnseenSignalsCount();
   const { count: circleUnread, reset: resetCircleUnread } = useCircleUnreadCount();
@@ -148,7 +163,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       />
 
       <View style={styles.tabsRow}>
-        {state.routes.map((route, index) => {
+        {state.routes.map((route: NavRoute, index: number) => {
           const name    = route.name as TabName;
           const focused = state.index === index;
 
@@ -209,7 +224,8 @@ export default function TabsLayout() {
       <SocketBanner />
       <Tabs
         screenOptions={{ headerShown: false }}
-        tabBar={(props) => <CustomTabBar {...props} />}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tabBar={(props) => <CustomTabBar {...(props as any)} />}
       >
         <Tabs.Screen name="index"    options={{ title: pl.nav.atlas }} />
         <Tabs.Screen name="discover" options={{ title: pl.nav.discover }} />
