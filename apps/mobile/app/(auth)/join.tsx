@@ -1,6 +1,6 @@
 import {
   View, Text, TextInput, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, Pressable, Linking,
+  KeyboardAvoidingView, Platform, Pressable, Linking, ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
@@ -117,29 +117,48 @@ export default function JoinScreen() {
 
   if (emailConfirmNeeded) {
     return (
-      <LinearGradient colors={[Colors.void, Colors.abyss, Colors.midnight]} style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl }} edges={['top', 'bottom']}>
-          <Text style={styles.eyebrow}>Prawie gotowe</Text>
-          <Text style={[styles.title, { marginVertical: Spacing.lg }]}>Potwierdź e-mail</Text>
-          <Text style={[styles.subtitle, { textAlign: 'center' }]}>
-            Wysłaliśmy link potwierdzający na podany adres. Kliknij go, a następnie wróć i zaloguj się.
-          </Text>
-          <View style={{ marginTop: Spacing.xl }}>
-            <SignalButton
-              label="Mam już konto — zaloguj się"
-              onPress={() => router.replace('/(auth)/login')}
-              variant="signal"
-              size="md"
-              fullWidth
-            />
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+      <ImageBackground
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        source={require('../../assets/images/registerview.jpg')}
+        style={{ flex: 1 }}
+        resizeMode="cover"
+      >
+        <LinearGradient
+          colors={['rgba(7,10,12,0.60)', 'rgba(12,16,20,0.70)', 'rgba(15,30,42,0.78)']}
+          style={{ flex: 1 }}
+        >
+          <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl }} edges={['top', 'bottom']}>
+            <Text style={styles.eyebrow}>Prawie gotowe</Text>
+            <Text style={[styles.title, { marginVertical: Spacing.lg }]}>Potwierdź e-mail</Text>
+            <Text style={[styles.subtitle, { textAlign: 'center' }]}>
+              Wysłaliśmy link potwierdzający na podany adres. Kliknij go, a następnie wróć i zaloguj się.
+            </Text>
+            <View style={{ marginTop: Spacing.xl }}>
+              <SignalButton
+                label="Mam już konto — zaloguj się"
+                onPress={() => router.replace('/(auth)/login')}
+                variant="signal"
+                size="md"
+                fullWidth
+              />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+      </ImageBackground>
     );
   }
 
   return (
-    <LinearGradient colors={[Colors.void, Colors.abyss, Colors.midnight]} style={{ flex: 1 }}>
+    <ImageBackground
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      source={require('../../assets/images/registerview.jpg')}
+      style={{ flex: 1 }}
+      resizeMode="cover"
+    >
+      <LinearGradient
+        colors={['rgba(7,10,12,0.60)', 'rgba(12,16,20,0.70)', 'rgba(15,30,42,0.78)']}
+        style={{ flex: 1 }}
+      >
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -286,7 +305,8 @@ export default function JoinScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </LinearGradient>
+      </LinearGradient>
+    </ImageBackground>
   );
 }
 

@@ -1,6 +1,6 @@
 import {
   View, Text, TextInput, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
@@ -46,78 +46,88 @@ export default function LoginScreen() {
   }
 
   return (
-    <LinearGradient colors={[Colors.void, Colors.abyss, Colors.midnight]} style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-            <View style={styles.header}>
-              <Text style={styles.eyebrow}>Powrót do sieci</Text>
-              <Text style={styles.title}>{pl.auth.loginTitle}</Text>
-            </View>
-
-            <View style={styles.form}>
-              <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.fieldGroup}>
-                    <TextInput
-                      style={[styles.input, errors.email && styles.inputError]}
-                      placeholder={pl.auth.emailPlaceholder}
-                      placeholderTextColor={Colors.starGhost}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoComplete="email"
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  </View>
-                )}
-              />
-
-              <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, value } }) => (
-                  <View style={styles.fieldGroup}>
-                    <TextInput
-                      style={[styles.input, errors.password && styles.inputError]}
-                      placeholder={pl.auth.passwordPlaceholder}
-                      placeholderTextColor={Colors.starGhost}
-                      secureTextEntry
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  </View>
-                )}
-              />
-
-              {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
-
-              <SignalButton
-                label={pl.auth.loginCta}
-                onPress={handleSubmit(onSubmit)}
-                variant="signal"
-                size="lg"
-                loading={isSubmitting}
-                fullWidth
-                haptic="medium"
-              />
-
-              <View style={styles.row}>
-                <Text style={styles.rowText}>{pl.auth.noAccount} </Text>
-                <Text style={styles.rowLink} onPress={() => router.push('/(auth)/join')}>
-                  {pl.auth.joinCta}
-                </Text>
+    <ImageBackground
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      source={require('../../assets/images/loginview.jpg')}
+      style={{ flex: 1 }}
+      resizeMode="cover"
+    >
+      <LinearGradient
+        colors={['rgba(7,10,12,0.60)', 'rgba(12,16,20,0.70)', 'rgba(15,30,42,0.78)']}
+        style={{ flex: 1 }}
+      >
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+              <View style={styles.header}>
+                <Text style={styles.eyebrow}>Powrót do sieci</Text>
+                <Text style={styles.title}>{pl.auth.loginTitle}</Text>
               </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </LinearGradient>
+
+              <View style={styles.form}>
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldGroup}>
+                      <TextInput
+                        style={[styles.input, errors.email && styles.inputError]}
+                        placeholder={pl.auth.emailPlaceholder}
+                        placeholderTextColor={Colors.starGhost}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                    </View>
+                  )}
+                />
+
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.fieldGroup}>
+                      <TextInput
+                        style={[styles.input, errors.password && styles.inputError]}
+                        placeholder={pl.auth.passwordPlaceholder}
+                        placeholderTextColor={Colors.starGhost}
+                        secureTextEntry
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                    </View>
+                  )}
+                />
+
+                {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
+
+                <SignalButton
+                  label={pl.auth.loginCta}
+                  onPress={handleSubmit(onSubmit)}
+                  variant="signal"
+                  size="lg"
+                  loading={isSubmitting}
+                  fullWidth
+                  haptic="medium"
+                />
+
+                <View style={styles.row}>
+                  <Text style={styles.rowText}>{pl.auth.noAccount} </Text>
+                  <Text style={styles.rowLink} onPress={() => router.push('/(auth)/join')}>
+                    {pl.auth.joinCta}
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </LinearGradient>
+    </ImageBackground>
   );
 }
 
