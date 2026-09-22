@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+import type { ComponentProps } from 'react';
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,13 +9,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Tabs } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-
-// @expo/vector-icons is bundled with expo but not a direct dep — use require to avoid TS resolution error
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Ionicons } = require('@expo/vector-icons') as {
-  Ionicons: ComponentType<{ name: string; size: number; color: string }>;
-};
 
 type NavRoute = { key: string; name: string };
 type TabBarProps = {
@@ -34,7 +29,7 @@ import { socketManager, type SocketStatus } from '@/lib/socket';
 
 // ── Tab config ────────────────────────────────────────────────────────────────
 type TabName = 'index' | 'discover' | 'circles' | 'journeys' | 'identity';
-type IoniconName = string;
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 const TAB_CONFIG: Record<TabName, { icon: IoniconName; iconOff: IoniconName; label: string }> = {
   index:    { icon: 'map',            iconOff: 'map-outline',            label: pl.nav.atlas },
