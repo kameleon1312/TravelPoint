@@ -177,7 +177,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
               focused={focused}
               badge={badge}
               badgeColor={badgeColor}
-              hasPulse={name === 'identity' && unseenCount > 0 && focused}
+              hasPulse={name === 'identity' && unseenCount > 0}
               onPress={() => {
                 const event = navigation.emit({
                   type: 'tabPress',
