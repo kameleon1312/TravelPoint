@@ -8,7 +8,7 @@ import Animated, {
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
-import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { useNearbySpots } from '@/hooks/useSpots';
