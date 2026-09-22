@@ -86,6 +86,22 @@ try {
     }
   }
 
+  // ── D. Always ensure auth-critical columns exist ────────────────────────────
+  // These ALTER TABLE / CREATE INDEX are idempotent and safe to run on every
+  // deploy. They fix the case where Scenario C baselined migrations without
+  // running their SQL, so the supabaseId column was never actually created.
+  await client.query(`ALTER TABLE "Explorer" ADD COLUMN IF NOT EXISTS "supabaseId" TEXT`);
+  await client.query(`ALTER TABLE "Explorer" ALTER COLUMN "passwordHash" DROP NOT NULL`);
+  await client.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "Explorer_supabaseId_key"
+    ON "Explorer"("supabaseId")
+  `);
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS "Explorer_supabaseId_idx"
+    ON "Explorer"("supabaseId")
+  `);
+  console.log('[ensure-db] Auth columns verified');
+
   console.log('[ensure-db] Ready');
 } finally {
   client.release();
