@@ -29,6 +29,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 import { Colors } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
 import { useRecordingStore } from '@/stores/recording';
@@ -86,6 +87,22 @@ function AuthGate() {
   const { rehydrate, initialize, isLoading, isAuthenticated } = useAuthStore();
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
   const appState = useRef(AppState.currentState);
+
+  // Check for OTA updates on every cold start and apply immediately.
+  useEffect(() => {
+    if (__DEV__) return;
+    void (async () => {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {
+        // Non-fatal — app continues with current bundle
+      }
+    })();
+  }, []);
 
   // Wire up deep-link handler: notification tap → navigate to correct screen.
   useEffect(() => {
