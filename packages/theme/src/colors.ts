@@ -1,9 +1,9 @@
 export const Colors = {
   // ─── Backgrounds (light, natural) ─────────────────────────────────────────
-  void:            '#F8FAF6',   // primary background — natural off-white
-  abyss:           '#F4F7F4',   // secondary background
-  backgroundSky:   '#E3F4FA',   // sky / map / travel sections
-  backgroundGreen: '#E8F3E8',   // nature / success / profile sections
+  void:            '#E8EFE8',   // primary background — soft sage green
+  abyss:           '#DDE8DD',   // secondary background — deeper sage
+  backgroundSky:   '#D6EEF8',   // sky / map / travel sections
+  backgroundGreen: '#D4EAD4',   // nature / success / profile sections
 
   // ─── Surfaces ─────────────────────────────────────────────────────────────
   graphite:        '#FFFFFF',   // cards, modals, inputs

@@ -193,7 +193,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <AuthGate />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
