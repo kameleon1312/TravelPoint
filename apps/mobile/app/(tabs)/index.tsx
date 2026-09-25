@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Colors, FontSize, Spacing, Shadow, BorderRadius } from '@travelpoint/theme';
-import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
+import { NATURAL_HARMONY_STYLE } from '@/constants/mapStyle';
 
 const TOP_BAR_HEIGHT = 56;
 import { SignalButton } from '@/components/ui/SignalButton';
@@ -701,7 +701,7 @@ export default function AtlasScreen() {
           showsTraffic={false}
           showsBuildings={false}
           mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
-          customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
+          customMapStyle={Platform.OS === 'android' ? NATURAL_HARMONY_STYLE : undefined}
           onRegionChangeComplete={setRegion}
           onMapReady={() => {
             mapReadyRef.current = true;
@@ -793,9 +793,6 @@ export default function AtlasScreen() {
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.mapPlaceholder]} />
       )}
-
-      {/* Map loading skeleton */}
-      {Platform.OS !== 'web' && <MapSkeleton loaded={mapLoaded} />}
 
       {/* Map error overlay — shown only after timeout if map never initialized */}
       {mapError && (
@@ -1017,12 +1014,12 @@ const styles = StyleSheet.create({
   recordBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: 13, color: Colors.ember },
 
   // ── Map pins ─────────────────────────────────────────────────────────────────
-  spotPin: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: Colors.abyss },
+  spotPin: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#FFFFFF' },
   pinWrapper: { alignItems: 'center', gap: 2 },
   ephemeralBadge: {
     paddingHorizontal: 4, paddingVertical: 1,
     borderRadius: 4, borderWidth: 1,
-    backgroundColor: Colors.abyss + 'CC',
+    backgroundColor: 'rgba(255,255,255,0.92)',
   },
   ephemeralText: {
     fontFamily: 'SpaceMono-Regular', fontSize: 8, fontVariant: ['tabular-nums'],
@@ -1033,7 +1030,7 @@ const styles = StyleSheet.create({
   },
   presenceInner: {
     width: 12, height: 12, borderRadius: 6,
-    backgroundColor: Colors.aurora, borderWidth: 2, borderColor: Colors.abyss,
+    backgroundColor: Colors.aurora, borderWidth: 2, borderColor: '#FFFFFF',
   },
 
   // ── Category filter chips ────────────────────────────────────────────────────
