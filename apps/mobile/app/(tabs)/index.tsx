@@ -124,33 +124,6 @@ function ClusterPin({ count }: { count: number }) {
   );
 }
 
-// ── Map loading skeleton ──────────────────────────────────────────────────────
-function MapSkeleton({ loaded }: { loaded: boolean }) {
-  const opacity   = useSharedValue(1);
-  const glowScale = useSharedValue(0.8);
-
-  useEffect(() => {
-    if (loaded) {
-      opacity.value = withTiming(0, { duration: 600 });
-    } else {
-      opacity.value   = 1;
-      glowScale.value = withRepeat(
-        withSequence(withTiming(1.2, { duration: 1000 }), withTiming(0.8, { duration: 1000 })),
-        -1,
-      );
-    }
-  }, [loaded]);
-
-  const overlayStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  const glowStyle    = useAnimatedStyle(() => ({ transform: [{ scale: glowScale.value }] }));
-
-  return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.skeletonOverlay, overlayStyle]} pointerEvents="none">
-      <Animated.View style={[styles.skeletonGlow, glowStyle]} />
-      <Text style={styles.skeletonIcon}>◈</Text>
-    </Animated.View>
-  );
-}
 
 const DEFAULT_REGION: Region = {
   latitude:      52.2297,
@@ -401,7 +374,6 @@ export default function AtlasScreen() {
   const [showStartModal, setShowStartModal] = useState(false);
   const [previewSpot, setPreviewSpot]       = useState<SpotForViewer | null>(null);
   const [mapError, setMapError]             = useState(false);
-  const [mapLoaded, setMapLoaded]           = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const mapReadyRef   = useRef(false);
   const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -706,7 +678,6 @@ export default function AtlasScreen() {
           onMapReady={() => {
             mapReadyRef.current = true;
             setMapError(false);
-            setMapLoaded(true);
             if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
           }}
         >
@@ -1089,24 +1060,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.void,
     fontWeight: '700',
-  },
-
-  // ── Map skeleton ─────────────────────────────────────────────────────────────
-  skeletonOverlay: {
-    backgroundColor: Colors.abyss,
-    zIndex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  skeletonGlow: {
-    width: 160, height: 160, borderRadius: 80,
-    backgroundColor: Colors.aurora + '18',
-    position: 'absolute',
-  },
-  skeletonIcon: {
-    fontFamily: 'ClashDisplay-Bold',
-    fontSize: 36,
-    color: Colors.aurora + '50',
   },
 
   // ── Quick-create modal ───────────────────────────────────────────────────────

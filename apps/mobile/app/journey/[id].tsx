@@ -10,7 +10,7 @@ import type { Region } from 'react-native-maps';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 
-import { TERRA_MARE_STYLE } from '@/constants/mapStyle';
+import { NATURAL_HARMONY_STYLE } from '@/constants/mapStyle';
 import { useJourney, useDeleteJourney, useLikeJourney, useUnlikeJourney, useUpdateJourney } from '@/hooks/useJourneys';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -299,7 +299,7 @@ export default function JourneyDetailScreen() {
                 showsScale={true}
                 showsUserLocation={false}
                 mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
-                customMapStyle={Platform.OS === 'android' ? TERRA_MARE_STYLE : undefined}
+                customMapStyle={Platform.OS === 'android' ? NATURAL_HARMONY_STYLE : undefined}
                 onMapReady={() => setRouteMapReady(true)}
               >
                 {/* Glow layer */}
