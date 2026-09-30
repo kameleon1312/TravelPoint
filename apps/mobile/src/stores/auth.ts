@@ -79,21 +79,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
 
     const TIMEOUT_MS = 8000;
-    const timeoutSignal = AbortSignal.timeout(TIMEOUT_MS);
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      timeoutSignal.addEventListener('abort', () => reject(new Error('REHYDRATE_TIMEOUT'))),
-    );
+    function makeTimeout() {
+      return new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('REHYDRATE_TIMEOUT')), TIMEOUT_MS),
+      );
+    }
 
     try {
       const { data: { session } } = await Promise.race([
         supabase.auth.getSession(),
-        timeoutPromise,
+        makeTimeout(),
       ]);
       if (!session) return set({ isLoading: false });
 
       const explorer = await Promise.race([
         api.get<Explorer>('/api/explorers/me'),
-        timeoutPromise,
+        makeTimeout(),
       ]);
       socketManager.connect(session.access_token);
       set({ explorer, isAuthenticated: true, isLoading: false });
