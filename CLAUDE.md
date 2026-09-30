@@ -4,12 +4,13 @@ You are working on TravelPoint — a cult network for travelers obsessed with di
 Two structures: WORLD (public web) + CORE (private mobile app). NOT a trip-planner.
 
 ## ALWAYS read first
+- **docs/PROJECT_STATE_2026-09-30.md** — aktualny stan projektu, feature matrix, aktywne bugi, roadmapa (czytaj PIERWSZY)
 - docs/ARCHITECTURE.md, docs/SECURITY.md, docs/DESIGN_SYSTEM.md, docs/HIDDEN_LAYER.md
 
 ## Project structure
 - Monorepo, pnpm workspaces
 - apps/mobile — Expo/RN — CORE (private epicenter, PRIMARY 60%)
-- apps/web — Next.js 14 — WORLD (public magazine/forum/map/landing, 35%)
+- apps/web — Next.js 15 — WORLD (public magazine/forum/map/landing, 35%)
 - apps/api — Fastify + Prisma + PostgreSQL/PostGIS — ENGINE (5%)
 - packages/theme — design tokens (single source of truth)
 - packages/types, packages/validation, packages/geo, packages/utils, packages/api-client
