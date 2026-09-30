@@ -161,6 +161,16 @@ function AuthGate() {
         router.push(`/spot/${String(data['id'])}`);
       } else if (type === 'nearby_spot' && data['id']) {
         router.push(`/spot/${String(data['id'])}`);
+      } else if (type === 'spot_comment' && data['spotId']) {
+        router.push(`/spot/${String(data['spotId'])}`);
+      } else if (type === 'circle_invite' && data['circleSlug']) {
+        router.push(`/circle/${String(data['circleSlug'])}`);
+      } else if (type === 'journey_like' && data['journeyId']) {
+        router.push(`/journey/${String(data['journeyId'])}`);
+      } else if (type === 'rank_up') {
+        router.push('/(tabs)/identity');
+      } else if (type === 'forum_reply' && data['postSlug']) {
+        router.push(`/forum/${String(data['postSlug'])}`);
       }
     });
 
@@ -254,6 +264,7 @@ export default function RootLayout() {
             <Stack.Screen name="modals/transmissions"    options={{ presentation: 'modal' }} />
             <Stack.Screen name="modals/new-circle"       options={{ presentation: 'modal' }} />
             <Stack.Screen name="modals/search"           options={{ presentation: 'fullScreenModal', animation: 'fade', headerShown: false }} />
+            <Stack.Screen name="forum"                    options={{ headerShown: false }} />
             <Stack.Screen name="explorer/[handle]"       options={{ presentation: 'card', headerShown: false }} />
             <Stack.Screen name="saved"                   options={{ presentation: 'card', headerShown: false }} />
             <Stack.Screen name="plans"                   options={{ presentation: 'card', headerShown: false }} />

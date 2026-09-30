@@ -157,6 +157,17 @@ export const pl = {
     RANK_UP:         'Nowa ranga!',
   },
 
+  forum: {
+    title:        'Forum',
+    newPost:      '+ Post',
+    replyPlaceholder: 'Odpowiedz…',
+    locked:       'Wątek zablokowany przez moderatora',
+    noReplies:    'Bądź pierwszy który odpowie.',
+    noThreads:    'Brak wątków. Napisz pierwszy post.',
+    replies:      'odpowiedzi',
+    replySingle:  'odpowiedź',
+  },
+
   // Signal type icons
   signalIcons: {
     NEARBY_EXPLORER: '◎',
