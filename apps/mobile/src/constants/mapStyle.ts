@@ -1,15 +1,2 @@
-export const NATURAL_HARMONY_STYLE = [
-  { elementType: 'geometry',                                  stylers: [{ color: '#EEF3EE' }] },
-  { elementType: 'labels.text.fill',                         stylers: [{ color: '#546E7A' }] },
-  { elementType: 'labels.text.stroke',                       stylers: [{ color: '#F0F5F0' }] },
-  { featureType: 'administrative',  elementType: 'geometry', stylers: [{ color: '#B8C9BA' }] },
-  { featureType: 'road',            elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
-  { featureType: 'road',            elementType: 'geometry.stroke', stylers: [{ color: '#D7E0D8' }] },
-  { featureType: 'road.highway',    elementType: 'geometry', stylers: [{ color: '#F4E1C1' }] },
-  { featureType: 'road.highway',    elementType: 'geometry.stroke', stylers: [{ color: '#D7B892' }] },
-  { featureType: 'water',           elementType: 'geometry', stylers: [{ color: '#B3E5FC' }] },
-  { featureType: 'landscape',       elementType: 'geometry', stylers: [{ color: '#E8EFE8' }] },
-  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#D4EAD4' }] },
-  { featureType: 'poi',             stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit',         stylers: [{ visibility: 'off' }] },
-];
+// Empty style array = Google Maps default appearance (no custom filters)
+export const NATURAL_HARMONY_STYLE: object[] = [];

@@ -67,7 +67,7 @@ function TabItem({
   useEffect(() => {
     capsuleOpacity.value = withTiming(focused ? 1 : 0, { duration: 160 });
     capsuleScale.value   = withSpring(focused ? 1 : 0.5, { damping: 20, stiffness: 280 });
-    iconScale.value      = withSpring(focused ? 1.08 : 1, { damping: 18, stiffness: 260 });
+    iconScale.value      = withTiming(1, { duration: 120 });
   }, [focused]);
 
   useEffect(() => {
@@ -86,8 +86,8 @@ function TabItem({
 
   function handlePress() {
     scale.value = withSequence(
-      withSpring(0.80, { damping: 22, stiffness: 500 }),
-      withSpring(1,    { damping: 12, stiffness: 280 }),
+      withSpring(1.28, { damping: 10, stiffness: 600 }),
+      withSpring(1,    { damping: 14, stiffness: 320 }),
     );
     void Haptics.selectionAsync();
     onPress();
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.graphite,
     borderTopWidth: 1,
     borderTopColor: Colors.steel,
-    shadowColor: '#1B2B2F',
+    shadowColor: Colors.starlight,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
