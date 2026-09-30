@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   barOuter: {
     backgroundColor: Colors.graphite,
     borderTopWidth: 0.5,
-    borderTopColor: Colors.borderSand,
+    borderTopColor: Colors.steel,
     shadowColor: Colors.starlight,
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.10,

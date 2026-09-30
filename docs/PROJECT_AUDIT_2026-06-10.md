@@ -1,3 +1,7 @@
+> **HISTORYCZNY AUDYT — stan na 10 czerwca 2026.**
+> Wiele ustaleń zostało naprawionych (Forum, Admin, Billing, Error boundaries, CMS, Email verify/reset).
+> Aktualny stan projektu: `docs/PROJECT_STATE_2026-09-30.md`
+
 # TravelPoint - kompletny audyt projektu
 
 **Data audytu:** 10 czerwca 2026  

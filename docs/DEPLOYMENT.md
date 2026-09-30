@@ -10,7 +10,7 @@
 | DB (PostGIS) | Supabase / Neon | $0–25/mo |
 | Redis | Upstash | $0–10/mo |
 | Storage | Cloudflare R2 | ~$5/mo |
-| Mapbox | Mapbox | $0 to 50k loads/mo |
+| Google Maps | Google Cloud | $0–200/mo (free tier) |
 | Monitoring | Sentry | $0–29/mo |
 
 **Total MVP:** ~$90/month + one-time $124.
@@ -117,7 +117,8 @@ STRIPE_EXPEDITION_PRICE_ID, BILLING_SUCCESS_URL, BILLING_CANCEL_URL
 
 ### apps/web
 ```
-NEXT_PUBLIC_API_URL, NEXT_PUBLIC_MAPBOX_TOKEN, NEXT_PUBLIC_SENTRY_DSN
+NEXT_PUBLIC_API_URL, NEXT_PUBLIC_GOOGLE_MAPS_API_KEY, NEXT_PUBLIC_SENTRY_DSN,
+NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
 ### apps/mobile

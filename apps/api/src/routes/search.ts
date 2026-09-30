@@ -163,8 +163,7 @@ async function searchJourneys(
              e.handle, e.rank::text AS rank
       FROM "Journey" j
       JOIN "Explorer" e ON e.id = j."explorerId"
-      WHERE j."deletedAt" IS NULL
-        AND (j."isPrivate" = false OR j."explorerId" = ${selfId})
+      WHERE (j."isPrivate" = false OR j."explorerId" = ${selfId})
         AND (
           j.title % ${q}
           OR j.title ILIKE ${`%${q}%`}
@@ -178,8 +177,7 @@ async function searchJourneys(
              e.handle, e.rank::text AS rank
       FROM "Journey" j
       JOIN "Explorer" e ON e.id = j."explorerId"
-      WHERE j."deletedAt" IS NULL
-        AND (j."isPrivate" = false OR j."explorerId" = ${selfId})
+      WHERE (j."isPrivate" = false OR j."explorerId" = ${selfId})
         AND j.title ILIKE ${`%${q}%`}
       ORDER BY j."createdAt" DESC
       LIMIT ${limit}
