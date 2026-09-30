@@ -1,9 +1,9 @@
 import {
   View, Text, TextInput, Pressable, StyleSheet,
-  FlatList, ActivityIndicator, Image, ScrollView,
+  Image, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut, SlideInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -226,7 +226,6 @@ export default function SearchModal() {
     const next = [debouncedQ, ...recent.filter((r) => r !== debouncedQ)].slice(0, MAX_RECENT);
     setRecent(next);
     SecureStore.setItemAsync(RECENT_KEY, JSON.stringify(next)).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   const handleClearRecent = useCallback(async () => {

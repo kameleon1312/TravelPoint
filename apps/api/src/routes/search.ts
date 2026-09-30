@@ -18,8 +18,9 @@ const RANK_ORDER: Record<string, number> = {
 
 function explorerCanSeeAccess(rank: string, accessLevel: string): boolean {
   if (accessLevel === 'PUBLIC') return true;
-  if (accessLevel === 'TRUSTED') return RANK_ORDER[rank] >= RANK_ORDER['TRUSTED'];
-  if (accessLevel === 'SECRET_DROP') return RANK_ORDER[rank] >= RANK_ORDER['INSIDER'];
+  const r = RANK_ORDER[rank] ?? -1;
+  if (accessLevel === 'TRUSTED') return r >= (RANK_ORDER['TRUSTED'] ?? 0);
+  if (accessLevel === 'SECRET_DROP') return r >= (RANK_ORDER['INSIDER'] ?? 0);
   return false; // CIRCLE_ONLY excluded from global search
 }
 
