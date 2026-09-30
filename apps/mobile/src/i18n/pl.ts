@@ -215,6 +215,32 @@ export const pl = {
     CIRCLE_ACTIVITY:   '◑',
   },
 
+  // Search
+  search: {
+    placeholder:     'Szukaj spotów, eksploratorów, tras...',
+    minChars:        'Wpisz min. 2 znaki',
+    noResults:       'Brak wyników dla',
+    spotsSection:    'Spoty',
+    explorersSection:'Eksploratorzy',
+    journeysSection: 'Journeys',
+    recentLabel:     'Ostatnie wyszukiwania',
+    clearRecent:     'Wyczyść',
+    lockedSpot:      'Zablokowane',
+    privateJourney:  'Prywatne',
+  },
+
+  // Biometrics
+  biometrics: {
+    promptMessage:  'Potwierdź swoją tożsamość',
+    cancelLabel:    'Anuluj',
+    settingTitle:   'Blokada biometryczna',
+    settingDesc:    'Zabezpiecz dostęp do aplikacji odciskiem palca lub Face ID.',
+    lockScreen:     'TravelPoint',
+    lockSubtitle:   'Dotknij sensora, aby wejść',
+    unlockBtn:      'Odblokuj',
+    notSupported:   'Biometria niedostępna na tym urządzeniu.',
+  },
+
   // Common
   common: {
     save:   'Zapisz',

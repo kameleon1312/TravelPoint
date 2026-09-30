@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, Shadow, BorderRadius } from '@travelpoint/theme';
 import { NATURAL_HARMONY_STYLE } from '@/constants/mapStyle';
 
@@ -789,6 +790,15 @@ export default function AtlasScreen() {
               </Text>
             </View>
           )}
+          <Pressable
+            style={styles.searchBtn}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onPress={() => router.push('/modals/search' as any)}
+            accessibilityLabel="Szukaj"
+            hitSlop={8}
+          >
+            <Ionicons name="search" size={18} color={Colors.starlight} />
+          </Pressable>
           <PresenceToggle active={presenceActive} onToggle={togglePresence} />
         </View>
       </SafeAreaView>
@@ -913,6 +923,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   topRight:    { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  searchBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.glass,
+    borderWidth: 1, borderColor: Colors.glassBorder,
+    alignItems: 'center', justifyContent: 'center',
+  },
   logo:        { fontFamily: 'ClashDisplay-Bold', fontSize: 16, color: Colors.starlight, ...Shadow.card },
   nearbyBadge: {
     backgroundColor: Colors.aurora + '20', borderRadius: 999,

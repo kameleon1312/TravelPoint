@@ -50,11 +50,14 @@ module.exports = () => {
     ios: {
       supportsTablet: false,
       bundleIdentifier: 'io.travelpoint.app',
+      associatedDomains: ['applinks:travelpoint.app'],
       infoPlist: {
         NSLocationWhenInUseUsageDescription:
           'TravelPoint uses your location to show nearby places and record active journeys.',
         NSLocationAlwaysAndWhenInUseUsageDescription:
           'TravelPoint uses background location only while an active journey is being recorded.',
+        NSFaceIDUsageDescription:
+          'TravelPoint uses Face ID to protect access to your explorer account.',
         UIBackgroundModes: ['location'],
       },
     },
@@ -67,6 +70,20 @@ module.exports = () => {
       permissions: [
         'android.permission.ACCESS_COARSE_LOCATION',
         'android.permission.ACCESS_FINE_LOCATION',
+        'android.permission.USE_BIOMETRIC',
+        'android.permission.USE_FINGERPRINT',
+      ],
+      intentFilters: [
+        {
+          action: 'VIEW',
+          autoVerify: true,
+          data: [
+            { scheme: 'https', host: 'travelpoint.app', pathPrefix: '/spot' },
+            { scheme: 'https', host: 'travelpoint.app', pathPrefix: '/explorer' },
+            { scheme: 'https', host: 'travelpoint.app', pathPrefix: '/journey' },
+          ],
+          category: ['BROWSABLE', 'DEFAULT'],
+        },
       ],
       config: {
         googleMaps: {

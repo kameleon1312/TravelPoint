@@ -20,10 +20,10 @@ if (sentryDsn && !__DEV__) {
 
 import { useEffect, useCallback, useRef } from 'react';
 import { Stack, router } from 'expo-router';
-import { Platform, AppState } from 'react-native';
+import { Platform, AppState, View, Text, Pressable, StyleSheet } from 'react-native';
 import { replayOfflineQueue } from '@/stores/offlineQueue';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -33,8 +33,10 @@ import * as Updates from 'expo-updates';
 import { Colors } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
 import { useRecordingStore } from '@/stores/recording';
+import { useBiometricStore } from '@/stores/biometrics';
 import { api } from '@/lib/api';
 import { hydrateQueryCache, subscribeQueryPersistence } from '@/lib/queryPersistence';
+import { pl } from '@/i18n/pl';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -83,9 +85,44 @@ async function registerPushToken() {
   }
 }
 
+// ── Biometric lock overlay ────────────────────────────────────────────────────
+function BiometricLockScreen() {
+  const { authenticate } = useBiometricStore();
+  return (
+    <View style={lockStyles.overlay}>
+      <SafeAreaView style={lockStyles.inner}>
+        <Text style={lockStyles.logo}>TravelPoint</Text>
+        <Text style={lockStyles.subtitle}>{pl.biometrics.lockSubtitle}</Text>
+        <Pressable style={lockStyles.btn} onPress={() => void authenticate()}>
+          <Text style={lockStyles.btnText}>{pl.biometrics.unlockBtn}</Text>
+        </Pressable>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const lockStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.void,
+    zIndex: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inner:    { alignItems: 'center', gap: 12, paddingHorizontal: 32 },
+  logo:     { fontFamily: 'ClashDisplay-Bold', fontSize: 28, color: Colors.starlight, marginBottom: 8 },
+  subtitle: { fontFamily: 'GeneralSans-Regular', fontSize: 15, color: Colors.starFaint, textAlign: 'center' },
+  btn: {
+    marginTop: 24, backgroundColor: Colors.aurora,
+    borderRadius: 999, paddingHorizontal: 36, paddingVertical: 14,
+  },
+  btnText: { fontFamily: 'GeneralSans-Semibold', fontSize: 15, color: Colors.textOnDark },
+});
+
 function AuthGate() {
   const { rehydrate, initialize, isLoading, isAuthenticated } = useAuthStore();
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
+  const { load: loadBiometrics, lock, isLocked, isEnabled: biometricEnabled, authenticate } = useBiometricStore();
   const appState = useRef(AppState.currentState);
 
   // Download OTA updates silently in the background.
@@ -133,6 +170,7 @@ function AuthGate() {
   useEffect(() => {
     void rehydrate();
     void recoverRecording();
+    void loadBiometrics();
     void hydrateQueryCache(queryClient);
     const unsubscribeQuery = subscribeQueryPersistence(queryClient);
     const unsubscribeAuth = initialize();
@@ -141,6 +179,7 @@ function AuthGate() {
       if (appState.current.match(/inactive|background/) && nextState === 'active') {
         void replayOfflineQueue();
         void recoverRecording();
+        lock(); // triggers biometric prompt if enabled
       }
       appState.current = nextState;
     });
@@ -161,7 +200,14 @@ function AuthGate() {
     }
   }, [isLoading, isAuthenticated]);
 
-  return null;
+  // Auto-trigger biometric prompt when lock activates
+  useEffect(() => {
+    if (isLocked && biometricEnabled) {
+      void authenticate();
+    }
+  }, [isLocked]);
+
+  return isLocked ? <BiometricLockScreen /> : null;
 }
 
 export default function RootLayout() {
@@ -207,6 +253,7 @@ export default function RootLayout() {
             <Stack.Screen name="modals/new-journey"      options={{ presentation: 'modal' }} />
             <Stack.Screen name="modals/transmissions"    options={{ presentation: 'modal' }} />
             <Stack.Screen name="modals/new-circle"       options={{ presentation: 'modal' }} />
+            <Stack.Screen name="modals/search"           options={{ presentation: 'fullScreenModal', animation: 'fade', headerShown: false }} />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>
