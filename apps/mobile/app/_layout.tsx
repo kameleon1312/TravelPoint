@@ -18,7 +18,7 @@ if (sentryDsn && !__DEV__) {
   });
 }
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { Platform, AppState, View, Text, Pressable, StyleSheet } from 'react-native';
 import { replayOfflineQueue } from '@/stores/offlineQueue';
@@ -119,24 +119,69 @@ const lockStyles = StyleSheet.create({
   btnText: { fontFamily: 'GeneralSans-Semibold', fontSize: 15, color: Colors.textOnDark },
 });
 
-function AuthGate() {
+type OtaStatus = 'downloading' | 'restarting' | null;
+
+function OtaBanner({ status }: { status: OtaStatus }) {
+  if (!status) return null;
+  const label = status === 'downloading' ? 'Pobieranie aktualizacji…' : 'Restartowanie aplikacji…';
+  return (
+    <View style={otaStyles.bar} pointerEvents="none">
+      <View style={otaStyles.dot} />
+      <Text style={otaStyles.text}>{label}</Text>
+    </View>
+  );
+}
+
+const otaStyles = StyleSheet.create({
+  bar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingTop: 52,
+    paddingBottom: 12,
+    backgroundColor: Colors.deepBlue + 'EE',
+    zIndex: 10000,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.aurora,
+  },
+  text: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: 13,
+    color: Colors.starlight,
+  },
+});
+
+function AuthGate({ otaStatus, setOtaStatus }: { otaStatus: OtaStatus; setOtaStatus: (s: OtaStatus) => void }) {
   const { rehydrate, initialize, isLoading, isAuthenticated } = useAuthStore();
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
   const { load: loadBiometrics, lock, isLocked, isEnabled: biometricEnabled, authenticate } = useBiometricStore();
   const appState = useRef(AppState.currentState);
 
-  // Download OTA updates silently in the background.
-  // The new bundle is applied on the next cold start to avoid interrupting navigation.
+  // OTA update — check on startup, show banner, auto-restart immediately after download.
   useEffect(() => {
     if (__DEV__) return;
     void (async () => {
       try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          await Updates.fetchUpdateAsync();
-        }
+        const check = await Updates.checkForUpdateAsync();
+        if (!check.isAvailable) return;
+
+        setOtaStatus('downloading');
+        await Updates.fetchUpdateAsync();
+        setOtaStatus('restarting');
+        // Brief pause so user sees the "Restarting…" message.
+        await new Promise((r) => setTimeout(r, 900));
+        await Updates.reloadAsync();
       } catch {
-        // Non-fatal — app continues with current bundle
+        setOtaStatus(null);
       }
     })();
   }, []);
@@ -220,6 +265,16 @@ function AuthGate() {
   return isLocked ? <BiometricLockScreen /> : null;
 }
 
+function UpdateBanner() {
+  const [otaStatus, setOtaStatus] = useState<OtaStatus>(null);
+  return (
+    <>
+      <AuthGate otaStatus={otaStatus} setOtaStatus={setOtaStatus} />
+      <OtaBanner status={otaStatus} />
+    </>
+  );
+}
+
 export default function RootLayout() {
   /* Expo's asset registry requires static CommonJS calls for bundled fonts. */
   /* eslint-disable @typescript-eslint/no-require-imports */
@@ -250,7 +305,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="dark" />
-          <AuthGate />
+          <UpdateBanner />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(onboarding)" />

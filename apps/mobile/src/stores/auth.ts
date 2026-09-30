@@ -77,16 +77,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   rehydrate: async () => {
     set({ isLoading: true });
+
+    const TIMEOUT_MS = 8000;
+    const timeoutSignal = AbortSignal.timeout(TIMEOUT_MS);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      timeoutSignal.addEventListener('abort', () => reject(new Error('REHYDRATE_TIMEOUT'))),
+    );
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await Promise.race([
+        supabase.auth.getSession(),
+        timeoutPromise,
+      ]);
       if (!session) return set({ isLoading: false });
 
-      const explorer = await api.get<Explorer>('/api/explorers/me');
+      const explorer = await Promise.race([
+        api.get<Explorer>('/api/explorers/me'),
+        timeoutPromise,
+      ]);
       socketManager.connect(session.access_token);
       set({ explorer, isAuthenticated: true, isLoading: false });
       void registerPushToken();
     } catch (err) {
-      // Jeśli API zwróci 401 lub ACCOUNT_NOT_FOUND — wyczyść sesję lokalnie
       if (err instanceof ApiError && (err.status === 401 || err.code === 'ACCOUNT_NOT_FOUND')) {
         socketManager.disconnect();
         await supabase.auth.signOut();
