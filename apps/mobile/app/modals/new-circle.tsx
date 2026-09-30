@@ -3,31 +3,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { CreateCircleSchema } from '@travelpoint/validation';
+import type { CreateCircleInput } from '@travelpoint/validation';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useCreateCircle } from '@/hooks/useCircles';
 
-const CreateCircleSchema = z.object({
-  name: z.string().min(3, 'Minimum 3 znaki').max(50, 'Maksimum 50 znaków'),
-  slug: z
-    .string()
-    .min(3, 'Minimum 3 znaki')
-    .max(24, 'Maksimum 24 znaki')
-    .regex(/^[a-z0-9_-]+$/, 'Tylko małe litery, cyfry, _ i -'),
-  description: z.string().max(200, 'Maksimum 200 znaków').optional(),
-  isInviteOnly: z.boolean(),
-});
-
-type FormData = z.infer<typeof CreateCircleSchema>;
+type FormData = CreateCircleInput;
 
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-z0-9_-]/g, '')
-    .slice(0, 24);
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .slice(0, 40);
 }
 
 export default function NewCircleModal() {

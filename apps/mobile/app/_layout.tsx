@@ -254,6 +254,9 @@ export default function RootLayout() {
             <Stack.Screen name="modals/transmissions"    options={{ presentation: 'modal' }} />
             <Stack.Screen name="modals/new-circle"       options={{ presentation: 'modal' }} />
             <Stack.Screen name="modals/search"           options={{ presentation: 'fullScreenModal', animation: 'fade', headerShown: false }} />
+            <Stack.Screen name="explorer/[handle]"       options={{ presentation: 'card', headerShown: false }} />
+            <Stack.Screen name="saved"                   options={{ presentation: 'card', headerShown: false }} />
+            <Stack.Screen name="plans"                   options={{ presentation: 'card', headerShown: false }} />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>
