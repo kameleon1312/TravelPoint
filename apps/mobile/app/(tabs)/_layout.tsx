@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withSequence,
-  withRepeat, withDelay,
 } from 'react-native-reanimated';
 import { Tabs } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -45,7 +44,6 @@ function TabItem({
   focused,
   badge,
   badgeColor,
-  hasPulse,
   onPress,
   onLongPress,
 }: {
@@ -53,7 +51,6 @@ function TabItem({
   focused: boolean;
   badge?: number;
   badgeColor?: string;
-  hasPulse?: boolean;
   onPress: () => void;
   onLongPress: () => void;
 }) {
@@ -61,28 +58,12 @@ function TabItem({
   const scale          = useSharedValue(1);
   const capsuleOpacity = useSharedValue(focused ? 1 : 0);
   const capsuleScale   = useSharedValue(focused ? 1 : 0.5);
-  const iconScale      = useSharedValue(focused ? 1.06 : 1);
-  const pulse          = useSharedValue(1);
 
   useEffect(() => {
-    capsuleOpacity.value = withTiming(focused ? 1 : 0, { duration: 160 });
-    capsuleScale.value   = withSpring(focused ? 1 : 0.5, { damping: 20, stiffness: 280 });
-    iconScale.value      = withTiming(1, { duration: 120 });
+    capsuleOpacity.value = withTiming(focused ? 1 : 0, { duration: 180 });
+    capsuleScale.value   = withSpring(focused ? 1 : 0.5, { damping: 22, stiffness: 300 });
+    if (!focused) scale.value = withTiming(1, { duration: 150 });
   }, [focused]);
-
-  useEffect(() => {
-    if (hasPulse) {
-      pulse.value = withRepeat(
-        withSequence(
-          withTiming(1.35, { duration: 600 }),
-          withDelay(300, withTiming(1, { duration: 500 })),
-        ),
-        -1,
-      );
-    } else {
-      pulse.value = withTiming(1, { duration: 250 });
-    }
-  }, [hasPulse]);
 
   function handlePress() {
     scale.value = withSequence(
@@ -100,9 +81,6 @@ function TabItem({
     opacity: capsuleOpacity.value,
     transform: [{ scale: capsuleScale.value }],
   }));
-  const iconAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: iconScale.value * pulse.value }],
-  }));
 
   return (
     <Pressable
@@ -116,13 +94,11 @@ function TabItem({
         <Animated.View style={[styles.capsule, capsuleAnimStyle]} />
 
         {/* Icon */}
-        <Animated.View style={iconAnimStyle}>
-          <Ionicons
-            name={focused ? cfg.icon : cfg.iconOff}
-            size={22}
-            color={focused ? Colors.aurora : Colors.starGhost}
-          />
-        </Animated.View>
+        <Ionicons
+          name={focused ? cfg.icon : cfg.iconOff}
+          size={22}
+          color={focused ? Colors.aurora : Colors.star}
+        />
 
         {/* Label */}
         <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
@@ -177,7 +153,6 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
               focused={focused}
               badge={badge}
               badgeColor={badgeColor}
-              hasPulse={name === 'identity' && unseenCount > 0}
               onPress={() => {
                 const event = navigation.emit({
                   type: 'tabPress',
@@ -237,26 +212,26 @@ const styles = StyleSheet.create({
   // ── Bar container ────────────────────────────────────────────────────────────
   barOuter: {
     backgroundColor: Colors.graphite,
-    borderTopWidth: 1,
-    borderTopColor: Colors.steel,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.borderSand,
     shadowColor: Colors.starlight,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 16,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.10,
+    shadowRadius: 20,
+    elevation: 20,
   },
   topLine: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 1.5,
+    height: 1,
   },
   tabsRow: {
     flexDirection: 'row',
-    height: 64,
+    height: 60,
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
 
   // ── Tab item ─────────────────────────────────────────────────────────────────
@@ -264,40 +239,41 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 64,
+    height: 60,
   },
   tabInner: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
     position: 'relative',
   },
 
-  // ── Green capsule ────────────────────────────────────────────────────────────
+  // ── Ocean capsule ─────────────────────────────────────────────────────────
   capsule: {
     position: 'absolute',
-    width: 54,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.aurora + '12',
+    width: 52,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Colors.aurora + '14',
     borderWidth: 1,
-    borderColor: Colors.aurora + '30',
+    borderColor: Colors.aurora + '35',
     shadowColor: Colors.aurora,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
   },
 
   // ── Labels ───────────────────────────────────────────────────────────────────
   tabLabel: {
     fontFamily: 'GeneralSans-Medium',
     fontSize: 10,
-    color: Colors.starGhost,
-    letterSpacing: 0.1,
+    color: Colors.star,
+    letterSpacing: 0.15,
   },
   tabLabelActive: {
     color: Colors.aurora,
     fontFamily: 'GeneralSans-Semibold',
+    letterSpacing: 0.1,
   },
 
   // ── Badge ────────────────────────────────────────────────────────────────────
