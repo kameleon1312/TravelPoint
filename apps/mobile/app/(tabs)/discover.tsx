@@ -271,8 +271,14 @@ export default function DiscoverScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>Ukryta Warstwa</Text>
-        <Text style={styles.heading}>Odkrywaj</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.eyebrow}>Ukryta Warstwa</Text>
+          <Text style={styles.heading}>Odkrywaj</Text>
+        </View>
+        <Pressable style={styles.forumBtn} onPress={() => router.push('/forum')}>
+          <Text style={styles.forumBtnIcon}>◈</Text>
+          <Text style={styles.forumBtnLabel}>Forum</Text>
+        </Pressable>
       </View>
 
       {/* ── Segment switcher ── */}
@@ -399,9 +405,14 @@ const styles = StyleSheet.create({
 
   // ── Header ───────────────────────────────────────────────────────────────────
   header: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.sm,
+  },
+  headerLeft: {
+    flex: 1,
     gap: Spacing.xs,
   },
   eyebrow: {
@@ -416,6 +427,28 @@ const styles = StyleSheet.create({
     fontSize: FontSize.h2,
     color: Colors.starlight,
     letterSpacing: -0.5,
+  },
+  forumBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.pill,
+    borderWidth: 1,
+    borderColor: Colors.signal + '50',
+    backgroundColor: Colors.signal + '12',
+    marginBottom: 2,
+  },
+  forumBtnIcon: {
+    fontSize: 13,
+    color: Colors.signal,
+  },
+  forumBtnLabel: {
+    fontFamily: 'GeneralSans-Semibold',
+    fontSize: FontSize.caption,
+    color: Colors.signal,
+    letterSpacing: 0.3,
   },
 
   // ── Segment switcher ─────────────────────────────────────────────────────────
