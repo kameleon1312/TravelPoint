@@ -11,6 +11,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { BackButton } from '@/components/ui/BackButton';
 import { useAuthStore } from '@/stores/auth';
 import {
   useExplorerProfile,
@@ -134,9 +135,7 @@ export default function ExplorerProfileScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.loadingHeader}>
-          <Pressable style={styles.back} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Wróć</Text>
-          </Pressable>
+          <BackButton />
         </View>
         <View style={styles.center}>
           <ActivityIndicator color={Colors.aurora} size="large" />
@@ -149,9 +148,7 @@ export default function ExplorerProfileScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.loadingHeader}>
-          <Pressable style={styles.back} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Wróć</Text>
-          </Pressable>
+          <BackButton />
         </View>
         <View style={styles.center}>
           <Text style={styles.errorIcon}>◌</Text>
@@ -166,9 +163,7 @@ export default function ExplorerProfileScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* ── Header ────────────────────────────────────────────────── */}
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Wróć</Text>
-        </Pressable>
+        <BackButton />
         {!isOwnProfile && (
           <Pressable style={styles.blockBtn} onPress={toggleBlock}>
             <Text style={styles.blockBtnText}>
@@ -319,12 +314,6 @@ const styles = StyleSheet.create({
   loadingHeader: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-  },
-  back: { alignSelf: 'flex-start' },
-  backText: {
-    fontFamily: 'GeneralSans-Regular',
-    fontSize: FontSize.bodySm,
-    color: Colors.starFaint,
   },
   blockBtn: {
     paddingHorizontal: Spacing.md,

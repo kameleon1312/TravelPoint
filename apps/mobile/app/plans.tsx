@@ -8,6 +8,7 @@ import { useState } from 'react';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { BackButton } from '@/components/ui/BackButton';
 import { useAuthStore } from '@/stores/auth';
 import { useBillingStatus, useCheckout, usePortal } from '@/hooks/useBilling';
 
@@ -303,9 +304,7 @@ export default function PlansScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable style={styles.back} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Wróć</Text>
-          </Pressable>
+          <BackButton />
           <Text style={styles.eyebrow}>Sieć eksploratorów</Text>
           <Text style={styles.heading}>Wybierz poziom dostępu</Text>
           <Text style={styles.sub}>
@@ -354,8 +353,6 @@ const styles = StyleSheet.create({
   scroll: { padding: Spacing.xl, gap: Spacing.xl, paddingBottom: Spacing.xxxl },
 
   header: { gap: Spacing.sm },
-  back:       { alignSelf: 'flex-start', marginBottom: Spacing.sm },
-  backText:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
     color: Colors.starFaint, letterSpacing: 3, textTransform: 'uppercase',

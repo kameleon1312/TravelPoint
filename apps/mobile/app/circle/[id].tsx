@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { BackButton } from '@/components/ui/BackButton';
 import {
   useCircle, useJoinCircle, useLeaveCircle,
   useGenerateInviteCode, useInviteCodes,
@@ -246,9 +247,7 @@ export default function CircleDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Back */}
-        <Pressable style={styles.back} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Kręgi</Text>
-        </Pressable>
+        <BackButton label="Kręgi" />
 
         {/* Header */}
         <View style={styles.header}>
@@ -390,9 +389,6 @@ const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: Colors.abyss },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, backgroundColor: Colors.abyss },
   scroll: { padding: Spacing.xl, gap: Spacing.xl, paddingBottom: Spacing.huge },
-
-  back:     { alignSelf: 'flex-start' },
-  backText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
 
   header:   { gap: Spacing.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },

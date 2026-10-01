@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { BackButton } from '@/components/ui/BackButton';
 import { useAllCircles, useJoinCircle } from '@/hooks/useCircles';
 import { useAuthStore } from '@/stores/auth';
 import type { Circle } from '@travelpoint/types';
@@ -122,9 +123,7 @@ export default function BrowseCirclesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-            <Text style={styles.backText}>← Wróć</Text>
-          </Pressable>
+          <BackButton />
           {canCreate && (
             <Pressable
               onPress={() => router.push('/modals/new-circle')}
@@ -254,10 +253,6 @@ const styles = StyleSheet.create({
   headerTop: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: Spacing.sm,
-  },
-  backBtn: { alignSelf: 'flex-start' },
-  backText: {
-    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint,
   },
   createBtn: {
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,

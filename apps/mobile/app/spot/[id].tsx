@@ -17,6 +17,7 @@ import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/th
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { BackButton } from '@/components/ui/BackButton';
 import { pl } from '@/i18n/pl';
 import {
   useSpot, useSaveSpot, useUnsaveSpot,
@@ -645,9 +646,7 @@ export default function SpotDetailScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Back */}
-        <Pressable style={styles.back} onPress={() => router.back()} hitSlop={12}>
-          <Text style={styles.backText}>← Wróć</Text>
-        </Pressable>
+        <BackButton />
 
         {/* Header */}
         <View style={styles.header}>
@@ -824,9 +823,6 @@ const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: Colors.abyss },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, backgroundColor: Colors.abyss },
   scroll: { padding: Spacing.xl, gap: Spacing.xl, paddingBottom: Spacing.huge },
-
-  back:     { alignSelf: 'flex-start' },
-  backText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
 
   header:   { gap: Spacing.sm },
   category: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },

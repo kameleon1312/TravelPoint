@@ -15,6 +15,7 @@ import { useJourney, useDeleteJourney, useLikeJourney, useUnlikeJourney, useUpda
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { BackButton } from '@/components/ui/BackButton';
 import { formatRelative } from '@travelpoint/utils';
 import { useAuthStore } from '@/stores/auth';
 
@@ -257,9 +258,7 @@ export default function JourneyDetailScreen() {
 
         {/* Back + owner actions */}
         <View style={styles.topBar}>
-          <Pressable style={styles.back} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Trasy</Text>
-          </Pressable>
+          <BackButton label="Trasy" />
           {isOwner && (
             <Pressable style={styles.editBtn} onPress={() => setEditVisible(true)}>
               <Text style={styles.editBtnText}>Edytuj</Text>
@@ -466,8 +465,6 @@ const styles = StyleSheet.create({
   scroll: { padding: Spacing.xl, gap: Spacing.xl, paddingBottom: 60 },
 
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back:     { alignSelf: 'flex-start' },
-  backText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
   editBtn: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
