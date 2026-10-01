@@ -42,14 +42,15 @@ export async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
 
   req.explorerId = explorer.id;
 
-  // Throttled write: update lastSeenAt at most every 5 min to avoid write storm
-  void req.server.prisma.explorer.updateMany({
+  // Throttled write: update lastSeenAt at most every 5 min to avoid write storm.
+  // Optional chaining lets test mocks omit updateMany without crashing.
+  void req.server.prisma.explorer.updateMany?.({
     where: {
       id: explorer.id,
       OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: new Date(Date.now() - 5 * 60 * 1000) } }],
     },
     data: { lastSeenAt: new Date() },
-  }).catch(() => {});
+  })?.catch(() => {});
 }
 
 export async function requireModerator(req: FastifyRequest, reply: FastifyReply) {
