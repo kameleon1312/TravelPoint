@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.graphite,
   },
   filterChipActive: { borderColor: Colors.aurora, backgroundColor: Colors.aurora + '20' },
-  filterLabel:      { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
+  filterLabel:      { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.star },
   filterLabelActive: { color: Colors.aurora, fontFamily: 'GeneralSans-Semibold' },
 
   list: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.sm },

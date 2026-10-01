@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withSequence,
+  interpolate, interpolateColor,
 } from 'react-native-reanimated';
 import { Tabs } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -54,32 +55,44 @@ function TabItem({
   onPress: () => void;
   onLongPress: () => void;
 }) {
-  const cfg = TAB_CONFIG[name];
-  const scale          = useSharedValue(1);
-  const capsuleOpacity = useSharedValue(focused ? 1 : 0);
-  const capsuleScale   = useSharedValue(focused ? 1 : 0.5);
+  const cfg   = TAB_CONFIG[name];
+  const press = useSharedValue(1);
+  const glow  = useSharedValue(focused ? 1 : 0);
+  const iconY = useSharedValue(focused ? -1 : 0);
 
   useEffect(() => {
-    capsuleOpacity.value = withTiming(focused ? 1 : 0, { duration: 180 });
-    capsuleScale.value   = withSpring(focused ? 1 : 0.5, { damping: 22, stiffness: 300 });
-    if (!focused) scale.value = withTiming(1, { duration: 150 });
+    glow.value  = withTiming(focused ? 1 : 0, { duration: 210 });
+    iconY.value = withSpring(focused ? -1.5 : 0, { damping: 16, stiffness: 400 });
+    if (!focused) press.value = withTiming(1, { duration: 150 });
   }, [focused]);
 
   function handlePress() {
-    scale.value = withSequence(
-      withSpring(1.28, { damping: 10, stiffness: 600 }),
-      withSpring(1,    { damping: 14, stiffness: 320 }),
+    press.value = withSequence(
+      withSpring(0.88, { damping: 6, stiffness: 700 }),
+      withSpring(1.06, { damping: 10, stiffness: 400 }),
+      withSpring(1,    { damping: 14, stiffness: 280 }),
     );
     void Haptics.selectionAsync();
     onPress();
   }
 
-  const wrapAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+  // Elastic pill — background and border animate with focus
+  const pillStyle = useAnimatedStyle(() => {
+    const bg     = interpolateColor(glow.value, [0, 1], ['rgba(92,184,140,0)', 'rgba(92,184,140,0.13)']);
+    const border = interpolateColor(glow.value, [0, 1], ['rgba(92,184,140,0)', 'rgba(92,184,140,0.42)']);
+    return {
+      backgroundColor: bg,
+      borderColor:     border,
+      transform:       [{ scale: press.value }],
+    };
+  });
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: iconY.value }],
   }));
-  const capsuleAnimStyle = useAnimatedStyle(() => ({
-    opacity: capsuleOpacity.value,
-    transform: [{ scale: capsuleScale.value }],
+
+  const labelStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(glow.value, [0, 1], [0.55, 1]),
   }));
 
   return (
@@ -89,21 +102,23 @@ function TabItem({
       onLongPress={onLongPress}
       accessibilityRole="tab"
     >
-      <Animated.View style={[styles.tabInner, wrapAnimStyle]}>
-        {/* Glow capsule */}
-        <Animated.View style={[styles.capsule, capsuleAnimStyle]} />
+      <Animated.View style={[styles.pill, pillStyle]}>
+        {/* Icon with subtle lift on focus */}
+        <Animated.View style={iconStyle}>
+          <Ionicons
+            name={focused ? cfg.icon : cfg.iconOff}
+            size={21}
+            color={focused ? Colors.aurora : Colors.star}
+          />
+        </Animated.View>
 
-        {/* Icon */}
-        <Ionicons
-          name={focused ? cfg.icon : cfg.iconOff}
-          size={22}
-          color={focused ? Colors.aurora : Colors.star}
-        />
-
-        {/* Label */}
-        <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
+        {/* Label fades in fully when focused */}
+        <Animated.Text
+          style={[styles.tabLabel, focused && styles.tabLabelActive, labelStyle]}
+          numberOfLines={1}
+        >
           {cfg.label}
-        </Text>
+        </Animated.Text>
       </Animated.View>
 
       {/* Badge */}
@@ -241,26 +256,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 60,
   },
-  tabInner: {
+
+  // Elastic pill — auto-sizes to content, bg+border animated via useAnimatedStyle
+  pill: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    position: 'relative',
-  },
-
-  // ── Ocean capsule ─────────────────────────────────────────────────────────
-  capsule: {
-    position: 'absolute',
-    width: 52,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: Colors.aurora + '14',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.aurora + '35',
-    shadowColor: Colors.aurora,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.24,
-    shadowRadius: 10,
+    minWidth: 48,
   },
 
   // ── Labels ───────────────────────────────────────────────────────────────────

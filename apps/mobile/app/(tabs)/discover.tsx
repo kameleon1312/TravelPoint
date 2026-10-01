@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
   segLabel: {
     fontFamily: 'GeneralSans-Semibold',
     fontSize: FontSize.bodySm,
-    color: Colors.starFaint,
+    color: Colors.star,
   },
   segLabelActive: {
     color: '#FFFFFF',
