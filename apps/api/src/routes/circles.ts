@@ -271,4 +271,102 @@ export async function circleRoutes(app: FastifyInstance) {
     }
     return reply.status(201).send({ code });
   });
+
+  // PATCH /api/circles/:slug — FOUNDER updates circle settings
+  app.patch('/api/circles/:slug', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const circle = await app.prisma.circle.findUnique({ where: { slug } });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const membership = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
+    });
+    if (!membership || membership.role !== 'FOUNDER') {
+      return reply.status(403).send({ code: 'FORBIDDEN' });
+    }
+
+    const { name, description, isInviteOnly } = req.body as {
+      name?: string; description?: string; isInviteOnly?: boolean;
+    };
+    const updated = await app.prisma.circle.update({
+      where: { id: circle.id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(isInviteOnly !== undefined && { isInviteOnly }),
+      },
+    });
+    return reply.send(updated);
+  });
+
+  // DELETE /api/circles/:slug — FOUNDER dissolves circle
+  app.delete('/api/circles/:slug', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const circle = await app.prisma.circle.findUnique({ where: { slug } });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const membership = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
+    });
+    if (!membership || membership.role !== 'FOUNDER') {
+      return reply.status(403).send({ code: 'FORBIDDEN' });
+    }
+
+    await app.prisma.circle.delete({ where: { id: circle.id } });
+    return reply.status(204).send();
+  });
+
+  // POST /api/circles/:slug/members/:explorerId/promote — FOUNDER promotes MEMBER → GUIDE
+  app.post('/api/circles/:slug/members/:explorerId/promote', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug, explorerId: targetId } = req.params as { slug: string; explorerId: string };
+    const circle = await app.prisma.circle.findUnique({ where: { slug } });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const myMembership = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
+    });
+    if (!myMembership || myMembership.role !== 'FOUNDER') {
+      return reply.status(403).send({ code: 'FORBIDDEN' });
+    }
+
+    const target = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: targetId } },
+    });
+    if (!target) return reply.status(404).send({ code: 'NOT_MEMBER' });
+    if (target.role !== 'MEMBER') return reply.status(409).send({ code: 'ALREADY_ELEVATED' });
+
+    const updated = await app.prisma.circleMember.update({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: targetId } },
+      data: { role: 'GUIDE' },
+    });
+    return reply.send(updated);
+  });
+
+  // DELETE /api/circles/:slug/members/:explorerId — FOUNDER/GUIDE kicks member
+  app.delete('/api/circles/:slug/members/:explorerId', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { slug, explorerId: targetId } = req.params as { slug: string; explorerId: string };
+    const circle = await app.prisma.circle.findUnique({ where: { slug } });
+    if (!circle) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const myMembership = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: req.explorerId } },
+    });
+    if (!myMembership || !['FOUNDER', 'GUIDE'].includes(myMembership.role)) {
+      return reply.status(403).send({ code: 'FORBIDDEN' });
+    }
+
+    const target = await app.prisma.circleMember.findUnique({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: targetId } },
+    });
+    if (!target) return reply.status(404).send({ code: 'NOT_MEMBER' });
+    if (target.role === 'FOUNDER') return reply.status(403).send({ code: 'CANNOT_KICK_FOUNDER' });
+    if (myMembership.role === 'GUIDE' && target.role === 'GUIDE') {
+      return reply.status(403).send({ code: 'INSUFFICIENT_ROLE' });
+    }
+
+    await app.prisma.circleMember.delete({
+      where: { circleId_explorerId: { circleId: circle.id, explorerId: targetId } },
+    });
+    return reply.status(204).send();
+  });
 }

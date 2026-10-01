@@ -251,6 +251,47 @@ export function useGenerateInviteCode() {
   });
 }
 
+export function useUpdateCircle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, data }: { slug: string; data: { name?: string; description?: string; isInviteOnly?: boolean } }) =>
+      api.patch<Circle>(`/api/circles/${slug}`, data),
+    onSuccess: (_data, { slug }) => {
+      qc.invalidateQueries({ queryKey: ['circles', slug] });
+      qc.invalidateQueries({ queryKey: ['circles', 'mine'] });
+    },
+  });
+}
+
+export function useDeleteCircle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (slug: string) => api.delete<void>(`/api/circles/${slug}`),
+    onSuccess: (_data, slug) => {
+      qc.invalidateQueries({ queryKey: ['circles'] });
+      qc.removeQueries({ queryKey: ['circles', slug] });
+    },
+  });
+}
+
+export function usePromoteMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, explorerId }: { slug: string; explorerId: string }) =>
+      api.post<void>(`/api/circles/${slug}/members/${explorerId}/promote`, {}),
+    onSuccess: (_data, { slug }) => qc.invalidateQueries({ queryKey: ['circles', slug] }),
+  });
+}
+
+export function useKickMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, explorerId }: { slug: string; explorerId: string }) =>
+      api.delete<void>(`/api/circles/${slug}/members/${explorerId}`),
+    onSuccess: (_data, { slug }) => qc.invalidateQueries({ queryKey: ['circles', slug] }),
+  });
+}
+
 export function useInviteCodes(slug: string) {
   return useQuery({
     queryKey: ['circles', slug, 'inviteCodes'],

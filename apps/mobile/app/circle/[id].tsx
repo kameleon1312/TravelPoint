@@ -1,6 +1,6 @@
 import {
   View, Text, TextInput, StyleSheet, ScrollView, Pressable,
-  ActivityIndicator, Alert, Clipboard,
+  ActivityIndicator, Alert, Clipboard, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -15,6 +15,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import {
   useCircle, useJoinCircle, useLeaveCircle,
   useGenerateInviteCode, useInviteCodes,
+  useUpdateCircle, useDeleteCircle, usePromoteMember, useKickMember,
 } from '@/hooks/useCircles';
 import { useAuthStore } from '@/stores/auth';
 import { formatRelative } from '@travelpoint/utils';
@@ -70,30 +71,62 @@ function PulsingDot({ color }: { color: string }) {
   return <Animated.View style={[styles.dot, { backgroundColor: color }, style]} />;
 }
 
-function MemberRow({ entry, viewerExplorerId }: { entry: CircleMemberEntry; viewerExplorerId: string | undefined }) {
+function MemberRow({
+  entry,
+  viewerExplorerId,
+  viewerRole,
+  circleSlug,
+  onPromote,
+  onKick,
+}: {
+  entry: CircleMemberEntry;
+  viewerExplorerId: string | undefined;
+  viewerRole: string | null;
+  circleSlug: string;
+  onPromote?: (explorerId: string, handle: string) => void;
+  onKick?: (explorerId: string, handle: string) => void;
+}) {
   const roleColor = ROLE_COLORS[entry.role] ?? Colors.signal;
   const blockExplorer = useBlockExplorer();
   const isSelf = entry.explorer.id === viewerExplorerId;
+  const canManage = viewerRole === 'FOUNDER' || viewerRole === 'GUIDE';
 
   function handleLongPress() {
-    if (isSelf) return;
-    Alert.alert(
-      `@${entry.explorer.handle}`,
-      'Co chcesz zrobić?',
-      [
-        {
-          text: 'Zablokuj explorera',
-          style: 'destructive',
-          onPress: () => {
-            blockExplorer.mutate(entry.explorer.id, {
-              onSuccess: () => Alert.alert('Zablokowano', `@${entry.explorer.handle} został zablokowany.`),
-              onError: () => Alert.alert('Błąd', 'Nie udało się zablokować explorera.'),
-            });
-          },
-        },
-        { text: 'Anuluj', style: 'cancel' },
-      ],
-    );
+    if (isSelf || !canManage) return;
+    type AlertButton = { text: string; style?: 'cancel' | 'destructive' | 'default'; onPress?: () => void };
+    const options: AlertButton[] = [];
+
+    if (viewerRole === 'FOUNDER' && entry.role === 'MEMBER') {
+      options.push({
+        text: '◈ Awansuj na Przewodnika',
+        onPress: () => onPromote?.(entry.explorer.id, entry.explorer.handle),
+      });
+    }
+
+    const canKick =
+      entry.role !== 'FOUNDER' &&
+      (viewerRole === 'FOUNDER' || (viewerRole === 'GUIDE' && entry.role === 'MEMBER'));
+    if (canKick) {
+      options.push({
+        text: 'Wyrzuć z circle',
+        style: 'destructive',
+        onPress: () => onKick?.(entry.explorer.id, entry.explorer.handle),
+      });
+    }
+
+    options.push({
+      text: 'Zablokuj explorera',
+      style: 'destructive',
+      onPress: () => {
+        blockExplorer.mutate(entry.explorer.id, {
+          onSuccess: () => Alert.alert('Zablokowano', `@${entry.explorer.handle} został zablokowany.`),
+          onError: () => Alert.alert('Błąd', 'Nie udało się zablokować explorera.'),
+        });
+      },
+    });
+    options.push({ text: 'Anuluj', style: 'cancel' });
+
+    Alert.alert(`@${entry.explorer.handle}`, 'Co chcesz zrobić?', options);
   }
 
   return (
@@ -144,10 +177,19 @@ export default function CircleDetailScreen() {
   const { explorer } = useAuthStore();
 
   const { data: circle, isLoading, error } = useCircle(id ?? '');
-  const { mutateAsync: joinCircle,     isPending: isJoining  } = useJoinCircle();
-  const { mutateAsync: leaveCircle,    isPending: isLeaving  } = useLeaveCircle();
+  const { mutateAsync: joinCircle,     isPending: isJoining    } = useJoinCircle();
+  const { mutateAsync: leaveCircle,    isPending: isLeaving    } = useLeaveCircle();
   const { mutateAsync: generateCode,   isPending: isGenerating } = useGenerateInviteCode();
+  const { mutateAsync: updateCircle,   isPending: isSaving     } = useUpdateCircle();
+  const { mutateAsync: deleteCircle,   isPending: isDeleting   } = useDeleteCircle();
+  const { mutateAsync: promoteMember,  isPending: isPromoting  } = usePromoteMember();
+  const { mutateAsync: kickMember,     isPending: isKicking    } = useKickMember();
+
   const [inviteCode, setInviteCode] = useState('');
+  const [editName, setEditName]               = useState('');
+  const [editDesc, setEditDesc]               = useState('');
+  const [editInviteOnly, setEditInviteOnly]   = useState(false);
+  const [settingsOpen, setSettingsOpen]       = useState(false);
 
   const detail = circle as unknown as CircleDetail | undefined;
   const slug    = detail?.slug ?? id ?? '';
@@ -184,6 +226,86 @@ export default function CircleDetailScreen() {
   const canInvite    = isFounder || isGuide;
   const memberCount  = detail._count?.members ?? members.length;
   const isInviteOnly = detail.isInviteOnly;
+
+  function openSettings() {
+    setEditName(detail.name);
+    setEditDesc(detail.description ?? '');
+    setEditInviteOnly(detail.isInviteOnly);
+    setSettingsOpen(true);
+  }
+
+  async function handleSave() {
+    try {
+      await updateCircle({
+        slug,
+        data: { name: editName.trim(), description: editDesc.trim() || undefined, isInviteOnly: editInviteOnly },
+      });
+      setSettingsOpen(false);
+    } catch (e: unknown) {
+      Alert.alert('Błąd', e instanceof Error ? e.message : 'Nie udało się zapisać zmian.');
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert(
+      `Usuń "${detail.name}"?`,
+      'Ta operacja jest nieodwracalna. Circle i wszystkie transmisje zostaną usunięte.',
+      [
+        { text: 'Anuluj', style: 'cancel' },
+        {
+          text: 'Usuń circle', style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteCircle(slug);
+              router.back();
+            } catch (e: unknown) {
+              Alert.alert('Błąd', e instanceof Error ? e.message : 'Nie udało się usunąć circle.');
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  function handlePromote(explorerId: string, handle: string) {
+    Alert.alert(
+      `Awansuj @${handle}?`,
+      'Zostanie Przewodnikiem — może zapraszać nowych członków.',
+      [
+        { text: 'Anuluj', style: 'cancel' },
+        {
+          text: 'Awansuj',
+          onPress: async () => {
+            try {
+              await promoteMember({ slug, explorerId });
+            } catch (e: unknown) {
+              Alert.alert('Błąd', e instanceof Error ? e.message : 'Nie udało się awansować.');
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  function handleKick(explorerId: string, handle: string) {
+    Alert.alert(
+      `Wyrzuć @${handle}?`,
+      'Explorer straci dostęp do circle.',
+      [
+        { text: 'Anuluj', style: 'cancel' },
+        {
+          text: 'Wyrzuć', style: 'destructive',
+          onPress: async () => {
+            try {
+              await kickMember({ slug, explorerId });
+            } catch (e: unknown) {
+              Alert.alert('Błąd', e instanceof Error ? e.message : 'Nie udało się wyrzucić.');
+            }
+          },
+        },
+      ],
+    );
+  }
 
   async function handleJoin() {
     try {
@@ -246,8 +368,15 @@ export default function CircleDetailScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Back */}
-        <BackButton label="Kręgi" />
+        {/* Back + settings */}
+        <View style={styles.topBar}>
+          <BackButton label="Kręgi" />
+          {isFounder && (
+            <Pressable style={styles.settingsBtn} onPress={openSettings} hitSlop={8}>
+              <Text style={styles.settingsBtnText}>⚙ Ustawienia</Text>
+            </Pressable>
+          )}
+        </View>
 
         {/* Header */}
         <View style={styles.header}>
@@ -348,9 +477,90 @@ export default function CircleDetailScreen() {
             {members.map((m, i) => (
               <View key={m.explorer.id}>
                 {i > 0 && <View style={styles.divider} />}
-                <MemberRow entry={m} viewerExplorerId={explorer?.id} />
+                <MemberRow
+                  entry={m}
+                  viewerExplorerId={explorer?.id}
+                  viewerRole={viewerRole}
+                  circleSlug={slug}
+                  onPromote={handlePromote}
+                  onKick={handleKick}
+                />
               </View>
             ))}
+          </GlassCard>
+        )}
+
+        {/* Settings panel — FOUNDER only */}
+        {isFounder && settingsOpen && (
+          <GlassCard style={styles.section}>
+            <Text style={styles.sectionLabel}>Ustawienia Circle</Text>
+
+            <View style={styles.settingsField}>
+              <Text style={styles.settingsFieldLabel}>Nazwa</Text>
+              <TextInput
+                style={styles.settingsInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Nazwa circle"
+                placeholderTextColor={Colors.starGhost}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.settingsField}>
+              <Text style={styles.settingsFieldLabel}>Opis</Text>
+              <TextInput
+                style={[styles.settingsInput, styles.settingsInputMulti]}
+                value={editDesc}
+                onChangeText={setEditDesc}
+                placeholder="Opis (opcjonalnie)"
+                placeholderTextColor={Colors.starGhost}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.settingsToggleRow}>
+              <Text style={styles.settingsFieldLabel}>Tylko na zaproszenie</Text>
+              <Switch
+                value={editInviteOnly}
+                onValueChange={setEditInviteOnly}
+                trackColor={{ false: Colors.steel, true: Colors.aurora + '80' }}
+                thumbColor={editInviteOnly ? Colors.aurora : Colors.starFaint}
+              />
+            </View>
+
+            <View style={styles.settingsActions}>
+              <SignalButton
+                label="Zapisz zmiany"
+                onPress={handleSave}
+                variant="aurora"
+                size="md"
+                fullWidth
+                loading={isSaving}
+                haptic="medium"
+              />
+              <SignalButton
+                label="Anuluj"
+                onPress={() => setSettingsOpen(false)}
+                variant="ghost"
+                size="sm"
+                fullWidth
+              />
+            </View>
+
+            <View style={styles.dangerZone}>
+              <SignalButton
+                label={isDeleting ? 'Usuwanie…' : 'Usuń circle'}
+                onPress={confirmDelete}
+                variant="ember"
+                size="md"
+                fullWidth
+                loading={isDeleting}
+                haptic="heavy"
+              />
+            </View>
           </GlassCard>
         )}
 
@@ -450,4 +660,39 @@ const styles = StyleSheet.create({
   emptyCodesText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starGhost, lineHeight: 20 },
 
   errorText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.ember },
+
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  settingsBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.pill,
+    borderWidth: 1,
+    borderColor: Colors.steel,
+    backgroundColor: Colors.graphite,
+  },
+  settingsBtnText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
+
+  settingsField: { gap: Spacing.xs },
+  settingsFieldLabel: {
+    fontFamily: 'GeneralSans-Semibold',
+    fontSize: FontSize.caption,
+    color: Colors.starFaint,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  settingsInput: {
+    backgroundColor: Colors.graphiteSoft,
+    borderWidth: 1,
+    borderColor: Colors.steel,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: FontSize.body,
+    color: Colors.starlight,
+  },
+  settingsInputMulti: { height: 72, paddingTop: Spacing.md },
+  settingsToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  settingsActions: { gap: Spacing.sm, marginTop: Spacing.xs },
+  dangerZone: { marginTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.ember + '30', paddingTop: Spacing.md },
 });
