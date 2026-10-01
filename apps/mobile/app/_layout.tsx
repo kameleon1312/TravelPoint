@@ -185,7 +185,7 @@ const otaStyles = StyleSheet.create({
   },
 });
 
-function AuthGate({ otaStatus, setOtaStatus }: { otaStatus: OtaStatus; setOtaStatus: (s: OtaStatus) => void }) {
+function AuthGate({ otaStatus: _otaStatus, setOtaStatus }: { otaStatus: OtaStatus; setOtaStatus: (s: OtaStatus) => void }) {
   const { rehydrate, initialize, isLoading, isAuthenticated } = useAuthStore();
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
   const { load: loadBiometrics, lock, isLocked } = useBiometricStore();

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { useState } from 'react';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/theme';

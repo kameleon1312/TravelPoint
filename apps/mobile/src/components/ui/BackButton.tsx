@@ -1,7 +1,7 @@
 import { Pressable, Text, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
+import { Colors, FontSize, BorderRadius } from '@travelpoint/theme';
 
 interface BackButtonProps {
   label?: string;

@@ -17,7 +17,7 @@ export function useFeed() {
     },
     getNextPageParam: (last: FeedPage) =>
       last.hasMore && last.items.length > 0
-        ? last.items[last.items.length - 1].createdAt
+        ? last.items[last.items.length - 1]?.createdAt
         : undefined,
     initialPageParam: undefined as string | undefined,
     staleTime: 1000 * 60 * 2,

@@ -75,14 +75,12 @@ function MemberRow({
   entry,
   viewerExplorerId,
   viewerRole,
-  circleSlug,
   onPromote,
   onKick,
 }: {
   entry: CircleMemberEntry;
   viewerExplorerId: string | undefined;
   viewerRole: string | null;
-  circleSlug: string;
   onPromote?: (explorerId: string, handle: string) => void;
   onKick?: (explorerId: string, handle: string) => void;
 }) {
@@ -182,8 +180,8 @@ export default function CircleDetailScreen() {
   const { mutateAsync: generateCode,   isPending: isGenerating } = useGenerateInviteCode();
   const { mutateAsync: updateCircle,   isPending: isSaving     } = useUpdateCircle();
   const { mutateAsync: deleteCircle,   isPending: isDeleting   } = useDeleteCircle();
-  const { mutateAsync: promoteMember,  isPending: isPromoting  } = usePromoteMember();
-  const { mutateAsync: kickMember,     isPending: isKicking    } = useKickMember();
+  const { mutateAsync: promoteMember } = usePromoteMember();
+  const { mutateAsync: kickMember    } = useKickMember();
 
   const [inviteCode, setInviteCode] = useState('');
   const [editName, setEditName]               = useState('');
@@ -228,6 +226,7 @@ export default function CircleDetailScreen() {
   const isInviteOnly = detail.isInviteOnly;
 
   function openSettings() {
+    if (!detail) return;
     setEditName(detail.name);
     setEditDesc(detail.description ?? '');
     setEditInviteOnly(detail.isInviteOnly);
@@ -247,6 +246,7 @@ export default function CircleDetailScreen() {
   }
 
   function confirmDelete() {
+    if (!detail) return;
     Alert.alert(
       `Usuń "${detail.name}"?`,
       'Ta operacja jest nieodwracalna. Circle i wszystkie transmisje zostaną usunięte.',
@@ -481,7 +481,6 @@ export default function CircleDetailScreen() {
                   entry={m}
                   viewerExplorerId={explorer?.id}
                   viewerRole={viewerRole}
-                  circleSlug={slug}
                   onPromote={handlePromote}
                   onKick={handleKick}
                 />

@@ -81,7 +81,7 @@ export default function NewForumPostScreen() {
                     onPress={() => setCategory(c.key)}
                     variant={isActive ? 'aurora' : 'ghost'}
                     size="sm"
-                    haptic="selection"
+                    haptic="light"
                   />
                 );
               })}
