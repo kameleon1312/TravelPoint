@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { BackButton } from '@/components/ui/BackButton';
 import { useForumPosts, type ForumPost, type ForumCategory } from '@/hooks/useForum';
 import { pl } from '@/i18n/pl';
 
@@ -82,9 +83,7 @@ export default function ForumScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </Pressable>
+        <BackButton />
         <Text style={styles.heading}>{pl.forum?.title ?? 'Forum'}</Text>
         <SignalButton
           label="+ Post"
@@ -161,8 +160,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
   },
-  backBtn:  { padding: 4 },
-  backText: { fontSize: 22, color: Colors.starlight },
   heading: {
     flex: 1,
     fontFamily: 'ClashDisplay-Bold',

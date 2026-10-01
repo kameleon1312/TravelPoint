@@ -1,6 +1,7 @@
 import {
   View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Alert,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -8,6 +9,7 @@ import { Colors, FontSize, Spacing } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { BackButton } from '@/components/ui/BackButton';
 import { useSavedSpots, useUnsaveSpot } from '@/hooks/useSpots';
 import type { SpotForViewer } from '@travelpoint/types';
 
@@ -73,9 +75,7 @@ export default function SavedWorldsScreen() {
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Wróć</Text>
-        </Pressable>
+        <BackButton />
         <Text style={styles.eyebrow}>Kolekcja</Text>
         <Text style={styles.heading}>Saved Worlds</Text>
         {spots && (
@@ -98,7 +98,7 @@ export default function SavedWorldsScreen() {
           </Text>
           <SignalButton
             label="Otwórz mapę"
-            onPress={() => router.push('/')}
+            onPress={() => router.replace('/(tabs)')}
             variant="aurora"
             size="md"
             haptic="light"
@@ -122,9 +122,7 @@ export default function SavedWorldsScreen() {
 
 const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: Colors.abyss },
-  header: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, paddingBottom: Spacing.md, gap: Spacing.xs },
-  back:       { alignSelf: 'flex-start', marginBottom: Spacing.sm },
-  backText:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starFaint },
+  header: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, paddingBottom: Spacing.md, gap: Spacing.sm },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
     color: Colors.starFaint, letterSpacing: 3, textTransform: 'uppercase',

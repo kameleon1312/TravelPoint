@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { BackButton } from '@/components/ui/BackButton';
 import { useForumPost, useAddForumReply, type ForumReply } from '@/hooks/useForum';
 import { useAuthStore } from '@/stores/auth';
 
@@ -90,9 +91,7 @@ export default function ForumThreadScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
-          </Pressable>
+          <BackButton />
           <Text style={styles.heading} numberOfLines={1}>Forum</Text>
         </View>
 
@@ -182,8 +181,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
   },
-  backBtn:  { padding: 4 },
-  backText: { fontSize: 22, color: Colors.starlight },
   heading: {
     flex: 1,
     fontFamily: 'ClashDisplay-Bold',

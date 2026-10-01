@@ -87,15 +87,38 @@ async function registerPushToken() {
 
 // ── Biometric lock overlay ────────────────────────────────────────────────────
 function BiometricLockScreen() {
-  const { authenticate } = useBiometricStore();
+  const { authenticate, setEnabled } = useBiometricStore();
+  const logout = useAuthStore((s) => s.logout);
+  const [failCount, setFailCount] = useState(0);
+
+  useEffect(() => {
+    void tryAuth();
+  }, []);
+
+  async function tryAuth() {
+    const ok = await authenticate();
+    if (!ok) setFailCount((c) => c + 1);
+  }
+
+  async function handleRelogin() {
+    await setEnabled(false);
+    await logout();
+    router.replace('/(auth)/login');
+  }
+
   return (
     <View style={lockStyles.overlay}>
       <SafeAreaView style={lockStyles.inner}>
         <Text style={lockStyles.logo}>TravelPoint</Text>
         <Text style={lockStyles.subtitle}>{pl.biometrics.lockSubtitle}</Text>
-        <Pressable style={lockStyles.btn} onPress={() => void authenticate()}>
+        <Pressable style={lockStyles.btn} onPress={() => void tryAuth()}>
           <Text style={lockStyles.btnText}>{pl.biometrics.unlockBtn}</Text>
         </Pressable>
+        {failCount > 0 && (
+          <Pressable style={lockStyles.fallbackBtn} onPress={() => void handleRelogin()}>
+            <Text style={lockStyles.fallbackText}>Zaloguj się ponownie</Text>
+          </Pressable>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -116,7 +139,9 @@ const lockStyles = StyleSheet.create({
     marginTop: 24, backgroundColor: Colors.aurora,
     borderRadius: 999, paddingHorizontal: 36, paddingVertical: 14,
   },
-  btnText: { fontFamily: 'GeneralSans-Semibold', fontSize: 15, color: Colors.textOnDark },
+  btnText:     { fontFamily: 'GeneralSans-Semibold', fontSize: 15, color: Colors.textOnDark },
+  fallbackBtn: { marginTop: 16, paddingVertical: 10, paddingHorizontal: 24 },
+  fallbackText: { fontFamily: 'GeneralSans-Regular', fontSize: 13, color: Colors.starFaint, textDecorationLine: 'underline' },
 });
 
 type OtaStatus = 'downloading' | 'restarting' | null;
@@ -163,7 +188,7 @@ const otaStyles = StyleSheet.create({
 function AuthGate({ otaStatus, setOtaStatus }: { otaStatus: OtaStatus; setOtaStatus: (s: OtaStatus) => void }) {
   const { rehydrate, initialize, isLoading, isAuthenticated } = useAuthStore();
   const recoverRecording = useRecordingStore((state) => state.recoverRecording);
-  const { load: loadBiometrics, lock, isLocked, isEnabled: biometricEnabled, authenticate } = useBiometricStore();
+  const { load: loadBiometrics, lock, isLocked } = useBiometricStore();
   const appState = useRef(AppState.currentState);
 
   // OTA update — check on startup, show banner, auto-restart immediately after download.
@@ -234,7 +259,10 @@ function AuthGate({ otaStatus, setOtaStatus }: { otaStatus: OtaStatus; setOtaSta
       if (appState.current.match(/inactive|background/) && nextState === 'active') {
         void replayOfflineQueue();
         void recoverRecording();
-        lock(); // triggers biometric prompt if enabled
+        // Re-validate session on resume; Supabase auto-refreshes token but
+        // if the refresh window expired the user needs a clean re-login.
+        void rehydrate();
+        lock();
       }
       appState.current = nextState;
     });
@@ -254,13 +282,6 @@ function AuthGate({ otaStatus, setOtaStatus }: { otaStatus: OtaStatus; setOtaSta
       void registerPushToken();
     }
   }, [isLoading, isAuthenticated]);
-
-  // Auto-trigger biometric prompt when lock activates
-  useEffect(() => {
-    if (isLocked && biometricEnabled) {
-      void authenticate();
-    }
-  }, [isLocked]);
 
   return isLocked ? <BiometricLockScreen /> : null;
 }

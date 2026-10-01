@@ -1,67 +1,61 @@
 export const Colors = {
-  // ─── Backgrounds (beach / azure coast) ────────────────────────────────────
-  void:            '#F4EFE8',   // warm ivory sand — primary background
-  abyss:           '#EBF5FA',   // azure sky wash — secondary background
-  backgroundSky:   '#D6EFF9',   // clear Côte d'Azur sky
-  backgroundGreen: '#DCF0E6',   // coastal Mediterranean vegetation
+  // ─── Backgrounds (dark warm greys) ────────────────────────────────────────
+  void:           '#0C0C0C',   // near-black
+  abyss:          '#141414',   // main background
+  graphite:       '#1E1E1E',   // cards
+  graphiteSoft:   '#262626',   // hover / nested
+  steel:          '#3C3C3C',   // borders, dividers
 
-  // ─── Surfaces ─────────────────────────────────────────────────────────────
-  graphite:        '#FFFFFF',   // white like Mediterranean architecture
-  graphiteSoft:    '#F8F4EE',   // warm sunlit white
-  surfaceSand:     '#FBF0DC',   // warm sandy surface
+  // ─── Depth tones ──────────────────────────────────────────────────────────
+  midnight:       '#181818',
+  deepBlue:       '#1A1A20',
+  cosmicBlue:     '#202028',
 
-  // ─── Borders ──────────────────────────────────────────────────────────────
-  steel:           '#DDE8EE',   // sea spray
-  borderStrong:    '#B5CDD9',   // ocean blue-gray
-  borderSand:      '#E4D0A8',   // sand border
-  borderSky:       '#A8D8EE',   // sky border
-
-  // ─── Depth / sky tones ────────────────────────────────────────────────────
-  midnight:        '#E8F5FD',   // morning sky
-  deepBlue:        '#B3E0F7',   // mid sky
-  cosmicBlue:      '#64BEF5',   // bright sky blue
-
-  // ─── Primary accent — Mediterranean Turquoise ─────────────────────────────
-  aurora:          '#0096C7',   // Côte d'Azur azure — CTA, active elements
-  auroraDeep:      '#0077A8',   // deeper turquoise — pressed state
-
-  // ─── Secondary accent — Sky Blue ──────────────────────────────────────────
-  signal:          '#0288D1',   // coastal sky blue
-  signalGlow:      '#42B4F4',   // bright sky glow
+  // ─── Primary accent — Orange ──────────────────────────────────────────────
+  aurora:         '#E8600A',   // main orange — discovery, CTA
+  auroraDeep:     '#B84A06',   // darker orange — pressed state
+  signal:         '#E09020',   // amber — links, navigation, presence
+  signalGlow:     '#FFB040',   // bright amber — glow effects
+  ember:          '#D03820',   // red-orange — alerts, danger, urgency
+  violet:         '#8B78D0',   // dusk purple — circles, trusted
 
   // ─── Warm accents ─────────────────────────────────────────────────────────
-  ember:           '#FF7043',   // coral sunset — alerts / signals
-  violet:          '#6B9BAE',   // coastal mist — circles / trusted
+  sand:           '#C89040',   // golden
+  moss:           '#50885A',   // deep green
 
-  // ─── Natural tones ────────────────────────────────────────────────────────
-  sand:            '#F4C87E',   // golden beach sand
-  sandDark:        '#D4A056',   // amber sand separator
-  moss:            '#52B788',   // Mediterranean coastal vegetation
+  // ─── Text (warm white scale) ──────────────────────────────────────────────
+  starlight:      '#F2EEEB',   // primary — warm near-white
+  star:           '#A89890',   // secondary — warm medium grey
+  starFaint:      '#686060',   // tertiary — warm dark grey
+  starGhost:      '#464040',   // placeholder / disabled
+  textOnDark:     '#FFFFFF',   // pure white for buttons on dark
 
-  // ─── Text (deep navy — ocean depth) ───────────────────────────────────────
-  starlight:       '#152844',   // primary text — deep navy
-  star:            '#3D5E7C',   // secondary text — ocean blue-gray
-  starFaint:       '#6E8FA4',   // tertiary — coastal mist
-  starGhost:       '#9AB5C4',   // placeholder / disabled — sea foam
-  textOnDark:      '#FFFFFF',   // text on dark overlays / CTA buttons
+  // ─── Glass (warm, subtle) ─────────────────────────────────────────────────
+  glass:          'rgba(255,255,255,0.05)',
+  glassBorder:    'rgba(255,255,255,0.10)',
+  glassStrong:    'rgba(255,255,255,0.09)',
+  glassShadow:    'rgba(0,0,0,0.40)',
 
-  // ─── Glass (white, sunlit) ────────────────────────────────────────────────
-  glass:           'rgba(255,255,255,0.84)',
-  glassBorder:     'rgba(255,255,255,0.65)',
-  glassStrong:     'rgba(255,255,255,0.92)',
-  glassShadow:     'rgba(21,40,68,0.10)',
-
-  // ─── Photo overlays ───────────────────────────────────────────────────────
-  overlayDark:       'rgba(21,40,68,0.42)',
-  overlayDarkStrong: 'rgba(21,40,68,0.58)',
-  overlayGreen:      'rgba(0,150,199,0.20)',
-  overlayLight:      'rgba(255,255,255,0.18)',
+  // ─── Overlays ─────────────────────────────────────────────────────────────
+  overlayDark:       'rgba(0,0,0,0.50)',
+  overlayDarkStrong: 'rgba(0,0,0,0.70)',
+  overlayGreen:      'rgba(232,96,10,0.15)',
+  overlayLight:      'rgba(255,255,255,0.10)',
 
   // ─── Status ───────────────────────────────────────────────────────────────
-  success:         '#40916C',
-  warning:         '#F4C87E',
-  danger:          '#EF5350',
-  info:            '#0288D1',
+  success:        '#42A862',
+  warning:        '#E09020',
+  danger:         '#D03820',
+  info:           '#E8600A',
+
+  // ─── Legacy aliases (kept for backwards compatibility) ────────────────────
+  backgroundSky:  '#181818',
+  backgroundGreen:'#141414',
+  surfaceSand:    '#1E1E1E',
+  borderStrong:   '#555555',
+  borderSand:     '#3C3C3C',
+  borderSky:      '#3C3C3C',
+  sandDark:       '#A07030',
 } as const;
 
 export type ColorToken = keyof typeof Colors;

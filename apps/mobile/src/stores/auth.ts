@@ -99,11 +99,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       socketManager.connect(session.access_token);
       set({ explorer, isAuthenticated: true, isLoading: false });
       void registerPushToken();
-    } catch (err) {
-      if (err instanceof ApiError && (err.status === 401 || err.code === 'ACCOUNT_NOT_FOUND')) {
-        socketManager.disconnect();
-        await supabase.auth.signOut();
-      }
+    } catch {
+      // Any failure (timeout, 401, network) — always clear stale session so
+      // user never needs to manually clear app data to recover.
+      socketManager.disconnect();
+      try { await supabase.auth.signOut(); } catch { /* non-critical */ }
       set({ explorer: null, isAuthenticated: false, isLoading: false });
     }
   },
