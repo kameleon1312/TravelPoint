@@ -9,14 +9,19 @@ import { sendPushToExplorer } from '../services/push';
 import { pushStrings } from '../lib/pushStrings';
 
 export async function circleRoutes(app: FastifyInstance) {
-  // GET /api/circles — list public circles
+  // GET /api/circles — list public circles (cursor pagination: ?after=<id>&limit=<n>)
   app.get('/api/circles', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { after, limit: limitStr } = req.query as { after?: string; limit?: string };
+    const limit = Math.min(parseInt(limitStr ?? '25', 10) || 25, 50);
     const circles = await app.prisma.circle.findMany({
       include: { _count: { select: { members: true } } },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: limit + 1,
+      ...(after ? { cursor: { id: after }, skip: 1 } : {}),
     });
-    return reply.send(circles);
+    const hasMore = circles.length > limit;
+    const items = circles.slice(0, limit);
+    return reply.send({ circles: items, hasMore, nextCursor: hasMore ? (items[items.length - 1]?.id ?? null) : null });
   });
 
   // GET /api/circles/mine — circles I'm member of

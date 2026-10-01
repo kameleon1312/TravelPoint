@@ -1,12 +1,24 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Journey } from '@travelpoint/types';
 import type { UpdateJourneyInput } from '@travelpoint/validation';
 
+interface JourneysPage {
+  journeys: Journey[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
 export function useMyJourneys() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['journeys', 'mine'],
-    queryFn:  () => api.get<Journey[]>('/api/journeys/me'),
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: '20' });
+      if (pageParam) params.set('after', pageParam as string);
+      return api.get<JourneysPage>(`/api/journeys/me?${params.toString()}`);
+    },
+    getNextPageParam: (last: JourneysPage) => last.hasMore ? last.nextCursor ?? undefined : undefined,
+    initialPageParam: undefined as string | undefined,
     staleTime: 1000 * 60 * 5,
   });
 }

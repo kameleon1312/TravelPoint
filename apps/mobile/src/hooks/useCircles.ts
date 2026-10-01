@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../lib/api';
 import { socketManager } from '../lib/socket';
@@ -31,11 +31,23 @@ export function useMyCircles() {
   });
 }
 
-// ── Public circles (browse) ───────────────────────────────────────────────────
+// ── Public circles (browse) — cursor pagination ───────────────────────────────
+interface CirclesPage {
+  circles: (Circle & { _count?: { members: number } })[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
 export function useAllCircles() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['circles', 'all'],
-    queryFn: () => api.get<(Circle & { _count?: { members: number } })[]>('/api/circles'),
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: '25' });
+      if (pageParam) params.set('after', pageParam as string);
+      return api.get<CirclesPage>(`/api/circles?${params.toString()}`);
+    },
+    getNextPageParam: (last: CirclesPage) => last.hasMore ? last.nextCursor ?? undefined : undefined,
+    initialPageParam: undefined as string | undefined,
     staleTime: 1000 * 60 * 3,
   });
 }
@@ -133,7 +145,8 @@ export function useInbox() {
 
   const query = useQuery({
     queryKey: ['transmissions', 'inbox'],
-    queryFn: () => api.get<TransmissionWithSender[]>('/api/transmissions'),
+    queryFn: () =>
+      api.get<{ messages: TransmissionWithSender[] }>('/api/transmissions').then((r) => r.messages),
     staleTime: 1000 * 30,
   });
 

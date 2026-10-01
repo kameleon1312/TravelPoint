@@ -5,8 +5,11 @@ import type { FeedItem } from '@travelpoint/types';
 
 export async function feedRoutes(app: FastifyInstance) {
   // GET /api/feed — aggregated activity for explorer's circles + own activity
-  // Returns last 40 items sorted by createdAt desc
+  // Supports cursor pagination: ?before=<ISO>&limit=<n>
   app.get('/api/feed', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { before, limit: limitStr } = req.query as { before?: string; limit?: string };
+    const limit = Math.min(parseInt(limitStr ?? '30', 10) || 30, 50);
+    const beforeDate = before ? new Date(before) : new Date();
     const explorerId = req.explorerId;
 
     const memberships = await app.prisma.circleMember.findMany({
@@ -32,8 +35,11 @@ export async function feedRoutes(app: FastifyInstance) {
     const blockedIds = blockedRows.map((b) => b.blockedId);
     const visibleIds = circlematIds.filter((id) => !blockedIds.includes(id));
 
-    // 1. New spots by circlemates (last 7 days)
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    // 1. New spots by circlemates (last 7 days, before cursor)
+    const since = new Date(Math.min(
+      beforeDate.getTime() - 1,
+      Date.now() - 7 * 24 * 60 * 60 * 1000,
+    ));
 
     const [spots, journeys, comments] = await Promise.all([
       app.prisma.spot.findMany({
@@ -41,38 +47,36 @@ export async function feedRoutes(app: FastifyInstance) {
           ownerId: { in: visibleIds },
           deletedAt: null,
           accessLevel: { in: ['PUBLIC', 'TRUSTED'] },
-          createdAt: { gte: since },
+          createdAt: { gte: since, lt: beforeDate },
         },
         include: { owner: { select: { handle: true, avatarUrl: true, rank: true } } },
         orderBy: { createdAt: 'desc' },
-        take: 20,
+        take: limit,
       }),
-      // 2. Public journeys by circlemates
       app.prisma.journey.findMany({
         where: {
           explorerId: { in: visibleIds },
           isPrivate: false,
-          createdAt: { gte: since },
+          createdAt: { gte: since, lt: beforeDate },
         },
         include: { explorer: { select: { handle: true, avatarUrl: true, rank: true } } },
         orderBy: { createdAt: 'desc' },
-        take: 15,
+        take: limit,
       }),
-      // 3. Comments on own spots
       app.prisma.spotComment.findMany({
         where: {
           spot: { ownerId: explorerId, deletedAt: null },
           explorerId: blockedIds.length > 0
             ? { notIn: [explorerId, ...blockedIds] }
             : { not: explorerId },
-          createdAt: { gte: since },
+          createdAt: { gte: since, lt: beforeDate },
         },
         include: {
           explorer: { select: { handle: true, avatarUrl: true, rank: true } },
           spot: { select: { id: true, title: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 15,
+        take: limit,
       }),
     ]);
 
@@ -130,6 +134,7 @@ export async function feedRoutes(app: FastifyInstance) {
 
     items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return reply.send(items.slice(0, 40));
+    const page = items.slice(0, limit);
+    return reply.send({ items: page, hasMore: items.length > limit });
   });
 }

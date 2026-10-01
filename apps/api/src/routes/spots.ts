@@ -757,4 +757,22 @@ export async function spotsRoutes(app: FastifyInstance) {
       createdAt:        comment.createdAt.toISOString(),
     });
   });
+
+  // DELETE /api/spots/:id/comments/:commentId
+  app.delete('/api/spots/:id/comments/:commentId', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id, commentId } = req.params as { id: string; commentId: string };
+
+    const comment = await app.prisma.spotComment.findUnique({ where: { id: commentId } });
+    if (!comment || comment.spotId !== id) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    const spot = await app.prisma.spot.findUnique({ where: { id }, select: { ownerId: true } });
+    if (!spot) return reply.status(404).send({ code: 'NOT_FOUND' });
+
+    if (comment.explorerId !== req.explorerId && spot.ownerId !== req.explorerId) {
+      return reply.status(403).send({ code: 'FORBIDDEN' });
+    }
+
+    await app.prisma.spotComment.delete({ where: { id: commentId } });
+    return reply.status(204).send();
+  });
 }

@@ -1,5 +1,5 @@
 import {
-  View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, ScrollView,
+  View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, ScrollView, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -244,7 +244,17 @@ export default function DiscoverScreen() {
   const [locationDenied, setLocationDenied] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
 
-  const { data: feedItems, isLoading: feedLoading } = useFeed();
+  const {
+    data: feedData,
+    isLoading: feedLoading,
+    isRefetching: feedRefetching,
+    fetchNextPage: feedFetchNext,
+    hasNextPage: feedHasNext,
+    isFetchingNextPage: feedFetchingNext,
+    refetch: feedRefetch,
+  } = useFeed();
+
+  const feedItems = feedData?.pages.flatMap((p) => p.items) ?? [];
 
   const { data: spots, isLoading: spotsLoading, error: spotsError } = useNearbySpots(
     segment === 'discover' ? (coords?.lat ?? null) : null,
@@ -318,7 +328,7 @@ export default function DiscoverScreen() {
               subtitle="Dołącz do circles albo odkryj spoty, żeby zobaczyć co się dzieje w Twojej sieci."
             />
           )}
-          {!feedLoading && feedItems && feedItems.length > 0 && (
+          {!feedLoading && feedItems.length > 0 && (
             <FlatList
               data={feedItems}
               keyExtractor={(i) => i.id}
@@ -326,6 +336,20 @@ export default function DiscoverScreen() {
               contentContainerStyle={styles.list}
               ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
               showsVerticalScrollIndicator={false}
+              onEndReached={() => { if (feedHasNext && !feedFetchingNext) void feedFetchNext(); }}
+              onEndReachedThreshold={0.3}
+              refreshControl={
+                <RefreshControl
+                  refreshing={feedRefetching && !feedLoading}
+                  onRefresh={() => void feedRefetch()}
+                  tintColor={Colors.aurora}
+                />
+              }
+              ListFooterComponent={
+                feedFetchingNext
+                  ? <ActivityIndicator color={Colors.aurora} style={{ paddingVertical: 16 }} />
+                  : null
+              }
             />
           )}
         </>

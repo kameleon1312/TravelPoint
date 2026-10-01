@@ -91,7 +91,17 @@ function CircleCard({
 }
 
 export default function BrowseCirclesScreen() {
-  const { data: circles, isLoading, refetch } = useAllCircles();
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAllCircles();
+
+  const circles = data?.pages.flatMap((p) => p.circles) ?? [];
   const { mutateAsync: joinCircle, isPending: isJoining } = useJoinCircle();
   const { explorer } = useAuthStore();
   const [query, setQuery] = useState('');
@@ -201,12 +211,19 @@ export default function BrowseCirclesScreen() {
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
           showsVerticalScrollIndicator={false}
+          onEndReached={() => { if (hasNextPage && !isFetchingNextPage) void fetchNextPage(); }}
+          onEndReachedThreshold={0.3}
           refreshControl={
             <RefreshControl
-              refreshing={isLoading}
+              refreshing={isRefetching && !isLoading}
               onRefresh={() => void refetch()}
               tintColor={Colors.aurora}
             />
+          }
+          ListFooterComponent={
+            isFetchingNextPage
+              ? <ActivityIndicator color={Colors.aurora} style={{ paddingVertical: 16 }} />
+              : null
           }
           ListHeaderComponent={
             circles && circles.length > 0 ? (

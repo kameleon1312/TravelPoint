@@ -18,22 +18,27 @@ const CreateTransmissionSchema = z.object({
 );
 
 export async function transmissionRoutes(app: FastifyInstance) {
-  // GET /api/transmissions — DM inbox (received, no circle messages)
+  // GET /api/transmissions — DM inbox (cursor pagination: ?before=<ISO>&limit=<n>)
   app.get('/api/transmissions', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { before, limit: limitStr } = req.query as { before?: string; limit?: string };
+    const limit = Math.min(parseInt(limitStr ?? '30', 10) || 30, 50);
     const blockedIds = await getBlockedExplorerIds(app.prisma, req.explorerId);
-    const messages = await app.prisma.transmission.findMany({
+    const rows = await app.prisma.transmission.findMany({
       where: {
         recipientId: req.explorerId,
         circleId: null,
         senderId: { notIn: blockedIds },
+        ...(before ? { createdAt: { lt: new Date(before) } } : {}),
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: limit + 1,
       include: {
         sender: { select: { id: true, handle: true, rank: true, displayName: true } },
       },
     });
-    return reply.send(messages);
+    const hasMore = rows.length > limit;
+    const messages = rows.slice(0, limit);
+    return reply.send({ messages, hasMore, nextCursor: hasMore ? (messages[messages.length - 1]?.createdAt.toISOString() ?? null) : null });
   });
 
   // GET /api/transmissions/thread/:explorerId — bidirectional conversation

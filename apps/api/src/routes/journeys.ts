@@ -7,18 +7,23 @@ import { sendPushToExplorer } from '../services/push';
 import { pushStrings } from '../lib/pushStrings';
 
 export async function journeyRoutes(app: FastifyInstance) {
-  // GET /api/journeys/me — own journeys
+  // GET /api/journeys/me — own journeys (cursor pagination: ?after=<id>&limit=<n>)
   app.get('/api/journeys/me', { preHandler: [requireAuth] }, async (req, reply) => {
-    const journeys = await app.prisma.journey.findMany({
+    const { after, limit: limitStr } = req.query as { after?: string; limit?: string };
+    const limit = Math.min(parseInt(limitStr ?? '20', 10) || 20, 50);
+    const rows = await app.prisma.journey.findMany({
       where: { explorerId: req.explorerId },
       orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      ...(after ? { cursor: { id: after }, skip: 1 } : {}),
       select: {
         id: true, title: true, mood: true, soundtrack: true,
         isPrivate: true, createdAt: true, updatedAt: true,
-        // routeGeoJson excluded — only returned on single fetch
       },
     });
-    return reply.send(journeys);
+    const hasMore = rows.length > limit;
+    const journeys = rows.slice(0, limit);
+    return reply.send({ journeys, hasMore, nextCursor: hasMore ? (journeys[journeys.length - 1]?.id ?? null) : null });
   });
 
   // GET /api/journeys/:id

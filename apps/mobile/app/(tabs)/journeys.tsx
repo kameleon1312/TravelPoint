@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors, FontSize, Spacing } from '@travelpoint/theme';
@@ -10,12 +10,23 @@ import { pl } from '@/i18n/pl';
 
 export default function JourneysScreen() {
   const insets = useSafeAreaInsets();
-  const { data: journeys, isLoading, isError, refetch } = useMyJourneys();
+  const {
+    data,
+    isLoading,
+    isError,
+    isRefetching,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMyJourneys();
+
+  const journeys = data?.pages.flatMap((p) => p.journeys) ?? [];
 
   const fabBottom = insets.bottom + Spacing.lg;
 
-  const hasJourneys = !isLoading && !isError && (journeys?.length ?? 0) > 0;
-  const isEmpty     = !isLoading && !isError && (journeys?.length ?? 0) === 0;
+  const hasJourneys = !isLoading && !isError && journeys.length > 0;
+  const isEmpty     = !isLoading && !isError && journeys.length === 0;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -78,6 +89,20 @@ export default function JourneysScreen() {
           ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
           contentContainerStyle={[styles.list, { paddingBottom: fabBottom + Spacing.xl }]}
           showsVerticalScrollIndicator={false}
+          onEndReached={() => { if (hasNextPage && !isFetchingNextPage) void fetchNextPage(); }}
+          onEndReachedThreshold={0.3}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching && !isLoading}
+              onRefresh={() => void refetch()}
+              tintColor={Colors.aurora}
+            />
+          }
+          ListFooterComponent={
+            isFetchingNextPage
+              ? <ActivityIndicator color={Colors.aurora} style={{ paddingVertical: 16 }} />
+              : null
+          }
         />
       )}
 
