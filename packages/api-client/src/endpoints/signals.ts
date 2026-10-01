@@ -4,23 +4,27 @@ export interface Signal {
   id: string;
   type: string;
   payload: Record<string, unknown>;
-  readAt?: string | null;
+  seenAt?: string | null;
   createdAt: string;
+}
+
+export interface SignalsPage {
+  signals: Signal[];
+  nextCursor: string | null;
 }
 
 export function createSignalsEndpoints(client: ApiClient) {
   return {
-    list: (params?: { unreadOnly?: boolean; page?: number; limit?: number }) => {
+    // Cursor-based pagination. Pass `before` (ISO datetime) to page backwards.
+    list: (params?: { before?: string; limit?: number }) => {
       const q = new URLSearchParams();
-      if (params?.unreadOnly) q.set('unreadOnly', 'true');
-      if (params?.page) q.set('page', String(params.page));
-      if (params?.limit) q.set('limit', String(params.limit));
+      if (params?.before) q.set('before', params.before);
+      if (params?.limit)  q.set('limit', String(params.limit));
       const qs = q.toString();
-      return client.get<{ signals: Signal[]; total: number; unread: number }>(
-        `/api/signals${qs ? `?${qs}` : ''}`,
-      );
+      return client.get<SignalsPage>(`/api/signals${qs ? `?${qs}` : ''}`);
     },
-    markRead: (id: string) => client.patch<Signal>(`/api/signals/${id}/read`, {}),
-    markAllRead: () => client.post<void>('/api/signals/read-all', {}),
+
+    // Mark all unseen signals as seen (no individual-signal endpoint exists).
+    markSeen: () => client.patch<void>('/api/signals/seen', {}),
   };
 }

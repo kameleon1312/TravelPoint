@@ -78,4 +78,12 @@ export async function journalRoutes(app: FastifyInstance) {
     });
     return reply.send(post);
   });
+
+  app.delete('/api/admin/journal/posts/:slug', { preHandler: [requireModerator] }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const post = await app.prisma.journalPost.findUnique({ where: { slug }, select: { id: true } });
+    if (!post) return reply.status(404).send({ code: 'NOT_FOUND' });
+    await app.prisma.journalPost.delete({ where: { slug } });
+    return reply.status(204).send();
+  });
 }

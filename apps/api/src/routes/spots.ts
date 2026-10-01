@@ -16,6 +16,7 @@ import {
 import { pushSignal } from './signals';
 import { sendPushToExplorer } from '../services/push';
 import { pushStrings } from '../lib/pushStrings';
+import { presenceStore } from '../services/presenceStore';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
@@ -428,6 +429,36 @@ export async function spotsRoutes(app: FastifyInstance) {
       }
     })();
 
+    // Notify online explorers within 5 km who have locationConsent (presence-enabled)
+    void (async () => {
+      try {
+        if (presenceStore.size === 0) return;
+        const nearby = [...presenceStore.entries()].filter(
+          ([id, { lat, lng }]) =>
+            id !== req.explorerId &&
+            haversineKm(spot.lat, spot.lng, lat, lng) <= 5,
+        );
+        for (const [nearbyExplorerId] of nearby) {
+          void pushSignal(
+            app,
+            nearbyExplorerId,
+            'NEARBY_SPOT',
+            { spotId: spot.id, title: spot.title, category: spot.category },
+            `nearby-spot:${spot.id}:${nearbyExplorerId}`,
+          );
+          void sendPushToExplorer(
+            app.prisma,
+            nearbyExplorerId,
+            pushStrings.nearbySpot.title,
+            pushStrings.nearbySpot.body(spot.title),
+            { type: 'nearby_spot', id: spot.id },
+          );
+        }
+      } catch {
+        // Never block spot creation for notification errors
+      }
+    })();
+
     return reply.status(201).send({ ...spot, locked: false });
   });
 
@@ -438,6 +469,21 @@ export async function spotsRoutes(app: FastifyInstance) {
     if (!spot || spot.deletedAt) return reply.status(404).send({ code: 'NOT_FOUND' });
     if (!await requireExactSpotAccess(spot, req.explorerId)) {
       return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
+
+    // FREE tier: max 25 saved worlds
+    const explorer = await app.prisma.explorer.findUnique({
+      where: { id: req.explorerId },
+      select: { tier: true },
+    });
+    if (explorer?.tier === 'FREE') {
+      const saveCount = await app.prisma.spotSave.count({ where: { explorerId: req.explorerId } });
+      if (saveCount >= 25) {
+        return reply.status(403).send({
+          code: 'TIER_LIMIT',
+          message: 'FREE tier: max 25 saved worlds. Upgrade to save more.',
+        });
+      }
     }
 
     const existing = await app.prisma.spotSave.findUnique({

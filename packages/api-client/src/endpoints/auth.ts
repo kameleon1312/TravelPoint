@@ -1,30 +1,27 @@
 import type { ApiClient } from '../client';
 import type { Explorer } from '@travelpoint/types';
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  explorer: Explorer;
+export interface CompleteSignupResult {
+  id: string;
+  handle: string;
+  rank: string;
+  emailVerified: boolean;
+}
+
+export interface InviteResult {
+  code: string;
+  expiresAt: string | null;
 }
 
 export function createAuthEndpoints(client: ApiClient) {
   return {
-    register: (body: {
-      email: string;
-      handle: string;
-      password: string;
-      acceptTerms: true;
-      acceptPrivacy: true;
-      inviteCode?: string;
-    }) => client.post<{ message: string }>('/api/auth/join', body),
+    // Called once after Supabase signUp() to create the Explorer profile in our DB.
+    // Supabase JWT in Authorization header identifies the user.
+    completeSignup: (body: { handle: string; inviteCode?: string }) =>
+      client.post<CompleteSignupResult>('/api/auth/complete-signup', body),
 
-    login: (body: { email: string; password: string }) =>
-      client.post<AuthTokens>('/api/auth/login', body),
-
-    refresh: (body: { refreshToken: string }) =>
-      client.post<AuthTokens>('/api/auth/refresh', body),
-
-    logout: (body: { refreshToken: string }) =>
-      client.post<void>('/api/auth/logout', body),
+    // INSIDER+ rank required. Generates an invite code, optionally emails the recipient.
+    invite: (body: { recipientEmail?: string }) =>
+      client.post<InviteResult>('/api/auth/invite', body),
   };
 }

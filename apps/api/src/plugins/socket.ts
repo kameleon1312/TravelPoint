@@ -7,6 +7,7 @@ import { logger } from '../lib/logger';
 import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
 import { sendPushToMany } from '../services/push';
 import { hasCircleMembership } from '../services/circleAccess';
+import { presenceStore } from '../services/presenceStore';
 import { env } from '../config/env';
 import { getRedisPub, getRedisSub } from '../lib/redis';
 import {
@@ -105,6 +106,7 @@ export default fp(async (app: FastifyInstance) => {
       }
 
       await socket.join('presence');
+      presenceStore.set(explorerId, { lat: data.lat, lng: data.lng });
       const seed = generateSessionSeed();
       const fuzzed = fuzzCoordinates(data.lat, data.lng, 500, seed);
       const nearbySockets = await io.in('presence').fetchSockets();
@@ -146,6 +148,7 @@ export default fp(async (app: FastifyInstance) => {
 
     socket.on('presence:disable', () => {
       void socket.leave('presence');
+      presenceStore.delete(explorerId);
     });
 
     // ── Circle room management ─────────────────────────────────────────────────
@@ -203,6 +206,7 @@ export default fp(async (app: FastifyInstance) => {
     });
 
     socket.on('disconnect', () => {
+      presenceStore.delete(explorerId);
       logger.info({ explorerId }, 'Socket disconnected');
     });
   });
