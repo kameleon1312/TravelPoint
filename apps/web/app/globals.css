@@ -279,17 +279,4 @@
     border: 1px solid #253035;
   }
 
-  /* Mapbox GL JS — ensure canvas fills container */
-  .mapboxgl-canvas {
-    position: absolute !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-
-  .mapboxgl-map {
-    position: absolute !important;
-    inset: 0 !important;
-  }
 }

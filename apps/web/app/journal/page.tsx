@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { WorldNav } from '@/components/layout/WorldNav';
-import { JOURNAL_POSTS, RANK_COLORS } from '@/lib/journal';
+import { RANK_COLORS } from '@/lib/journal';
+import { fetchJournalPosts } from '@/lib/journalApi';
 
 export const metadata: Metadata = {
   title: 'Explorer Journal — Field Notes',
@@ -29,8 +30,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   CAMP:        'Bazy',
 };
 
-export default function JournalPage(): React.JSX.Element {
-  const posts = JOURNAL_POSTS;
+export default async function JournalPage(): Promise<React.JSX.Element> {
+  const posts = await fetchJournalPosts();
 
   return (
     <>

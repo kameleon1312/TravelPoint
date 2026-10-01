@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ViewportHeight } from '@/components/layout/ViewportHeight';
+import { CookieBanner } from '@/components/layout/CookieBanner';
 import { ConsoleFilter } from './ConsoleFilter';
 
 export const viewport: Viewport = {
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
         <ConsoleFilter />
         <ViewportHeight />
         {children}
+        <CookieBanner />
       </body>
     </html>
   );

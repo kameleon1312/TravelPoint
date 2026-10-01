@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { WorldNav } from '@/components/layout/WorldNav';
-import { getPost, JOURNAL_POSTS, RANK_COLORS } from '@/lib/journal';
+import { JOURNAL_POSTS, RANK_COLORS } from '@/lib/journal';
+import { fetchJournalPost } from '@/lib/journalApi';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -14,7 +15,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPost(slug);
+  const post = await fetchJournalPost(slug);
   if (!post) return { title: 'Post nie znaleziony' };
 
   return {
@@ -53,13 +54,13 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export default async function JournalPostPage({ params }: Props): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const post = getPost(slug);
+  const post = await fetchJournalPost(slug);
   if (!post) notFound();
 
-  const rankColor   = RANK_COLORS[post.author.rank];
+  const rankColor   = RANK_COLORS[post.author.rank] ?? RANK_COLORS['EXPLORER'];
   const accentColor = post.accentColor;
 
-  // Find prev/next posts
+  // Find prev/next — check static list for ordering; DB posts don't have neighbors yet
   const idx  = JOURNAL_POSTS.findIndex((p) => p.slug === slug);
   const prev = JOURNAL_POSTS[idx - 1] ?? null;
   const next = JOURNAL_POSTS[idx + 1] ?? null;
