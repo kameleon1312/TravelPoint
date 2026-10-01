@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
-  KeyboardAvoidingView, Platform, Pressable,
+  KeyboardAvoidingView, Platform,
   ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
