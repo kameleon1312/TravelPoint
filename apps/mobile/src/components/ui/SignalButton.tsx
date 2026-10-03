@@ -1,7 +1,7 @@
 import { Pressable, Text, ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors, Shadow, FontSize, FontWeight, BorderRadius } from '@travelpoint/theme';
+import { Colors, FontSize, FontWeight, BorderRadius } from '@travelpoint/theme';
 
 type Variant = 'signal' | 'aurora' | 'ember' | 'ghost';
 type Size = 'sm' | 'md' | 'lg';
@@ -24,7 +24,6 @@ interface VariantStyle {
   bg: string;
   border: string;
   color: string;
-  glow: (typeof Shadow)[keyof typeof Shadow];
 }
 
 const VARIANTS: Record<Variant, VariantStyle> = {
@@ -32,25 +31,21 @@ const VARIANTS: Record<Variant, VariantStyle> = {
     bg:     'rgba(92,184,140,0.13)',
     border: 'rgba(92,184,140,0.40)',
     color:  Colors.aurora,
-    glow:   Shadow.auroraGlow,
   },
   signal: {
     bg:     'rgba(30,154,176,0.13)',
     border: 'rgba(30,154,176,0.40)',
     color:  Colors.signalGlow,
-    glow:   Shadow.signalGlow,
   },
   ember: {
     bg:     'rgba(200,80,64,0.16)',
     border: 'rgba(200,80,64,0.50)',
     color:  '#FF8070',
-    glow:   Shadow.emberGlow,
   },
   ghost: {
     bg:     Colors.glass,
     border: Colors.glassBorder,
     color:  Colors.starlight,
-    glow:   Shadow.card,
   },
 };
 
@@ -73,7 +68,7 @@ export function SignalButton({
   haptic = 'light',
 }: SignalButtonProps) {
   const scale = useSharedValue(1);
-  const { bg, border, color, glow } = VARIANTS[variant];
+  const { bg, border, color } = VARIANTS[variant];
   const { height, fontSize, px } = SIZES[size];
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -99,7 +94,6 @@ export function SignalButton({
       style={[
         animatedStyle,
         fullWidth ? styles.fullWidth : styles.wrapper,
-        !disabled && !loading && glow,
         { opacity: disabled ? 0.45 : 1 },
       ]}
     >
