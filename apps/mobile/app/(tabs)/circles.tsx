@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, FlatList, Pressable,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -83,12 +84,17 @@ export default function CirclesScreen() {
                   onPress={() => router.push(`/circle/${item.slug ?? item.id}`)}
                   style={styles.card}
                 >
-                  <View style={[styles.cardBand, { backgroundColor: roleColor + '18' }]}>
+                  <LinearGradient
+                    colors={[Colors.void, roleColor + '55']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardBand}
+                  >
                     <Text style={[styles.cardBandInitial, { color: roleColor }]}>{initial}</Text>
                     <Text style={[styles.cardBandIcon, { color: roleColor + '80' }]}>
                       {ROLE_ICONS[item.role] ?? '◎'}
                     </Text>
-                  </View>
+                  </LinearGradient>
                   <View style={styles.cardBody}>
                     <View style={styles.cardTop}>
                       <View style={styles.cardInfo}>
@@ -185,16 +191,17 @@ const styles = StyleSheet.create({
   },
   emptyActions: { gap: Spacing.sm, alignItems: 'stretch', width: '100%', maxWidth: 280 },
 
-  list: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.sm },
+  list: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.sm, paddingBottom: 110 },
 
   card: {
     flexDirection: 'row',
     backgroundColor: Colors.graphite,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
+    minHeight: 88,
   },
   cardBand: {
-    width: 72,
+    width: 84,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,

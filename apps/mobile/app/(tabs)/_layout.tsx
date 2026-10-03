@@ -8,7 +8,6 @@ import Animated, {
   interpolate, interpolateColor,
 } from 'react-native-reanimated';
 import { Tabs } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -76,13 +75,11 @@ function TabItem({
     onPress();
   }
 
-  // Elastic pill — background and border animate with focus
+  // SCAPES-style: active = starlight pill, inactive = transparent
   const pillStyle = useAnimatedStyle(() => {
-    const bg     = interpolateColor(glow.value, [0, 1], ['rgba(92,184,140,0)', 'rgba(92,184,140,0.13)']);
-    const border = interpolateColor(glow.value, [0, 1], ['rgba(92,184,140,0)', 'rgba(92,184,140,0.42)']);
+    const bg = interpolateColor(glow.value, [0, 1], ['rgba(237,232,223,0)', 'rgba(237,232,223,1)']);
     return {
       backgroundColor: bg,
-      borderColor:     border,
       transform:       [{ scale: press.value }],
     };
   });
@@ -92,7 +89,8 @@ function TabItem({
   }));
 
   const labelStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(glow.value, [0, 1], [0.55, 1]),
+    opacity: glow.value,
+    maxHeight: interpolate(glow.value, [0, 1], [0, 14]),
   }));
 
   return (
@@ -103,16 +101,14 @@ function TabItem({
       accessibilityRole="tab"
     >
       <Animated.View style={[styles.pill, pillStyle]}>
-        {/* Icon with subtle lift on focus */}
         <Animated.View style={iconStyle}>
           <Ionicons
             name={focused ? cfg.icon : cfg.iconOff}
-            size={21}
-            color={focused ? Colors.aurora : Colors.star}
+            size={22}
+            color={focused ? Colors.abyss : Colors.starFaint}
           />
         </Animated.View>
 
-        {/* Label fades in fully when focused */}
         <Animated.Text
           style={[styles.tabLabel, focused && styles.tabLabelActive, labelStyle]}
           numberOfLines={1}
@@ -121,7 +117,6 @@ function TabItem({
         </Animated.Text>
       </Animated.View>
 
-      {/* Badge */}
       {badge && badge > 0 ? (
         <View style={[styles.badge, { backgroundColor: badgeColor ?? Colors.ember }]}>
           <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
@@ -138,53 +133,46 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
   const { count: circleUnread, reset: resetCircleUnread } = useCircleUnreadCount();
 
   return (
-    <View style={[styles.barOuter, { paddingBottom: insets.bottom }]}>
-      {/* Top glow line */}
-      <LinearGradient
-        colors={['transparent', Colors.aurora + '28', 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.topLine}
-        pointerEvents="none"
-      />
+    <View style={[styles.barOuter, { paddingBottom: insets.bottom + 10 }]}>
+      <View style={styles.barInner}>
+        <View style={styles.tabsRow}>
+          {state.routes.map((route: NavRoute, index: number) => {
+            const name    = route.name as TabName;
+            const focused = state.index === index;
 
-      <View style={styles.tabsRow}>
-        {state.routes.map((route: NavRoute, index: number) => {
-          const name    = route.name as TabName;
-          const focused = state.index === index;
+            const badge = name === 'identity'
+              ? unseenCount
+              : name === 'circles'
+                ? circleUnread
+                : 0;
 
-          const badge = name === 'identity'
-            ? unseenCount
-            : name === 'circles'
-              ? circleUnread
-              : 0;
+            const badgeColor = name === 'circles' ? Colors.violet : Colors.ember;
 
-          const badgeColor = name === 'circles' ? Colors.violet : Colors.ember;
-
-          return (
-            <TabItem
-              key={route.key}
-              name={name}
-              focused={focused}
-              badge={badge}
-              badgeColor={badgeColor}
-              onPress={() => {
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (!focused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-                if (name === 'circles') resetCircleUnread();
-              }}
-              onLongPress={() => {
-                navigation.emit({ type: 'tabLongPress', target: route.key });
-              }}
-            />
-          );
-        })}
+            return (
+              <TabItem
+                key={route.key}
+                name={name}
+                focused={focused}
+                badge={badge}
+                badgeColor={badgeColor}
+                onPress={() => {
+                  const event = navigation.emit({
+                    type: 'tabPress',
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
+                  if (!focused && !event.defaultPrevented) {
+                    navigation.navigate(route.name);
+                  }
+                  if (name === 'circles') resetCircleUnread();
+                }}
+                onLongPress={() => {
+                  navigation.emit({ type: 'tabLongPress', target: route.key });
+                }}
+              />
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -226,22 +214,25 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   // ── Bar container ────────────────────────────────────────────────────────────
   barOuter: {
-    backgroundColor: Colors.graphite,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.steel,
+    backgroundColor: Colors.void,
+    paddingHorizontal: 14,
+    paddingTop: 8,
   },
-  topLine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
+  barInner: {
+    backgroundColor: Colors.graphite,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(237,232,223,0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
   },
   tabsRow: {
     flexDirection: 'row',
-    height: 60,
+    height: 64,
     alignItems: 'center',
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: 6,
   },
 
   // ── Tab item ─────────────────────────────────────────────────────────────────
@@ -249,32 +240,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 60,
+    height: 64,
   },
 
-  // Elastic pill — auto-sizes to content, bg+border animated via useAnimatedStyle
+  // SCAPES-style pill: active = starlight/cream opaque, inactive = transparent
   pill: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
-    minWidth: 48,
+    gap: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    minWidth: 44,
+    overflow: 'hidden',
   },
 
   // ── Labels ───────────────────────────────────────────────────────────────────
   tabLabel: {
-    fontFamily: 'GeneralSans-Medium',
-    fontSize: 10,
-    color: Colors.star,
-    letterSpacing: 0.15,
+    fontFamily: 'GeneralSans-Semibold',
+    fontSize: 9,
+    color: Colors.starFaint,
+    letterSpacing: 0.2,
+    overflow: 'hidden',
   },
   tabLabelActive: {
-    color: Colors.aurora,
+    color: Colors.abyss,
     fontFamily: 'GeneralSans-Semibold',
-    letterSpacing: 0.1,
   },
 
   // ── Badge ────────────────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors, FontSize, Spacing } from '@travelpoint/theme';
@@ -87,10 +88,15 @@ export default function JourneysScreen() {
             const initial = item.title[0]?.toUpperCase() ?? '◎';
             return (
               <Pressable onPress={() => router.push(`/journey/${item.id}`)} style={styles.card}>
-                <View style={[styles.cardVisual, { backgroundColor: accentColor + '18' }]}>
+                <LinearGradient
+                  colors={[Colors.void, accentColor + '50']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.cardVisual}
+                >
                   <Text style={[styles.cardInitial, { color: accentColor }]}>{initial}</Text>
                   <View style={[styles.cardAccentDot, { backgroundColor: accentColor }]} />
-                </View>
+                </LinearGradient>
                 <View style={styles.cardBody}>
                   <View style={styles.cardTop}>
                     <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
@@ -154,15 +160,16 @@ const styles = StyleSheet.create({
   emptyIcon:  { fontSize: 48, color: Colors.starGhost },
   emptyTitle: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, textAlign: 'center' },
   emptySub:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, textAlign: 'center', lineHeight: 22 },
-  list: { paddingHorizontal: H_PAD, paddingTop: Spacing.sm },
+  list: { paddingHorizontal: H_PAD, paddingTop: Spacing.sm, paddingBottom: 110 },
   card: {
     flexDirection: 'row',
     backgroundColor: Colors.graphite,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
+    minHeight: 88,
   },
   cardVisual: {
-    width: CARD_VIS_H,
+    width: 88,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',

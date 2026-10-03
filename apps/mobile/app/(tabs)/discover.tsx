@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, ScrollView, RefreshControl,
   Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
@@ -59,7 +60,7 @@ const H_PAD    = 16;
 const CARD_GAP = 10;
 const SCREEN_W = Dimensions.get('window').width;
 const CARD_W   = Math.floor((SCREEN_W - H_PAD * 2 - CARD_GAP) / 2);
-const CARD_VIS = Math.round(CARD_W * 0.82);
+const CARD_VIS = Math.round(CARD_W * 1.15);
 
 // ── Category chip ─────────────────────────────────────────────────────────────
 
@@ -127,14 +128,25 @@ function SpotCard({ spot }: { spot: SpotForViewer }) {
   const catStyle    = CATEGORY_STYLE[category as Category];
   const catColor    = catStyle?.color ?? Colors.signal;
 
+  const coordText = `${Math.abs(spot.lat).toFixed(3)}° ${spot.lat >= 0 ? 'N' : 'S'}`;
+
   return (
     <Pressable style={styles.spotCard} onPress={() => router.push(`/spot/${spot.id}`)}>
-      {/* Visual header */}
-      <View style={[styles.spotCardVisual, { backgroundColor: catColor + '1A' }]}>
+      <LinearGradient
+        colors={[Colors.void, catColor + '55']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.spotCardVisual}
+      >
+        <Text style={[styles.spotCardCoord, { color: catColor + '70' }]}>{coordText}</Text>
         <Text style={styles.spotCardEmoji}>{catStyle?.emoji ?? '◈'}</Text>
         <Animated.View style={[styles.spotCardDot, { backgroundColor: accentColor }, dotStyle]} />
-      </View>
-      {/* Body */}
+        {isLocked && (
+          <View style={styles.spotCardLockBadge}>
+            <Text style={styles.spotCardLockText}>◑</Text>
+          </View>
+        )}
+      </LinearGradient>
       <View style={styles.spotCardBody}>
         <Text style={[styles.spotCardCat, { color: catColor }]} numberOfLines={1}>
           {CATEGORY_PL[category] ?? category}
@@ -447,9 +459,9 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontFamily: 'ClashDisplay-Bold',
-    fontSize: FontSize.h2,
+    fontSize: FontSize.h1,
     color: Colors.starlight,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   forumBtn: {
     flexDirection: 'row',
@@ -540,7 +552,7 @@ const styles = StyleSheet.create({
   spotGridList: {
     paddingHorizontal: H_PAD,
     paddingTop: Spacing.xs,
-    paddingBottom: Spacing.xl,
+    paddingBottom: 110,
   },
   spotGridRow: {
     gap: CARD_GAP,
@@ -549,9 +561,7 @@ const styles = StyleSheet.create({
   spotCard: {
     width: CARD_W,
     backgroundColor: Colors.graphite,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.steel,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   spotCardVisual: {
@@ -560,8 +570,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
+  spotCardCoord: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: 8,
+    letterSpacing: 0.5,
+  },
   spotCardEmoji: {
-    fontSize: 38,
+    fontSize: 42,
   },
   spotCardDot: {
     position: 'absolute',
@@ -571,29 +589,41 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
+  spotCardLockBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 99,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  spotCardLockText: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: 10,
+    color: Colors.starGhost,
+  },
   spotCardBody: {
-    padding: 10,
+    padding: 12,
     gap: 3,
   },
   spotCardCat: {
     fontFamily: 'SpaceMono-Regular',
-    fontSize: 9,
+    fontSize: 8,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   spotCardTitle: {
     fontFamily: 'ClashDisplay-Bold',
-    fontSize: FontSize.h4,
+    fontSize: FontSize.body,
     color: Colors.starlight,
-    lineHeight: 19,
+    lineHeight: 20,
   },
 
   // ── Feed card ─────────────────────────────────────────────────────────────────
   feedCard: {
     backgroundColor: Colors.graphite,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.steel,
+    borderRadius: 20,
     padding: Spacing.lg,
     gap: Spacing.md,
     marginHorizontal: H_PAD,
@@ -679,5 +709,5 @@ const styles = StyleSheet.create({
   },
 
   // ── List ──────────────────────────────────────────────────────────────────────
-  feedList: { paddingTop: Spacing.xs, paddingBottom: Spacing.xl },
+  feedList: { paddingTop: Spacing.xs, paddingBottom: 110 },
 });

@@ -1152,7 +1152,7 @@ export default function IdentityScreen() {
 const styles = StyleSheet.create({
   root:        { flex: 1, backgroundColor: Colors.abyss },
   loadingRoot: { flex: 1, backgroundColor: Colors.abyss, alignItems: 'center', justifyContent: 'center' },
-  scroll: { paddingTop: Spacing.md, paddingBottom: Spacing.xl, gap: Spacing.md },
+  scroll: { paddingTop: Spacing.md, paddingBottom: 110, gap: Spacing.md },
   header: { alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.sm },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
