@@ -339,8 +339,13 @@ export default function DiscoverScreen() {
             />
           )}
           {!feedLoading && feedItems.length > 0 && (
-            <FlatList
-              data={feedItems}
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionEyebrow}>Sieć</Text>
+                <Text style={styles.sectionTitle}>Dla ciebie</Text>
+              </View>
+              <FlatList
+                data={feedItems}
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => <FeedCard item={item} />}
               contentContainerStyle={styles.feedList}
@@ -361,6 +366,7 @@ export default function DiscoverScreen() {
                   : null
               }
             />
+            </>
           )}
         </>
       )}
@@ -419,15 +425,21 @@ export default function DiscoverScreen() {
             />
           )}
           {!spotsLoading && !spotsError && (filteredSpots?.length ?? 0) > 0 && (
-            <FlatList
-              data={filteredSpots}
-              keyExtractor={(s) => s.id}
-              renderItem={({ item }) => <SpotCard spot={item} />}
-              numColumns={2}
-              columnWrapperStyle={styles.spotGridRow}
-              contentContainerStyle={styles.spotGridList}
-              showsVerticalScrollIndicator={false}
-            />
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionEyebrow}>Ukryta warstwa</Text>
+                <Text style={styles.sectionTitle}>W pobliżu</Text>
+              </View>
+              <FlatList
+                data={filteredSpots}
+                keyExtractor={(s) => s.id}
+                renderItem={({ item }) => <SpotCard spot={item} />}
+                numColumns={2}
+                columnWrapperStyle={styles.spotGridRow}
+                contentContainerStyle={styles.spotGridList}
+                showsVerticalScrollIndicator={false}
+              />
+            </>
           )}
         </>
       )}
@@ -710,4 +722,24 @@ const styles = StyleSheet.create({
 
   // ── List ──────────────────────────────────────────────────────────────────────
   feedList: { paddingTop: Spacing.xs, paddingBottom: 110 },
+
+  // ── Section header ────────────────────────────────────────────────────────────
+  sectionHeader: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.md,
+    gap: 2,
+  },
+  sectionEyebrow: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: FontSize.micro,
+    color: Colors.aurora,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+  sectionTitle: {
+    fontFamily: 'ClashDisplay-Bold',
+    fontSize: FontSize.h2,
+    color: Colors.starlight,
+    letterSpacing: -0.5,
+  },
 });

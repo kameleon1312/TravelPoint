@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming, withRepeat, withSequence,
@@ -802,71 +803,85 @@ export default function IdentityScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>Twoja tożsamość</Text>
-
-          <View style={styles.avatarWrapper}>
-            <Pressable
-              onPress={() => void handleAvatarPick()}
-              style={[styles.avatarRing, { borderColor: rankColor, shadowColor: rankColor }]}
-              disabled={avatarUpload.isPending}
-            >
-              {explorer.avatarUrl ? (
-                <Image source={{ uri: explorer.avatarUrl }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarLetter}>
-                    {explorer.handle[0]?.toUpperCase() ?? '?'}
+        {/* ── Cover hero ── */}
+        <LinearGradient
+          colors={[Colors.deepBlue, Colors.graphite]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.cover}
+        >
+          <View style={styles.coverTop}>
+            <Text style={styles.eyebrow}>Explorer Identity</Text>
+            <Pressable onPress={() => setEditVisible(true)} style={styles.coverEditBtn}>
+              <Text style={styles.coverEditBtnText}>Edytuj ›</Text>
+            </Pressable>
+          </View>
+          <View style={styles.coverBottom}>
+            <View style={styles.avatarWrapper}>
+              <Pressable
+                onPress={() => void handleAvatarPick()}
+                style={[styles.avatarRing, { borderColor: rankColor, shadowColor: rankColor }]}
+                disabled={avatarUpload.isPending}
+              >
+                {explorer.avatarUrl ? (
+                  <Image source={{ uri: explorer.avatarUrl }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarLetter}>
+                      {explorer.handle[0]?.toUpperCase() ?? '?'}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => void handleAvatarPick()}
+                disabled={avatarUpload.isPending}
+                style={styles.avatarEditBadge}
+                hitSlop={6}
+              >
+                <Text style={styles.avatarEditIcon}>{avatarUpload.isPending ? '…' : '+'}</Text>
+              </Pressable>
+            </View>
+            <View style={styles.identityInfo}>
+              <Text style={styles.handle}>@{explorer.handle}</Text>
+              {explorer.displayName && (
+                <Text style={styles.displayName}>{explorer.displayName}</Text>
+              )}
+              <View style={styles.badgeRow}>
+                <View style={[styles.rankBadge, { borderColor: rankColor }]}>
+                  <Text style={[styles.rankText, { color: rankColor }]}>{RANK_LABELS[explorer.rank] ?? explorer.rank}</Text>
+                </View>
+                <View style={[styles.tierBadge, {
+                  borderColor: TIER_BADGE_COLORS[explorer.tier]?.border ?? Colors.steel,
+                  backgroundColor: TIER_BADGE_COLORS[explorer.tier]?.bg ?? 'transparent',
+                }]}>
+                  <Text style={[styles.tierBadgeText, { color: TIER_BADGE_COLORS[explorer.tier]?.text ?? Colors.starFaint }]}>
+                    {TIER_BADGE_COLORS[explorer.tier]?.label ?? explorer.tier}
                   </Text>
                 </View>
-              )}
-            </Pressable>
-            <Pressable
-              onPress={() => void handleAvatarPick()}
-              disabled={avatarUpload.isPending}
-              style={styles.avatarEditBadge}
-              hitSlop={6}
-            >
-              <Text style={styles.avatarEditIcon}>{avatarUpload.isPending ? '…' : '+'}</Text>
-            </Pressable>
-          </View>
-
-          <Text style={styles.handle}>@{explorer.handle}</Text>
-          {explorer.displayName && (
-            <Text style={styles.displayName}>{explorer.displayName}</Text>
-          )}
-
-          <View style={[styles.rankBadge, { borderColor: rankColor }]}>
-            <Text style={[styles.rankText, { color: rankColor }]}>{RANK_LABELS[explorer.rank] ?? explorer.rank}</Text>
-          </View>
-
-          {/* Rank progress bar */}
-          {RANK_THRESHOLDS[explorer.rank]?.next && (() => {
-            const threshold = RANK_THRESHOLDS[explorer.rank]!;
-            const start   = RANK_START[explorer.rank] ?? 0;
-            const end     = threshold.required;
-            const progress = Math.min(1, Math.max(0, (explorer.trustScore - start) / (end - start)));
-            const remaining = Math.max(0, end - explorer.trustScore);
-            return (
-              <View style={styles.rankProgress}>
-                <View style={styles.rankProgressBar}>
-                  <View style={[styles.rankProgressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: rankColor }]} />
-                </View>
-                <Text style={styles.rankProgressLabel}>
-                  {remaining} pkt do {threshold.next}
-                </Text>
               </View>
-            );
-          })()}
+            </View>
+          </View>
+        </LinearGradient>
 
-          <SignalButton
-            label="Edytuj tożsamość"
-            onPress={() => setEditVisible(true)}
-            variant="ghost"
-            size="sm"
-            haptic="light"
-          />
-        </View>
+        {/* Rank progress bar */}
+        {RANK_THRESHOLDS[explorer.rank]?.next && (() => {
+          const threshold = RANK_THRESHOLDS[explorer.rank]!;
+          const start   = RANK_START[explorer.rank] ?? 0;
+          const end     = threshold.required;
+          const progress = Math.min(1, Math.max(0, (explorer.trustScore - start) / (end - start)));
+          const remaining = Math.max(0, end - explorer.trustScore);
+          return (
+            <View style={styles.rankProgressWrap}>
+              <View style={styles.rankProgressBar}>
+                <View style={[styles.rankProgressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: rankColor }]} />
+              </View>
+              <Text style={styles.rankProgressLabel}>
+                {remaining} pkt do {threshold.next}
+              </Text>
+            </View>
+          );
+        })()}
 
         <View style={styles.statsGrid}>
           <View style={styles.statCell}>
@@ -1152,8 +1167,63 @@ export default function IdentityScreen() {
 const styles = StyleSheet.create({
   root:        { flex: 1, backgroundColor: Colors.abyss },
   loadingRoot: { flex: 1, backgroundColor: Colors.abyss, alignItems: 'center', justifyContent: 'center' },
-  scroll: { paddingTop: Spacing.md, paddingBottom: 110, gap: Spacing.md },
-  header: { alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.sm },
+  scroll: { paddingBottom: 110, gap: Spacing.lg },
+  cover: {
+    paddingTop: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.lg,
+  },
+  coverTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  coverBottom: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.lg,
+  },
+  coverEditBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(237,232,223,0.12)',
+    backgroundColor: 'rgba(237,232,223,0.06)',
+  },
+  coverEditBtnText: {
+    fontFamily: 'GeneralSans-Semibold',
+    fontSize: FontSize.caption,
+    color: Colors.star,
+  },
+  identityInfo: {
+    flex: 1,
+    gap: 4,
+    paddingBottom: 4,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  tierBadge: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.pill,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 3,
+  },
+  tierBadgeText: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: FontSize.micro,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  rankProgressWrap: {
+    paddingHorizontal: Spacing.xl,
+    gap: 4,
+  },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
     fontSize: FontSize.micro,
@@ -1184,7 +1254,6 @@ const styles = StyleSheet.create({
     zIndex: 100, elevation: 10,
   },
   avatarEditIcon: { fontFamily: 'GeneralSans-Bold', fontSize: 16, color: Colors.abyss, lineHeight: 18 },
-  rankProgress: { width: '80%', gap: 4, alignItems: 'center' },
   rankProgressBar: {
     width: '100%', height: 3, borderRadius: 2,
     backgroundColor: Colors.steel, overflow: 'hidden',

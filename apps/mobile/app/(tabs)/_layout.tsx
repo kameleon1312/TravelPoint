@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withSequence,
-  interpolate, interpolateColor,
+  interpolateColor,
 } from 'react-native-reanimated';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,41 +57,27 @@ function TabItem({
   const cfg   = TAB_CONFIG[name];
   const press = useSharedValue(1);
   const glow  = useSharedValue(focused ? 1 : 0);
-  const iconY = useSharedValue(focused ? -1 : 0);
 
   useEffect(() => {
-    glow.value  = withTiming(focused ? 1 : 0, { duration: 210 });
-    iconY.value = withSpring(focused ? -1.5 : 0, { damping: 16, stiffness: 400 });
+    glow.value = withTiming(focused ? 1 : 0, { duration: 200 });
     if (!focused) press.value = withTiming(1, { duration: 150 });
   }, [focused]);
 
   function handlePress() {
     press.value = withSequence(
-      withSpring(0.88, { damping: 6, stiffness: 700 }),
-      withSpring(1.06, { damping: 10, stiffness: 400 }),
-      withSpring(1,    { damping: 14, stiffness: 280 }),
+      withSpring(0.84, { damping: 8, stiffness: 700 }),
+      withSpring(1,    { damping: 12, stiffness: 300 }),
     );
     void Haptics.selectionAsync();
     onPress();
   }
 
-  // SCAPES-style: active = starlight pill, inactive = transparent
+  // Pure SCAPES: opaque starlight pill on active, transparent on inactive.
+  // No layout-changing animations — fixes the icon-size-on-mount bug.
   const pillStyle = useAnimatedStyle(() => {
     const bg = interpolateColor(glow.value, [0, 1], ['rgba(237,232,223,0)', 'rgba(237,232,223,1)']);
-    return {
-      backgroundColor: bg,
-      transform:       [{ scale: press.value }],
-    };
+    return { backgroundColor: bg, transform: [{ scale: press.value }] };
   });
-
-  const iconStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: iconY.value }],
-  }));
-
-  const labelStyle = useAnimatedStyle(() => ({
-    opacity: glow.value,
-    maxHeight: interpolate(glow.value, [0, 1], [0, 14]),
-  }));
 
   return (
     <Pressable
@@ -101,20 +87,11 @@ function TabItem({
       accessibilityRole="tab"
     >
       <Animated.View style={[styles.pill, pillStyle]}>
-        <Animated.View style={iconStyle}>
-          <Ionicons
-            name={focused ? cfg.icon : cfg.iconOff}
-            size={22}
-            color={focused ? Colors.abyss : Colors.starFaint}
-          />
-        </Animated.View>
-
-        <Animated.Text
-          style={[styles.tabLabel, focused && styles.tabLabelActive, labelStyle]}
-          numberOfLines={1}
-        >
-          {cfg.label}
-        </Animated.Text>
+        <Ionicons
+          name={focused ? cfg.icon : cfg.iconOff}
+          size={22}
+          color={focused ? Colors.abyss : Colors.starFaint}
+        />
       </Animated.View>
 
       {badge && badge > 0 ? (
@@ -213,24 +190,25 @@ export default function TabsLayout() {
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   // ── Bar container ────────────────────────────────────────────────────────────
+  // Outer is transparent → screen background bleeds through (true floating feel)
   barOuter: {
-    backgroundColor: Colors.void,
+    backgroundColor: 'transparent',
     paddingHorizontal: 14,
     paddingTop: 8,
   },
   barInner: {
-    backgroundColor: Colors.graphite,
-    borderRadius: 28,
+    backgroundColor: 'rgba(15,20,24,0.92)',
+    borderRadius: 32,
     borderWidth: 1,
-    borderColor: 'rgba(237,232,223,0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
+    borderColor: 'rgba(237,232,223,0.09)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.55,
+    shadowRadius: 20,
   },
   tabsRow: {
     flexDirection: 'row',
-    height: 64,
+    height: 62,
     alignItems: 'center',
     paddingHorizontal: 6,
   },
@@ -240,32 +218,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 64,
+    height: 62,
   },
 
-  // SCAPES-style pill: active = starlight/cream opaque, inactive = transparent
+  // SCAPES pill: active = starlight, inactive = transparent. Fixed size — no layout animation.
   pill: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    width: 48,
+    height: 40,
     borderRadius: 20,
-    minWidth: 44,
-    overflow: 'hidden',
-  },
-
-  // ── Labels ───────────────────────────────────────────────────────────────────
-  tabLabel: {
-    fontFamily: 'GeneralSans-Semibold',
-    fontSize: 9,
-    color: Colors.starFaint,
-    letterSpacing: 0.2,
-    overflow: 'hidden',
-  },
-  tabLabelActive: {
-    color: Colors.abyss,
-    fontFamily: 'GeneralSans-Semibold',
   },
 
   // ── Badge ────────────────────────────────────────────────────────────────────

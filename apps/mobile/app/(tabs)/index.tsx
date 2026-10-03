@@ -824,21 +824,18 @@ export default function AtlasScreen() {
         </View>
       )}
 
-      {/* Bottom action bar */}
-      <View style={[styles.bottomBar, { bottom: insets.bottom + Spacing.md }]}>
+      {/* Bottom action bar — sits above floating tab bar */}
+      <View style={[styles.bottomBar, { bottom: insets.bottom + 100 }]}>
         {!isRecording ? (
           <View style={styles.bottomActions}>
-            <View style={{ flex: 1 }}>
-              <SignalButton
-                label={pl.spots.dropSpot}
-                onPress={() => router.push('/modals/new-spot')}
-                variant="aurora"
-                size="md"
-                haptic="medium"
-                fullWidth
-                leftIcon={<Ionicons name="flag" size={16} color={Colors.aurora} />}
-              />
-            </View>
+            <Pressable
+              style={styles.dropBtn}
+              onPress={() => router.push('/modals/new-spot')}
+              accessibilityRole="button"
+            >
+              <Ionicons name="add-circle" size={20} color={Colors.void} />
+              <Text style={styles.dropBtnText}>{pl.spots.dropSpot}</Text>
+            </Pressable>
             <Pressable
               style={styles.recordBtn}
               onPress={() => setShowStartModal(true)}
@@ -850,7 +847,6 @@ export default function AtlasScreen() {
             </Pressable>
           </View>
         ) : (
-          // When recording — redundant stop button at bottom for thumb reach.
           <SignalButton
             label={pl.recording.stopRecording}
             onPress={handleStopRecording}
@@ -1010,12 +1006,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   bottomActions: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'stretch' },
+  // Drop spot — prominent aurora pill, glowing shadow
+  dropBtn: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: Colors.aurora,
+    borderRadius: 20,
+    paddingVertical: 15,
+    shadowColor: Colors.aurora,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+  },
+  dropBtnText: {
+    fontFamily: 'GeneralSans-Semibold',
+    fontSize: 15,
+    color: Colors.void,
+    letterSpacing: 0.2,
+  },
   recordBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.graphite + 'E8',
-    borderRadius: 14, borderWidth: 1, borderColor: Colors.ember + '60',
+    backgroundColor: 'rgba(13,16,19,0.88)',
+    borderRadius: 20, borderWidth: 1, borderColor: Colors.ember + '70',
     paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
-    minWidth: 88, justifyContent: 'center',
+    minWidth: 80, justifyContent: 'center',
   },
   recordBtnDot: {
     width: 8, height: 8, borderRadius: 4,
