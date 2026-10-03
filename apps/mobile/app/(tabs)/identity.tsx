@@ -1227,7 +1227,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
     fontSize: FontSize.micro,
-    color: Colors.starFaint,
+    color: Colors.aurora,
     letterSpacing: 3,
     textTransform: 'uppercase',
   },

@@ -468,6 +468,7 @@ const styles = StyleSheet.create({
     color: Colors.aurora,
     letterSpacing: 3,
     textTransform: 'uppercase',
+    marginBottom: 2,
   },
   heading: {
     fontFamily: 'ClashDisplay-Bold',

@@ -1,16 +1,21 @@
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import {
+  View, Text, StyleSheet, FlatList, Pressable,
+  ActivityIndicator, RefreshControl, Dimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, FontSize, Spacing } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { useMyJourneys } from '@/hooks/useJourneys';
 import { formatRelative } from '@travelpoint/utils';
 import { pl } from '@/i18n/pl';
 
-const SCREEN_W  = Dimensions.get('window').width;
-const H_PAD     = 20;
-const CARD_VIS_H = 72;
+const SCREEN_W = Dimensions.get('window').width;
+const H_PAD    = 16;
+const CARD_GAP = 10;
+const CARD_W   = Math.floor((SCREEN_W - H_PAD * 2 - CARD_GAP) / 2);
+const CARD_H   = Math.round(CARD_W * 1.3);
 
 const MOOD_COLORS: Record<string, string> = {
   adventure: Colors.aurora,
@@ -18,6 +23,14 @@ const MOOD_COLORS: Record<string, string> = {
   nature:    Colors.moss,
   mystery:   Colors.violet,
   default:   Colors.ember,
+};
+
+const MOOD_EMOJIS: Record<string, string> = {
+  adventure: '⛰',
+  urban:     '🏙',
+  nature:    '🌿',
+  mystery:   '◈',
+  default:   '◎',
 };
 
 export default function JourneysScreen() {
@@ -33,10 +46,8 @@ export default function JourneysScreen() {
     isFetchingNextPage,
   } = useMyJourneys();
 
-  const journeys = data?.pages.flatMap((p) => p.journeys) ?? [];
-
-  const fabBottom = insets.bottom + Spacing.lg;
-
+  const journeys    = data?.pages.flatMap((p) => p.journeys) ?? [];
+  const fabBottom   = insets.bottom + Spacing.lg;
   const hasJourneys = !isLoading && !isError && journeys.length > 0;
   const isEmpty     = !isLoading && !isError && journeys.length === 0;
 
@@ -44,7 +55,7 @@ export default function JourneysScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Twoje wyprawy</Text>
-        <Text style={styles.heading}>Trasy</Text>
+        <Text style={styles.heading}>Journeys</Text>
       </View>
 
       {isLoading && (
@@ -71,9 +82,9 @@ export default function JourneysScreen() {
       {isEmpty && (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>◎</Text>
-          <Text style={styles.emptyTitle}>Jeszcze bez tras</Text>
+          <Text style={styles.emptyTitle}>Jeszcze bez wypraw</Text>
           <Text style={styles.emptySub}>
-            Twoje wyprawy pojawią się tutaj. Zacznij nowe Journey z mapy.
+            Twoje journeys pojawią się tutaj. Zacznij nową wyprawę z mapy.
           </Text>
         </View>
       )}
@@ -82,40 +93,49 @@ export default function JourneysScreen() {
         <FlatList
           data={journeys}
           keyExtractor={(j) => j.id}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
           renderItem={({ item }) => {
-            const moodKey = item.mood?.toLowerCase().split(' ')[0] ?? 'default';
+            const moodKey     = item.mood?.toLowerCase().split(' ')[0] ?? 'default';
             const accentColor = MOOD_COLORS[moodKey] ?? MOOD_COLORS['default']!;
-            const initial = item.title[0]?.toUpperCase() ?? '◎';
+            const emoji       = MOOD_EMOJIS[moodKey] ?? MOOD_EMOJIS['default']!;
+            const initial     = item.title[0]?.toUpperCase() ?? '◎';
             return (
-              <Pressable onPress={() => router.push(`/journey/${item.id}`)} style={styles.card}>
+              <Pressable onPress={() => router.push(`/journey/${item.id}`)} style={{ width: CARD_W }}>
                 <LinearGradient
-                  colors={[Colors.void, accentColor + '50']}
+                  colors={[Colors.graphite, Colors.void, accentColor + '33']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.cardVisual}
+                  style={styles.card}
                 >
-                  <Text style={[styles.cardInitial, { color: accentColor }]}>{initial}</Text>
-                  <View style={[styles.cardAccentDot, { backgroundColor: accentColor }]} />
-                </LinearGradient>
-                <View style={styles.cardBody}>
+                  {/* Top: privacy + date */}
                   <View style={styles.cardTop}>
-                    <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-                    {item.isPrivate && (
-                      <View style={styles.privateBadge}>
-                        <Text style={styles.privateBadgeText}>◑ Prywatna</Text>
+                    {item.isPrivate ? (
+                      <View style={styles.privatePill}>
+                        <Text style={styles.privatePillText}>◑ Prywatna</Text>
+                      </View>
+                    ) : (
+                      <View style={[styles.moodPill, { borderColor: accentColor + '50', backgroundColor: accentColor + '14' }]}>
+                        <Text style={[styles.moodPillText, { color: accentColor }]}>
+                          {emoji} {moodKey !== 'default' ? moodKey : 'journey'}
+                        </Text>
                       </View>
                     )}
                   </View>
-                  {item.mood && (
-                    <Text style={[styles.mood, { color: accentColor + 'CC' }]}>"{item.mood}"</Text>
-                  )}
-                  <Text style={styles.date}>{formatRelative(item.createdAt)}</Text>
-                </View>
+
+                  {/* Center: large initial */}
+                  <Text style={[styles.cardInitial, { color: accentColor + '35' }]}>{initial}</Text>
+
+                  {/* Bottom: title + date */}
+                  <View style={styles.cardBottom}>
+                    <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+                    <Text style={styles.date}>{formatRelative(item.createdAt)}</Text>
+                  </View>
+                </LinearGradient>
               </Pressable>
             );
           }}
-          ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
-          contentContainerStyle={[styles.list, { paddingBottom: fabBottom + Spacing.xl }]}
+          contentContainerStyle={[styles.list, { paddingBottom: fabBottom + 72 }]}
           showsVerticalScrollIndicator={false}
           onEndReached={() => { if (hasNextPage && !isFetchingNextPage) void fetchNextPage(); }}
           onEndReachedThreshold={0.3}
@@ -149,9 +169,13 @@ export default function JourneysScreen() {
 
 const styles = StyleSheet.create({
   root:    { flex: 1, backgroundColor: Colors.abyss },
-  header:  { paddingHorizontal: H_PAD, paddingTop: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.xs },
-  eyebrow: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starFaint, letterSpacing: 3, textTransform: 'uppercase' },
+  header:  { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.lg, gap: 2 },
+  eyebrow: {
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
+    color: Colors.aurora, letterSpacing: 3, textTransform: 'uppercase',
+  },
   heading: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h1, color: Colors.starlight },
+
   center:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
@@ -160,49 +184,49 @@ const styles = StyleSheet.create({
   emptyIcon:  { fontSize: 48, color: Colors.starGhost },
   emptyTitle: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, textAlign: 'center' },
   emptySub:   { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, textAlign: 'center', lineHeight: 22 },
-  list: { paddingHorizontal: H_PAD, paddingTop: Spacing.sm, paddingBottom: 110 },
+
+  list: { paddingHorizontal: H_PAD, paddingTop: Spacing.xs },
+  row:  { gap: CARD_GAP, marginBottom: CARD_GAP },
+
   card: {
-    flexDirection: 'row',
-    backgroundColor: Colors.graphite,
+    width: CARD_W,
+    height: CARD_H,
     borderRadius: 20,
     overflow: 'hidden',
-    minHeight: 88,
+    padding: Spacing.md,
+    justifyContent: 'space-between',
   },
-  cardVisual: {
-    width: 88,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+
+  cardTop: { flexDirection: 'row', gap: Spacing.xs },
+
+  privatePill: {
+    borderWidth: 1,
+    borderColor: Colors.starGhost + '40',
+    borderRadius: BorderRadius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
+  privatePillText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost },
+
+  moodPill: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  moodPillText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, textTransform: 'capitalize' },
+
   cardInitial: {
     fontFamily: 'ClashDisplay-Bold',
-    fontSize: 28,
+    fontSize: 72,
+    textAlign: 'center',
+    lineHeight: 80,
+    marginVertical: 'auto',
   },
-  cardAccentDot: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  cardBody: {
-    flex: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    gap: 4,
-  },
-  cardTop:    { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  title:      { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.body, color: Colors.starlight, flex: 1 },
-  privateBadge: {
-    borderWidth: 1,
-    borderColor: Colors.starGhost + '60',
-    borderRadius: 99,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  privateBadgeText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost },
-  mood:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, fontStyle: 'italic', lineHeight: 18 },
-  date:  { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost, marginTop: 2 },
-  fab:   { position: 'absolute', right: Spacing.xl },
+
+  cardBottom: { gap: 3 },
+  title: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.body, color: Colors.starlight, lineHeight: 20 },
+  date:  { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost },
+
+  fab: { position: 'absolute', right: Spacing.xl },
 });

@@ -192,6 +192,10 @@ const styles = StyleSheet.create({
   // ── Bar container ────────────────────────────────────────────────────────────
   // Outer is transparent → screen background bleeds through (true floating feel)
   barOuter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: 'transparent',
     paddingHorizontal: 14,
     paddingTop: 8,
