@@ -1,5 +1,6 @@
 import {
   View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, ScrollView, RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -53,6 +54,12 @@ const CATEGORY_STYLE: Record<Category, { emoji: string; color: string }> = {
 
 const FEED_TYPE_LABELS = pl.feedTypes as Record<string, string>;
 const FEED_TYPE_ICONS  = pl.feedIcons  as Record<string, string>;
+
+const H_PAD    = 16;
+const CARD_GAP = 10;
+const SCREEN_W = Dimensions.get('window').width;
+const CARD_W   = Math.floor((SCREEN_W - H_PAD * 2 - CARD_GAP) / 2);
+const CARD_VIS = Math.round(CARD_W * 0.82);
 
 // ── Category chip ─────────────────────────────────────────────────────────────
 
@@ -108,49 +115,35 @@ function SpotCard({ spot }: { spot: SpotForViewer }) {
   useEffect(() => {
     if (accessLevel === 'SECRET_DROP') {
       pulse.value = withRepeat(
-        withSequence(withTiming(1.22, { duration: 600 }), withTiming(1, { duration: 800 })),
+        withSequence(withTiming(1.4, { duration: 600 }), withTiming(1, { duration: 800 })),
         -1,
       );
     }
   }, [accessLevel]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
-  }));
+  const dotStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
   const accentColor = ACCESS_COLORS[accessLevel] ?? Colors.starFaint;
-  const icon        = ACCESS_ICONS[accessLevel]  ?? '◎';
   const catStyle    = CATEGORY_STYLE[category as Category];
-  const catColor    = catStyle?.color ?? Colors.starFaint;
+  const catColor    = catStyle?.color ?? Colors.signal;
 
   return (
-    <Pressable onPress={() => router.push(`/spot/${spot.id}`)}>
-      <GlassCard style={styles.card}>
-        {/* Category strip */}
-        <View style={[styles.cardStrip, { backgroundColor: catColor + '18' }]}>
-          <Text style={[styles.cardCategory, { color: catColor }]}>
-            {catStyle?.emoji ? `${catStyle.emoji}  ` : ''}{CATEGORY_PL[category] ?? category}
-          </Text>
-
-          {/* Access badge */}
-          <View style={[styles.accessBadge, { backgroundColor: accentColor + '18', borderColor: accentColor + '50' }]}>
-            <Animated.Text style={[{ fontSize: 10, color: accentColor }, animStyle]}>
-              {icon}
-            </Animated.Text>
-            <Text style={[styles.accessBadgeText, { color: accentColor }]}>
-              {accessLevel === 'CIRCLE_ONLY' ? 'CIRCLE' : accessLevel.replace('_', ' ')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Title + coords */}
-        <View style={styles.cardBody}>
-          <Text style={[styles.cardTitle, isLocked && styles.titleLocked]} numberOfLines={2}>
-            {'title' in spot ? (spot as { title: string }).title : '???'}
-          </Text>
-          <CoordLabel lat={spot.lat} lng={spot.lng} locked={isLocked} />
-        </View>
-      </GlassCard>
+    <Pressable style={styles.spotCard} onPress={() => router.push(`/spot/${spot.id}`)}>
+      {/* Visual header */}
+      <View style={[styles.spotCardVisual, { backgroundColor: catColor + '1A' }]}>
+        <Text style={styles.spotCardEmoji}>{catStyle?.emoji ?? '◈'}</Text>
+        <Animated.View style={[styles.spotCardDot, { backgroundColor: accentColor }, dotStyle]} />
+      </View>
+      {/* Body */}
+      <View style={styles.spotCardBody}>
+        <Text style={[styles.spotCardCat, { color: catColor }]} numberOfLines={1}>
+          {CATEGORY_PL[category] ?? category}
+        </Text>
+        <Text style={[styles.spotCardTitle, isLocked && { color: Colors.starGhost }]} numberOfLines={2}>
+          {isLocked ? pl.spots.lockedSpot : ('title' in spot ? (spot as { title: string }).title : '???')}
+        </Text>
+        <CoordLabel lat={spot.lat} lng={spot.lng} locked={isLocked} />
+      </View>
     </Pressable>
   );
 }
@@ -169,38 +162,43 @@ function FeedCard({ item }: { item: FeedItem }) {
 
   const icon  = FEED_TYPE_ICONS[item.type]  ?? '◎';
   const label = FEED_TYPE_LABELS[item.type] ?? item.type;
+  const initial = item.actorHandle[0]?.toUpperCase() ?? '?';
 
   return (
     <Pressable onPress={handlePress}>
-      <GlassCard style={styles.feedCard}>
+      <View style={styles.feedCard}>
         <View style={styles.feedHeader}>
-          <View style={styles.feedIconWrap}>
-            <Text style={styles.feedIcon}>{icon}</Text>
+          <View style={styles.feedAvatar}>
+            <Text style={styles.feedAvatarText}>{initial}</Text>
           </View>
           <View style={styles.feedMeta}>
-            <Text style={styles.feedActor}>
-              <Text style={styles.feedHandle}>@{item.actorHandle}</Text>
-              {'  '}{label}
-            </Text>
-            <Text style={styles.feedTime}>{formatRelative(item.createdAt)}</Text>
+            <Text style={styles.feedHandle}>@{item.actorHandle}</Text>
+            <Text style={styles.feedAction}>{label}</Text>
           </View>
+          <Text style={styles.feedTime}>{formatRelative(item.createdAt)}</Text>
         </View>
+
         {(item.type === 'SPOT_CREATED' || item.type === 'JOURNEY_PUBLISHED') && (
           <Text style={styles.feedTitle} numberOfLines={2}>
             {String(item.payload['title'] ?? '')}
           </Text>
         )}
         {item.type === 'SPOT_COMMENT' && (
-          <>
+          <View style={styles.feedCommentBlock}>
             <Text style={styles.feedSpotRef} numberOfLines={1}>
               → {String(item.payload['spotTitle'] ?? '')}
             </Text>
             <Text style={styles.feedCommentBody} numberOfLines={2}>
               "{String(item.payload['body'] ?? '')}"
             </Text>
-          </>
+          </View>
         )}
-      </GlassCard>
+
+        <View style={styles.feedTag}>
+          <Text style={styles.feedTagIcon}>{icon}</Text>
+          <Text style={styles.feedTagLabel}>{label}</Text>
+        </View>
+      </View>
     </Pressable>
   );
 }
@@ -333,7 +331,7 @@ export default function DiscoverScreen() {
               data={feedItems}
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => <FeedCard item={item} />}
-              contentContainerStyle={styles.list}
+              contentContainerStyle={styles.feedList}
               ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
               showsVerticalScrollIndicator={false}
               onEndReached={() => { if (feedHasNext && !feedFetchingNext) void feedFetchNext(); }}
@@ -413,8 +411,9 @@ export default function DiscoverScreen() {
               data={filteredSpots}
               keyExtractor={(s) => s.id}
               renderItem={({ item }) => <SpotCard spot={item} />}
-              contentContainerStyle={styles.list}
-              ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
+              numColumns={2}
+              columnWrapperStyle={styles.spotGridRow}
+              contentContainerStyle={styles.spotGridList}
               showsVerticalScrollIndicator={false}
             />
           )}
@@ -537,71 +536,110 @@ const styles = StyleSheet.create({
     fontSize: FontSize.bodySm,
   },
 
-  // ── Spot card ─────────────────────────────────────────────────────────────────
-  card: { gap: 0, overflow: 'hidden' },
-  cardStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.steel,
+  // ── Spot card (2-col grid) ────────────────────────────────────────────────────
+  spotGridList: {
+    paddingHorizontal: H_PAD,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xl,
   },
-  cardCategory: {
-    fontFamily: 'SpaceMono-Regular',
-    fontSize: FontSize.micro,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+  spotGridRow: {
+    gap: CARD_GAP,
+    marginBottom: CARD_GAP,
   },
-  accessBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  spotCard: {
+    width: CARD_W,
+    backgroundColor: Colors.graphite,
+    borderRadius: 16,
     borderWidth: 1,
-    borderRadius: BorderRadius.pill,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    borderColor: Colors.steel,
+    overflow: 'hidden',
   },
-  accessBadgeText: {
+  spotCardVisual: {
+    height: CARD_VIS,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  spotCardEmoji: {
+    fontSize: 38,
+  },
+  spotCardDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  spotCardBody: {
+    padding: 10,
+    gap: 3,
+  },
+  spotCardCat: {
     fontFamily: 'SpaceMono-Regular',
     fontSize: 9,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
-  cardBody: {
-    padding: Spacing.lg,
-    gap: Spacing.xs,
-  },
-  cardTitle: {
+  spotCardTitle: {
     fontFamily: 'ClashDisplay-Bold',
     fontSize: FontSize.h4,
     color: Colors.starlight,
-    lineHeight: 24,
+    lineHeight: 19,
   },
-  titleLocked: { color: Colors.starGhost },
 
   // ── Feed card ─────────────────────────────────────────────────────────────────
-  feedCard:   { gap: Spacing.sm },
-  feedHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
-  feedIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.abyss,
+  feedCard: {
+    backgroundColor: Colors.graphite,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.steel,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    marginHorizontal: H_PAD,
+  },
+  feedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  feedAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.signal + '28',
+    borderWidth: 1,
+    borderColor: Colors.signal + '50',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.aurora + '30',
   },
-  feedIcon:   { fontSize: 16 },
-  feedMeta:   { flex: 1, gap: 2 },
-  feedActor:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, flexWrap: 'wrap' },
-  feedHandle: { fontFamily: 'GeneralSans-Semibold', color: Colors.starlight },
+  feedAvatarText: {
+    fontFamily: 'ClashDisplay-Bold',
+    fontSize: 16,
+    color: Colors.signalGlow,
+  },
+  feedMeta:   { flex: 1, gap: 1 },
+  feedHandle: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starlight },
+  feedAction: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.star },
   feedTime:   { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost },
-  feedTitle:  { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, lineHeight: 24 },
+  feedTitle:  { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h3, color: Colors.starlight, lineHeight: 28 },
+  feedCommentBlock: { gap: 4 },
   feedSpotRef:{ fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.signal, textTransform: 'uppercase', letterSpacing: 0.5 },
   feedCommentBody: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, fontStyle: 'italic', lineHeight: 20 },
+  feedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.aurora + '35',
+    backgroundColor: Colors.aurora + '0D',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 3,
+  },
+  feedTagIcon: { fontSize: 11, color: Colors.aurora },
+  feedTagLabel: { fontFamily: 'SpaceMono-Regular', fontSize: 9, color: Colors.aurora, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   // ── Empty / center ────────────────────────────────────────────────────────────
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -641,5 +679,5 @@ const styles = StyleSheet.create({
   },
 
   // ── List ──────────────────────────────────────────────────────────────────────
-  list: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.xs, paddingBottom: Spacing.xl },
+  feedList: { paddingTop: Spacing.xs, paddingBottom: Spacing.xl },
 });

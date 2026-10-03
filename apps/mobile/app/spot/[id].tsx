@@ -13,6 +13,7 @@ import Animated, {
 import { useEffect, useState } from 'react';
 import * as ImagePickerTypes from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
@@ -32,9 +33,14 @@ import { useSpotComments, useAddComment } from '@/hooks/useComments';
 import { useAuthStore } from '@/stores/auth';
 import { PaywallModal } from '@/components/ui/PaywallModal';
 
-const SCREEN_W = Dimensions.get('window').width;
-const PHOTO_W  = SCREEN_W * 0.72;
-const PHOTO_H  = PHOTO_W * 0.68;
+const SCREEN_W  = Dimensions.get('window').width;
+const GRID_PAD  = 20;
+const GRID_W    = SCREEN_W - GRID_PAD * 2;
+const HERO_H    = Math.round(GRID_W * 0.58);
+const CELL_GAP  = 6;
+const CELL_W    = Math.floor((GRID_W - CELL_GAP) / 2);
+const CELL_H    = Math.round(CELL_W * 0.7);
+const MAX_CELLS = 4;
 
 const CATEGORY_ICONS   = pl.spotCategoryIcons as Record<string, string>;
 const CATEGORY_LABELS  = pl.spotCategories    as Record<string, string>;
@@ -91,40 +97,6 @@ function LockedOverlay({
         featureLabel={requiredAccess === 'SECRET_DROP' ? 'Tajny Drop' : 'spoty dla zaufanych'}
       />
     </GlassCard>
-  );
-}
-
-// ─── Photo item ───────────────────────────────────────────────────────────────
-function PhotoItem({
-  url, caption, photoId, spotId, isOwn,
-}: {
-  url: string; caption?: string | null;
-  photoId: string; spotId: string; isOwn: boolean;
-}) {
-  const deletePhoto = useDeleteSpotPhoto();
-
-  function confirmDelete() {
-    Alert.alert('Usuń zdjęcie', 'Czy na pewno chcesz usunąć to zdjęcie?', [
-      { text: 'Anuluj', style: 'cancel' },
-      {
-        text: 'Usuń', style: 'destructive',
-        onPress: () => deletePhoto.mutate({ photoId, spotId }),
-      },
-    ]);
-  }
-
-  return (
-    <Animated.View entering={FadeIn.duration(300)} style={styles.photoItem}>
-      <Image source={{ uri: url }} style={styles.photoImg} resizeMode="cover" />
-      {caption ? (
-        <Text style={styles.photoCaption} numberOfLines={2}>{caption}</Text>
-      ) : null}
-      {isOwn && (
-        <Pressable style={styles.photoDeleteBtn} onPress={confirmDelete} hitSlop={8}>
-          <Text style={styles.photoDeleteText}>✕</Text>
-        </Pressable>
-      )}
-    </Animated.View>
   );
 }
 
@@ -555,6 +527,101 @@ function CommentsSection({ spotId }: { spotId: string }) {
   );
 }
 
+// ─── Stats grid ───────────────────────────────────────────────────────────────
+function StatItem({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <View style={statStyles.item}>
+      <Text style={statStyles.label}>{label}</Text>
+      <Text style={[statStyles.value, color ? { color } : undefined]} numberOfLines={2}>{value}</Text>
+    </View>
+  );
+}
+
+const ACCESS_ICONS_STAT: Record<string, string> = {
+  PUBLIC: '◎', TRUSTED: '◈', CIRCLE_ONLY: '◑', SECRET_DROP: '◉',
+};
+const ACCESS_COLORS_STAT: Record<string, string> = {
+  PUBLIC: Colors.aurora, TRUSTED: Colors.signal,
+  CIRCLE_ONLY: Colors.violet, SECRET_DROP: Colors.ember,
+};
+
+// ─── Photo grid ───────────────────────────────────────────────────────────────
+function PhotoGrid({
+  photos, spotId, explorerId, onAddPress,
+}: {
+  photos: Array<{ id: string; url: string; caption?: string | null; uploaderId: string }>;
+  spotId: string;
+  explorerId: string | undefined;
+  onAddPress: () => void;
+}) {
+  const deletePhoto = useDeleteSpotPhoto();
+
+  function confirmDelete(photoId: string) {
+    Alert.alert('Usuń zdjęcie', 'Czy na pewno chcesz usunąć to zdjęcie?', [
+      { text: 'Anuluj', style: 'cancel' },
+      { text: 'Usuń', style: 'destructive', onPress: () => deletePhoto.mutate({ photoId, spotId }) },
+    ]);
+  }
+
+  if (photos.length === 0) {
+    return (
+      <Pressable style={pgStyles.empty} onPress={onAddPress}>
+        <Text style={pgStyles.emptyIcon}>◈</Text>
+        <Text style={pgStyles.emptyText}>Dodaj pierwsze zdjęcie</Text>
+      </Pressable>
+    );
+  }
+
+  const hero   = photos[0]!;
+  const cells  = photos.slice(1, 1 + MAX_CELLS);
+  const extra  = photos.length - 1 - MAX_CELLS;
+
+  return (
+    <View style={pgStyles.wrap}>
+      {/* Hero */}
+      <Pressable style={pgStyles.hero} onPress={onAddPress}>
+        <Image source={{ uri: hero.url }} style={pgStyles.heroImg} resizeMode="cover" />
+        {hero.uploaderId === explorerId && (
+          <Pressable style={pgStyles.delBtn} onPress={() => confirmDelete(hero.id)} hitSlop={8}>
+            <Text style={pgStyles.delBtnText}>✕</Text>
+          </Pressable>
+        )}
+      </Pressable>
+
+      {/* Grid cells */}
+      {cells.length > 0 && (
+        <View style={pgStyles.grid}>
+          {cells.map((photo, idx) => {
+            const isLastCell = idx === cells.length - 1 && extra > 0;
+            return (
+              <View key={photo.id} style={pgStyles.cell}>
+                <Image source={{ uri: photo.url }} style={pgStyles.cellImg} resizeMode="cover" />
+                {isLastCell && (
+                  <View style={pgStyles.moreOverlay}>
+                    <Text style={pgStyles.moreCount}>+{extra + 1}</Text>
+                    <Text style={pgStyles.moreSub}>więcej</Text>
+                  </View>
+                )}
+                {photo.uploaderId === explorerId && !isLastCell && (
+                  <Pressable style={pgStyles.delBtn} onPress={() => confirmDelete(photo.id)} hitSlop={8}>
+                    <Text style={pgStyles.delBtnText}>✕</Text>
+                  </Pressable>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Add button */}
+      <Pressable style={pgStyles.addBtn} onPress={onAddPress}>
+        <Ionicons name="camera-outline" size={14} color={Colors.aurora} />
+        <Text style={pgStyles.addBtnText}>+ {pl.photos.addPhoto}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SpotDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -688,6 +755,54 @@ export default function SpotDetailScreen() {
           />
         ) : (
           <View style={styles.content}>
+            {/* ── Photo grid (SCAPES right phone layout) ──── */}
+            {photosLoading ? (
+              <ActivityIndicator color={Colors.aurora} style={{ marginVertical: Spacing.lg }} />
+            ) : (
+              <>
+                <PhotoGrid
+                  photos={photos ?? []}
+                  spotId={id ?? ''}
+                  explorerId={explorer?.id}
+                  onAddPress={() => setAddingPhoto(true)}
+                />
+                {addingPhoto && (
+                  <AddPhotoPanel
+                    spotId={id ?? ''}
+                    onDone={() => setAddingPhoto(false)}
+                  />
+                )}
+              </>
+            )}
+
+            {/* ── Stats grid ──── */}
+            <View style={styles.statsGrid}>
+              <StatItem
+                label="Kategoria"
+                value={`${(pl.spotCategoryIcons as Record<string, string>)[category] ?? '◎'}  ${CATEGORY_LABELS[category] ?? category}`}
+              />
+              <StatItem
+                label="Dostęp"
+                value={`${ACCESS_ICONS_STAT[access] ?? '◎'}  ${ACCESS_LABELS[access] ?? access}`}
+                color={ACCESS_COLORS_STAT[access]}
+              />
+              <StatItem
+                label="Szerokość"
+                value={spot.lat.toFixed(5) + '°'}
+              />
+              <StatItem
+                label="Długość"
+                value={spot.lng.toFixed(5) + '°'}
+              />
+              {dropExp && (
+                <StatItem
+                  label="Wygasa"
+                  value={new Date(dropExp).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  color={Colors.ember}
+                />
+              )}
+            </View>
+
             {/* Story */}
             {story && (
               <GlassCard style={styles.storyCard}>
@@ -704,61 +819,6 @@ export default function SpotDetailScreen() {
 
             {/* Comments */}
             <CommentsSection spotId={id ?? ''} />
-
-            {/* Photos section */}
-            <View style={styles.photosSection}>
-              <View style={styles.photosSectionHeader}>
-                <Text style={styles.sectionLabel}>
-                  Zdjęcia{photos && photos.length > 0 ? ` (${photos.length})` : ''}
-                </Text>
-                {!addingPhoto && (
-                  <Pressable
-                    style={styles.addPhotoBtn}
-                    onPress={() => setAddingPhoto(true)}
-                    hitSlop={8}
-                  >
-                    <Text style={styles.addPhotoBtnText}>+ {pl.photos.addPhoto}</Text>
-                  </Pressable>
-                )}
-              </View>
-
-              {addingPhoto && (
-                <AddPhotoPanel
-                  spotId={id ?? ''}
-                  onDone={() => setAddingPhoto(false)}
-                />
-              )}
-
-              {photosLoading ? (
-                <ActivityIndicator color={Colors.aurora} style={{ marginVertical: Spacing.lg }} />
-              ) : !photos || photos.length === 0 ? (
-                <GlassCard style={styles.noPhotosCard}>
-                  <Text style={styles.noPhotosIcon}>◈</Text>
-                  <Text style={styles.noPhotosText}>
-                    Brak zdjęć. Bądź pierwszym który udokumentuje to miejsce.
-                  </Text>
-                </GlassCard>
-              ) : (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.photoScroll}
-                  decelerationRate="fast"
-                  snapToInterval={PHOTO_W + Spacing.md}
-                >
-                  {photos.map((photo) => (
-                    <PhotoItem
-                      key={photo.id}
-                      url={photo.url}
-                      caption={photo.caption}
-                      photoId={photo.id}
-                      spotId={id ?? ''}
-                      isOwn={photo.uploaderId === explorer?.id}
-                    />
-                  ))}
-                </ScrollView>
-              )}
-            </View>
 
             {/* Save action */}
             <SignalButton
@@ -862,12 +922,16 @@ const styles = StyleSheet.create({
   storyLabel: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
   storyText:  { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.body, color: Colors.star, lineHeight: 26 },
 
-  // Photos
-  photosSection:       { gap: Spacing.md },
-  photosSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionLabel:        { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
-  addPhotoBtn:         { paddingHorizontal: Spacing.md, paddingVertical: 5, borderRadius: BorderRadius.pill, borderWidth: 1, borderColor: Colors.aurora + '60' },
-  addPhotoBtnText:     { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.aurora },
+  // Stats grid (SCAPES-style data points)
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+
+  // Photos (legacy, kept for AddPhotoPanel)
+  photoDeleteBtn:  { position: 'absolute', top: Spacing.sm, right: Spacing.sm, width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.void + 'CC', alignItems: 'center', justifyContent: 'center' },
+  photoDeleteText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
 
   // Add photo panel (ImagePicker)
   addPhotoPanel: {
@@ -876,19 +940,14 @@ const styles = StyleSheet.create({
     padding: Spacing.lg, gap: Spacing.md,
   },
   addPhotoTitle: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starlight },
-
-  // Source picker row (camera / gallery)
   addPhotoSourceRow: { flexDirection: 'row', gap: Spacing.md },
   addPhotoSourceBtn: {
     flex: 1, alignItems: 'center', gap: Spacing.sm,
     backgroundColor: Colors.abyss, borderRadius: BorderRadius.lg,
-    borderWidth: 1, borderColor: Colors.steel,
-    paddingVertical: Spacing.lg,
+    borderWidth: 1, borderColor: Colors.steel, paddingVertical: Spacing.lg,
   },
   addPhotoSourceIcon:  { fontSize: 28 },
   addPhotoSourceLabel: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.star },
-
-  // Preview after picking
   previewContainer: { position: 'relative', borderRadius: BorderRadius.lg, overflow: 'hidden' },
   previewImg:       { width: '100%', height: 180, borderRadius: BorderRadius.lg },
   previewRetakeBtn: {
@@ -897,11 +956,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md, paddingVertical: 4,
   },
   previewRetakeText: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint },
-
   addPhotoInput: {
     height: 44, borderRadius: BorderRadius.lg, backgroundColor: Colors.abyss,
-    borderWidth: 1, borderColor: Colors.steel,
-    paddingHorizontal: Spacing.lg,
+    borderWidth: 1, borderColor: Colors.steel, paddingHorizontal: Spacing.lg,
     fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starlight,
   },
   addPhotoActions:            { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'flex-end' },
@@ -910,21 +967,6 @@ const styles = StyleSheet.create({
   addPhotoConfirmBtn:         { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: BorderRadius.pill, backgroundColor: Colors.aurora },
   addPhotoConfirmBtnDisabled: { opacity: 0.4 },
   addPhotoConfirmText:        { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.void },
-
-  photoScroll: { paddingVertical: Spacing.xs, paddingRight: Spacing.xl, gap: Spacing.md },
-  photoItem: {
-    width: PHOTO_W, borderRadius: BorderRadius.xl,
-    overflow: 'hidden', backgroundColor: Colors.graphite,
-    ...Shadow.card,
-  },
-  photoImg:        { width: PHOTO_W, height: PHOTO_H },
-  photoCaption:    { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.star, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, lineHeight: 18 },
-  photoDeleteBtn:  { position: 'absolute', top: Spacing.sm, right: Spacing.sm, width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.void + 'CC', alignItems: 'center', justifyContent: 'center' },
-  photoDeleteText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.starFaint },
-
-  noPhotosCard: { padding: Spacing.xl, alignItems: 'center', gap: Spacing.md },
-  noPhotosIcon: { fontSize: 32, color: Colors.starGhost },
-  noPhotosText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.starGhost, textAlign: 'center', lineHeight: 20 },
 
   ownerCard:  { gap: Spacing.xs },
   ownerRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -1009,6 +1051,101 @@ const cmtStyles = StyleSheet.create({
   sendBtnDisabled: { backgroundColor: Colors.steel },
   sendBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: 16, color: Colors.void },
   counter: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starGhost, textAlign: 'right' },
+});
+
+const pgStyles = StyleSheet.create({
+  wrap:    { gap: 6 },
+  hero: {
+    width: GRID_W, height: HERO_H,
+    borderRadius: 14, overflow: 'hidden',
+    backgroundColor: Colors.graphite,
+    position: 'relative',
+  },
+  heroImg: { width: '100%', height: '100%' },
+  grid: {
+    flexDirection: 'row',
+    gap: CELL_GAP,
+  },
+  cell: {
+    width: CELL_W, height: CELL_H,
+    borderRadius: 10, overflow: 'hidden',
+    backgroundColor: Colors.graphite,
+    position: 'relative',
+  },
+  cellImg: { width: '100%', height: '100%' },
+  moreOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(7,10,12,0.72)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  moreCount: {
+    fontFamily: 'ClashDisplay-Bold',
+    fontSize: 22,
+    color: Colors.starlight,
+  },
+  moreSub: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: 11,
+    color: Colors.star,
+  },
+  delBtn: {
+    position: 'absolute', top: 6, right: 6,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: Colors.void + 'CC',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  delBtnText: { fontFamily: 'GeneralSans-Regular', fontSize: 11, color: Colors.starFaint },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.aurora + '50',
+    backgroundColor: Colors.aurora + '0D',
+  },
+  addBtnText: { fontFamily: 'GeneralSans-Semibold', fontSize: 11, color: Colors.aurora },
+  empty: {
+    height: 100,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.steel,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.graphite,
+  },
+  emptyIcon: { fontSize: 24, color: Colors.starGhost },
+  emptyText: { fontFamily: 'GeneralSans-Semibold', fontSize: 12, color: Colors.starGhost },
+});
+
+const statStyles = StyleSheet.create({
+  item: {
+    width: (GRID_W - 8) / 2,
+    backgroundColor: Colors.graphite,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.steel,
+    padding: 12,
+    gap: 3,
+  },
+  label: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: 9,
+    color: Colors.starGhost,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  value: {
+    fontFamily: 'GeneralSans-Semibold',
+    fontSize: 13,
+    color: Colors.starlight,
+    lineHeight: 17,
+  },
 });
 
 const editSpotStyles = StyleSheet.create({

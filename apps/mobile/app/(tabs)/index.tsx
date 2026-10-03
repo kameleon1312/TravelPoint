@@ -781,24 +781,22 @@ export default function AtlasScreen() {
 
       {/* Top bar */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
-        <Text style={styles.logo}>TravelPoint</Text>
+        <Text style={styles.logo}>TP</Text>
+        <Pressable
+          style={styles.searchPill}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onPress={() => router.push('/modals/search' as any)}
+          accessibilityLabel="Szukaj"
+        >
+          <Ionicons name="search" size={14} color={Colors.starFaint} />
+          <Text style={styles.searchPillText}>Szukaj spotów, explo...</Text>
+        </Pressable>
         <View style={styles.topRight}>
           {presenceActive && nearbyExplorers.length > 0 && (
             <View style={styles.nearbyBadge}>
-              <Text style={styles.nearbyText}>
-                {nearbyExplorers.length} {pl.presence.nearby}
-              </Text>
+              <Text style={styles.nearbyText}>{nearbyExplorers.length}</Text>
             </View>
           )}
-          <Pressable
-            style={styles.searchBtn}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onPress={() => router.push('/modals/search' as any)}
-            accessibilityLabel="Szukaj"
-            hitSlop={8}
-          >
-            <Ionicons name="search" size={18} color={Colors.starlight} />
-          </Pressable>
           <PresenceToggle active={presenceActive} onToggle={togglePresence} />
         </View>
       </SafeAreaView>
@@ -920,34 +918,47 @@ const styles = StyleSheet.create({
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
     zIndex: 200,
-    paddingHorizontal: Spacing.xl, paddingTop: Spacing.md,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: Spacing.md, paddingTop: Spacing.sm,
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
   },
-  topRight:    { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  searchBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.glass,
-    borderWidth: 1, borderColor: Colors.glassBorder,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   logo: {
     fontFamily: 'ClashDisplay-Bold',
-    fontSize: 15,
+    fontSize: 13,
     color: Colors.starlight,
-    backgroundColor: Colors.void + 'D8',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    backgroundColor: Colors.void + 'E0',
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.steel,
   },
+  searchPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    height: 38,
+    backgroundColor: Colors.graphite + 'F0',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.steel,
+    paddingHorizontal: 14,
+  },
+  searchPillText: {
+    fontFamily: 'GeneralSans-Regular',
+    fontSize: 13,
+    color: Colors.starGhost,
+    flex: 1,
+  },
   nearbyBadge: {
     backgroundColor: Colors.aurora + '20', borderRadius: 999,
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
+    width: 22, height: 22,
+    alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: Colors.aurora + '50',
   },
-  nearbyText: { fontFamily: 'SpaceMono-Regular', fontSize: 10, color: Colors.aurora },
+  nearbyText: { fontFamily: 'SpaceMono-Regular', fontSize: 9, color: Colors.aurora },
 
   // ── Presence toggle ──────────────────────────────────────────────────────────
   presenceIndicator: {

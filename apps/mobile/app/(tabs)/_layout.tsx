@@ -229,11 +229,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.graphite,
     borderTopWidth: 0.5,
     borderTopColor: Colors.steel,
-    shadowColor: Colors.starlight,
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.10,
-    shadowRadius: 20,
-    elevation: 20,
   },
   topLine: {
     position: 'absolute',
