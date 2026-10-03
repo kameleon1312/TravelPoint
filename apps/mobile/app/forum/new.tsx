@@ -29,8 +29,8 @@ export default function NewForumPostScreen() {
   async function submit() {
     const t = title.trim();
     const b = body.trim();
-    if (t.length < 3) { Alert.alert('Błąd', 'Tytuł musi mieć min. 3 znaki.'); return; }
-    if (b.length < 10) { Alert.alert('Błąd', 'Treść musi mieć min. 10 znaków.'); return; }
+    if (t.length < 6) { Alert.alert('Błąd', 'Tytuł musi mieć min. 6 znaków.'); return; }
+    if (b.length < 20) { Alert.alert('Błąd', 'Treść musi mieć min. 20 znaków.'); return; }
 
     try {
       const post = await addPost({ title: t, body: b, category });
@@ -59,7 +59,7 @@ export default function NewForumPostScreen() {
             size="sm"
             haptic="medium"
             loading={isPending}
-            disabled={title.trim().length < 3 || body.trim().length < 10}
+            disabled={title.trim().length < 6 || body.trim().length < 20}
           />
         </View>
 

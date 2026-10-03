@@ -1,8 +1,7 @@
 import { Pressable, Text, ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Gradients, Shadow, FontSize, FontWeight, BorderRadius } from '@travelpoint/theme';
+import { Colors, Shadow, FontSize, FontWeight, BorderRadius } from '@travelpoint/theme';
 
 type Variant = 'signal' | 'aurora' | 'ember' | 'ghost';
 type Size = 'sm' | 'md' | 'lg';
@@ -21,17 +20,44 @@ interface SignalButtonProps {
   haptic?: HapticStyle;
 }
 
-const VARIANTS: Record<Variant, { gradient: readonly string[]; glow: (typeof Shadow)[keyof typeof Shadow] }> = {
-  signal: { gradient: Gradients.signal, glow: Shadow.signalGlow },
-  aurora: { gradient: Gradients.aurora, glow: Shadow.auroraGlow },
-  ember: { gradient: Gradients.ember, glow: Shadow.emberGlow },
-  ghost: { gradient: [Colors.glass, Colors.glass], glow: Shadow.card },
+interface VariantStyle {
+  bg: string;
+  borderColor: string;
+  labelColor: string;
+  glow: (typeof Shadow)[keyof typeof Shadow];
+}
+
+const VARIANTS: Record<Variant, VariantStyle> = {
+  aurora: {
+    bg:          'rgba(92,184,140,0.13)',
+    borderColor: 'rgba(92,184,140,0.38)',
+    labelColor:  Colors.aurora,
+    glow:        Shadow.auroraGlow,
+  },
+  signal: {
+    bg:          'rgba(30,154,176,0.13)',
+    borderColor: 'rgba(30,154,176,0.38)',
+    labelColor:  Colors.signalGlow,
+    glow:        Shadow.signalGlow,
+  },
+  ember: {
+    bg:          'rgba(200,80,64,0.18)',
+    borderColor: 'rgba(200,80,64,0.55)',
+    labelColor:  '#FF8070',
+    glow:        Shadow.emberGlow,
+  },
+  ghost: {
+    bg:          Colors.glass,
+    borderColor: Colors.glassBorder,
+    labelColor:  Colors.starlight,
+    glow:        Shadow.card,
+  },
 };
 
 const SIZES: Record<Size, { height: number; fontSize: number; px: number }> = {
   sm: { height: 40, fontSize: FontSize.caption, px: 16 },
-  md: { height: 52, fontSize: FontSize.cta, px: 20 },
-  lg: { height: 60, fontSize: FontSize.body, px: 24 },
+  md: { height: 52, fontSize: FontSize.cta,     px: 20 },
+  lg: { height: 60, fontSize: FontSize.body,    px: 24 },
 };
 
 export function SignalButton({
@@ -47,9 +73,8 @@ export function SignalButton({
   haptic = 'light',
 }: SignalButtonProps) {
   const scale = useSharedValue(1);
-  const { gradient, glow } = VARIANTS[variant];
+  const { bg, borderColor, labelColor, glow } = VARIANTS[variant];
   const { height, fontSize, px } = SIZES[size];
-  const isGhost = variant === 'ghost';
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -58,9 +83,9 @@ export function SignalButton({
   function handlePressIn() {
     scale.value = withSpring(0.97, { damping: 15 });
     const hapticMap: Record<HapticStyle, () => Promise<void>> = {
-      light: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+      light:  () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
       medium: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
-      heavy: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
+      heavy:  () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
     };
     void hapticMap[haptic]();
   }
@@ -75,11 +100,8 @@ export function SignalButton({
         styles.wrapper,
         animatedStyle,
         fullWidth && styles.fullWidth,
-        !isGhost && !disabled && !loading && glow,
-        {
-          backgroundColor: isGhost ? Colors.glass : gradient[gradient.length - 1],
-          opacity: disabled ? 0.45 : 1,
-        },
+        !disabled && !loading && glow,
+        { opacity: disabled ? 0.45 : 1 },
       ]}
     >
       <Pressable
@@ -92,73 +114,28 @@ export function SignalButton({
         accessibilityLabel={label}
         style={fullWidth && styles.fullWidth}
       >
-        <View style={[styles.surface, { height }]}>
-          {isGhost ? (
-            <View
-              style={[
-                styles.content,
-                {
-                  paddingHorizontal: px,
-                  backgroundColor: Colors.glass,
-                },
-              ]}
-            >
-              <ButtonContent
-                loading={loading}
-                leftIcon={leftIcon}
-                rightIcon={rightIcon}
-                label={label}
-                fontSize={fontSize}
-              />
-            </View>
-          ) : (
-            <LinearGradient
-              colors={gradient as [string, string, ...string[]]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.content, { paddingHorizontal: px }]}
-            >
-              <View pointerEvents="none" style={styles.sheen} />
-              <View pointerEvents="none" style={styles.bottomPolish} />
-              <ButtonContent
-                loading={loading}
-                leftIcon={leftIcon}
-                rightIcon={rightIcon}
-                label={label}
-                fontSize={fontSize}
-              />
-            </LinearGradient>
-          )}
-          <View pointerEvents="none" style={styles.border} />
+        <View
+          style={[
+            styles.surface,
+            { height, backgroundColor: bg },
+            fullWidth && styles.fullWidth,
+          ]}
+        >
+          <View style={[styles.content, { paddingHorizontal: px }]}>
+            {loading ? (
+              <ActivityIndicator color={labelColor} size="small" />
+            ) : (
+              <>
+                {leftIcon}
+                <Text style={[styles.label, { fontSize, color: labelColor }]}>{label}</Text>
+                {rightIcon}
+              </>
+            )}
+          </View>
+          <View pointerEvents="none" style={[styles.border, { borderColor }]} />
         </View>
       </Pressable>
     </Animated.View>
-  );
-}
-
-function ButtonContent({
-  loading,
-  leftIcon,
-  rightIcon,
-  label,
-  fontSize,
-}: {
-  loading: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
-  label: string;
-  fontSize: number;
-}) {
-  if (loading) {
-    return <ActivityIndicator color={Colors.starlight} size="small" />;
-  }
-
-  return (
-    <>
-      {leftIcon}
-      <Text style={[styles.label, { fontSize }]}>{label}</Text>
-      {rightIcon}
-    </>
   );
 }
 
@@ -169,7 +146,6 @@ const styles = StyleSheet.create({
   surface: {
     overflow: 'hidden',
     borderRadius: BorderRadius.xl,
-    backgroundColor: Colors.graphite,
   },
   content: {
     flex: 1,
@@ -178,30 +154,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  sheen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '52%',
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
-  bottomPolish: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 1,
-    backgroundColor: 'rgba(237,232,223,0.22)',
-  },
   border: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 1,
     borderRadius: BorderRadius.xl,
-    borderColor: 'rgba(237,232,223,0.18)',
   },
   label: {
-    color: Colors.starlight,
     fontFamily: 'GeneralSans-Semibold',
     fontWeight: FontWeight.semibold,
   },
