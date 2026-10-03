@@ -156,7 +156,7 @@ export default function JoinScreen() {
       resizeMode="cover"
     >
       <LinearGradient
-        colors={['rgba(27,43,47,0.35)', 'rgba(27,43,47,0.45)', 'rgba(27,43,47,0.52)']}
+        colors={['rgba(7,10,12,0.55)', 'rgba(7,10,12,0.72)', 'rgba(7,10,12,0.88)']}
         style={{ flex: 1 }}
       >
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -285,7 +285,7 @@ export default function JoinScreen() {
                 <SignalButton
                   label={pl.auth.joinCta}
                   onPress={handleSubmit(onSubmit)}
-                  variant="ember"
+                  variant="aurora"
                   size="lg"
                   loading={isSubmitting}
                   fullWidth
@@ -343,15 +343,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   glassPanel: {
-    backgroundColor: Colors.glassStrong,
+    backgroundColor: 'rgba(13,16,19,0.92)',
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    shadowColor: Colors.glassShadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 8,
+    borderColor: 'rgba(237,232,223,0.10)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 12,
     overflow: 'hidden',
     padding: Spacing.xl,
   },

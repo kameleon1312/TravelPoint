@@ -1,8 +1,9 @@
-import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Image, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming, withRepeat, withSequence,
+  useAnimatedScrollHandler, interpolate, type SharedValue,
 } from 'react-native-reanimated';
 import * as ImagePickerTypes from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -563,6 +564,100 @@ type ExportPayload = {
   content: ExportContent;
 };
 
+// ── Trait carousel ────────────────────────────────────────────────────────────
+
+const SCREEN_W_ID   = Dimensions.get('window').width;
+const TRAIT_W       = 190;
+const TRAIT_H       = 230;
+const TRAIT_GAP     = 12;
+const TRAIT_SNAP    = TRAIT_W + TRAIT_GAP;
+const CAROUSEL_PAD  = (SCREEN_W_ID - TRAIT_W) / 2;
+
+type Trait = {
+  id: string;
+  label: string;
+  icon: string;
+  value: string;
+  desc: string;
+  color: string;
+  editable: boolean;
+  onPress?: () => void;
+};
+
+function TraitCard({
+  trait,
+  index,
+  scrollX,
+}: {
+  trait: Trait;
+  index: number;
+  scrollX: SharedValue<number>;
+}) {
+  const animStyle = useAnimatedStyle(() => {
+    const lo = (index - 1) * TRAIT_SNAP;
+    const mid = index * TRAIT_SNAP;
+    const hi = (index + 1) * TRAIT_SNAP;
+    const scale   = interpolate(scrollX.value, [lo, mid, hi], [0.82, 1, 0.82], 'clamp');
+    const opacity = interpolate(scrollX.value, [lo, mid, hi], [0.42, 1, 0.42], 'clamp');
+    return { transform: [{ scale }], opacity };
+  });
+
+  return (
+    <Animated.View style={[{ width: TRAIT_W, height: TRAIT_H }, animStyle]}>
+      <Pressable onPress={trait.onPress} disabled={!trait.onPress} style={traitStyles.card}>
+        <LinearGradient
+          colors={[Colors.graphite, Colors.void, trait.color + '28']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={traitStyles.gradient}
+        >
+          <View style={traitStyles.top}>
+            <Text style={[traitStyles.icon, { color: trait.color }]}>{trait.icon}</Text>
+            {trait.editable && (
+              <View style={[traitStyles.editPill, { borderColor: trait.color + '50' }]}>
+                <Text style={[traitStyles.editPillText, { color: trait.color }]}>Edytuj ›</Text>
+              </View>
+            )}
+            {!trait.editable && trait.onPress && (
+              <View style={[traitStyles.editPill, { borderColor: Colors.starGhost + '40' }]}>
+                <Text style={[traitStyles.editPillText, { color: Colors.starFaint }]}>Otwórz ›</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[traitStyles.value, { color: trait.color }]} numberOfLines={2}>
+            {trait.value}
+          </Text>
+          <View style={traitStyles.bottom}>
+            <Text style={traitStyles.label}>{trait.label}</Text>
+            <Text style={traitStyles.desc} numberOfLines={2}>{trait.desc}</Text>
+          </View>
+        </LinearGradient>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const traitStyles = StyleSheet.create({
+  card:     { flex: 1, borderRadius: 20, overflow: 'hidden' },
+  gradient: { flex: 1, padding: Spacing.lg, justifyContent: 'space-between' },
+  top:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  icon:     { fontFamily: 'SpaceMono-Regular', fontSize: 22 },
+  editPill: {
+    borderWidth: 1, borderRadius: BorderRadius.pill,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  editPillText: {
+    fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, letterSpacing: 0.5,
+  },
+  value: {
+    fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h3,
+    letterSpacing: -0.5, lineHeight: 30,
+  },
+  bottom:  { gap: 3 },
+  label:   { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 2 },
+  desc:    { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption, color: Colors.star, lineHeight: 18 },
+});
+
 export default function IdentityScreen() {
   const { explorer, logout, setExplorer, deleteAccount, pendingRankUp, clearPendingRankUp } = useAuthStore();
   const { mutate: markSeen, isPending: markingAllSeen } = useMarkSignalsSeen();
@@ -578,8 +673,10 @@ export default function IdentityScreen() {
   const [presenceToggling, setPresenceToggling] = useState(false);
   const [locationToggling, setLocationToggling] = useState(false);
   const [homeBaseSaving, setHomeBaseSaving] = useState(false);
-  // Real device-level location permission status (checked on mount).
   const [deviceLocationGranted, setDeviceLocationGranted] = useState(false);
+
+  const scrollX       = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler(e => { scrollX.value = e.contentOffset.x; });
 
   useEffect(() => { markSeen(); }, []);
 
@@ -599,6 +696,62 @@ export default function IdentityScreen() {
   }
 
   const rankColor = RANK_COLORS[explorer.rank] ?? Colors.starGhost;
+
+  const traits: Trait[] = [
+    {
+      id: 'archetype',
+      label: 'Archetyp',
+      icon: ARCHETYPE_ICONS[explorer.archetype] ?? '◉',
+      value: ARCHETYPE_LABELS[explorer.archetype] ?? explorer.archetype,
+      desc: ARCHETYPE_DESCRIPTIONS[explorer.archetype] ?? '',
+      color: Colors.aurora,
+      editable: true,
+      onPress: () => setArchPickerVisible(true),
+    },
+    {
+      id: 'rank',
+      label: 'Ranga',
+      icon: '◈',
+      value: RANK_LABELS[explorer.rank] ?? explorer.rank,
+      desc: `${explorer.trustScore} pkt reputacji`,
+      color: rankColor,
+      editable: false,
+    },
+    {
+      id: 'tier',
+      label: 'Plan Explorer',
+      icon: '◎',
+      value: TIER_BADGE_COLORS[explorer.tier]?.label ?? explorer.tier,
+      desc: explorer.tier === 'FREE' ? 'Odblokuj ukryte spoty i tajne dropy' : 'Pełny dostęp do sieci',
+      color: TIER_BADGE_COLORS[explorer.tier]?.text ?? Colors.starFaint,
+      editable: false,
+      onPress: () => router.push('/plans'),
+    },
+    {
+      id: 'obsessions',
+      label: 'Obsesje',
+      icon: '◉',
+      value: (explorer.obsessions?.length ?? 0) > 0
+        ? explorer.obsessions.slice(0, 2).join(' · ')
+        : 'Brak',
+      desc: (explorer.obsessions?.length ?? 0) > 0
+        ? `${explorer.obsessions.length} tagów — stuknij by edytować`
+        : 'Dodaj to, co Cię napędza w odkrywaniu',
+      color: Colors.signal,
+      editable: true,
+      onPress: () => setObsModalVisible(true),
+    },
+    {
+      id: 'saved',
+      label: 'Saved Worlds',
+      icon: '◎',
+      value: 'Kolekcja',
+      desc: 'Twoje ulubione miejsca na mapie',
+      color: Colors.violet,
+      editable: false,
+      onPress: () => router.push('/saved'),
+    },
+  ];
 
   async function handleSaveProfile(displayName: string, bio: string) {
     const updated = await api.patch<typeof explorer>('/api/explorers/me', { displayName, bio });
@@ -883,39 +1036,25 @@ export default function IdentityScreen() {
           );
         })()}
 
-        <View style={styles.statsGrid}>
-          <View style={styles.statCell}>
-            <Text style={styles.statValue}>{String(explorer.trustScore)}</Text>
-            <Text style={styles.statLabel}>Reputacja</Text>
-          </View>
-          <View style={styles.statCell}>
-            <Text style={[styles.statValue, { color: TIER_BADGE_COLORS[explorer.tier]?.text ?? Colors.starlight }]}>
-              {TIER_BADGE_COLORS[explorer.tier]?.label ?? explorer.tier}
-            </Text>
-            <Text style={styles.statLabel}>Plan</Text>
-          </View>
-          <Pressable style={styles.statCell} onPress={() => setArchPickerVisible(true)}>
-            <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
-              {ARCHETYPE_LABELS[explorer.archetype] ?? explorer.archetype}
-            </Text>
-            <Text style={[styles.statLabel, { color: Colors.aurora + 'A0' }]}>Archetyp ›</Text>
-          </Pressable>
-          <View style={styles.statCell}>
-            <Text style={[styles.statValue, { color: rankColor }]}>
-              {RANK_LABELS[explorer.rank] ?? explorer.rank}
-            </Text>
-            <Text style={styles.statLabel}>Ranga</Text>
-          </View>
-        </View>
-
-        {/* Quick access links */}
-        <View style={styles.quickLinks}>
-          <Pressable style={styles.quickLink} onPress={() => router.push('/saved')}>
-            <Text style={styles.quickLinkIcon}>◎</Text>
-            <Text style={styles.quickLinkLabel}>Saved Worlds</Text>
-            <Text style={styles.quickLinkChevron}>›</Text>
-          </Pressable>
-        </View>
+        {/* ── Trait carousel ── */}
+        <Animated.ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+          snapToInterval={TRAIT_SNAP}
+          decelerationRate="fast"
+          contentContainerStyle={styles.carouselContent}
+        >
+          {traits.map((trait, index) => (
+            <TraitCard
+              key={trait.id}
+              trait={trait}
+              index={index}
+              scrollX={scrollX}
+            />
+          ))}
+        </Animated.ScrollView>
 
         {explorer.bio && (
           <View style={styles.section}>
@@ -923,28 +1062,6 @@ export default function IdentityScreen() {
             <Text style={styles.bioText}>{explorer.bio}</Text>
           </View>
         )}
-
-        <View style={styles.section}>
-          <View style={styles.signalsSectionHeader}>
-            <Text style={styles.sectionLabel}>Obsesje</Text>
-            <Pressable onPress={() => setObsModalVisible(true)} hitSlop={8}>
-              <Text style={styles.markSeenBtn}>Edytuj</Text>
-            </Pressable>
-          </View>
-          {(explorer.obsessions?.length ?? 0) > 0 ? (
-            <View style={styles.tags}>
-              {explorer.obsessions.map((obs) => (
-                <View key={obs} style={styles.tag}>
-                  <Text style={styles.tagText}>{obs}</Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.obsEmptyNote}>
-              Dodaj swoje obsesje — miejsca, klimaty, styl odkrywania.
-            </Text>
-          )}
-        </View>
 
         {allSignals.length > 0 && (
           <View style={styles.section}>
@@ -1267,23 +1384,9 @@ const styles = StyleSheet.create({
   displayName: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star },
   rankBadge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs },
   rankText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, letterSpacing: 2, textTransform: 'uppercase' },
-  statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    paddingHorizontal: Spacing.xl, gap: Spacing.sm, marginBottom: Spacing.sm,
-  },
-  statCell: {
-    flex: 1, minWidth: '45%',
-    backgroundColor: Colors.graphite,
-    borderRadius: 14,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: 4,
-  },
-  statValue: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight },
-  statLabel: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
-  obsEmptyNote: {
-    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm,
-    color: Colors.starGhost, fontStyle: 'italic', lineHeight: 20,
+  carouselContent: {
+    paddingHorizontal: CAROUSEL_PAD,
+    gap: TRAIT_GAP,
   },
   section: {
     backgroundColor: Colors.graphite,
@@ -1368,18 +1471,6 @@ const styles = StyleSheet.create({
     fontFamily: 'GeneralSans-Regular', fontSize: FontSize.caption,
     color: Colors.starGhost, textAlign: 'center', lineHeight: 18,
   },
-  quickLinks: {
-    backgroundColor: Colors.graphite,
-    borderRadius: 14, overflow: 'hidden',
-    marginHorizontal: Spacing.xl,
-  },
-  quickLink: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    padding: Spacing.lg, borderBottomWidth: 0,
-  },
-  quickLinkIcon:    { fontSize: 16, color: Colors.aurora },
-  quickLinkLabel:   { flex: 1, fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.starlight },
-  quickLinkChevron: { fontFamily: 'GeneralSans-Regular', fontSize: 18, color: Colors.starGhost },
 });
 
 const editStyles = StyleSheet.create({
