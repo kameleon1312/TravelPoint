@@ -838,6 +838,7 @@ export default function AtlasScreen() {
                 size="md"
                 haptic="medium"
                 fullWidth
+                leftIcon={<Ionicons name="flag" size={16} color={Colors.aurora} />}
               />
             </View>
             <Pressable

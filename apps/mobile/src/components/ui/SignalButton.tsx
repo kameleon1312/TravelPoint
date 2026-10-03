@@ -22,35 +22,35 @@ interface SignalButtonProps {
 
 interface VariantStyle {
   bg: string;
-  borderColor: string;
-  labelColor: string;
+  border: string;
+  color: string;
   glow: (typeof Shadow)[keyof typeof Shadow];
 }
 
 const VARIANTS: Record<Variant, VariantStyle> = {
   aurora: {
-    bg:          'rgba(92,184,140,0.13)',
-    borderColor: 'rgba(92,184,140,0.38)',
-    labelColor:  Colors.aurora,
-    glow:        Shadow.auroraGlow,
+    bg:     'rgba(92,184,140,0.13)',
+    border: 'rgba(92,184,140,0.40)',
+    color:  Colors.aurora,
+    glow:   Shadow.auroraGlow,
   },
   signal: {
-    bg:          'rgba(30,154,176,0.13)',
-    borderColor: 'rgba(30,154,176,0.38)',
-    labelColor:  Colors.signalGlow,
-    glow:        Shadow.signalGlow,
+    bg:     'rgba(30,154,176,0.13)',
+    border: 'rgba(30,154,176,0.40)',
+    color:  Colors.signalGlow,
+    glow:   Shadow.signalGlow,
   },
   ember: {
-    bg:          'rgba(200,80,64,0.18)',
-    borderColor: 'rgba(200,80,64,0.55)',
-    labelColor:  '#FF8070',
-    glow:        Shadow.emberGlow,
+    bg:     'rgba(200,80,64,0.16)',
+    border: 'rgba(200,80,64,0.50)',
+    color:  '#FF8070',
+    glow:   Shadow.emberGlow,
   },
   ghost: {
-    bg:          Colors.glass,
-    borderColor: Colors.glassBorder,
-    labelColor:  Colors.starlight,
-    glow:        Shadow.card,
+    bg:     Colors.glass,
+    border: Colors.glassBorder,
+    color:  Colors.starlight,
+    glow:   Shadow.card,
   },
 };
 
@@ -73,7 +73,7 @@ export function SignalButton({
   haptic = 'light',
 }: SignalButtonProps) {
   const scale = useSharedValue(1);
-  const { bg, borderColor, labelColor, glow } = VARIANTS[variant];
+  const { bg, border, color, glow } = VARIANTS[variant];
   const { height, fontSize, px } = SIZES[size];
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -97,9 +97,8 @@ export function SignalButton({
   return (
     <Animated.View
       style={[
-        styles.wrapper,
         animatedStyle,
-        fullWidth && styles.fullWidth,
+        fullWidth ? styles.fullWidth : styles.wrapper,
         !disabled && !loading && glow,
         { opacity: disabled ? 0.45 : 1 },
       ]}
@@ -112,27 +111,22 @@ export function SignalButton({
         accessibilityRole="button"
         accessibilityState={{ disabled: disabled || loading, busy: loading }}
         accessibilityLabel={label}
-        style={fullWidth && styles.fullWidth}
+        style={[
+          styles.surface,
+          fullWidth && styles.fullWidth,
+          { height, backgroundColor: bg, borderColor: border },
+        ]}
       >
-        <View
-          style={[
-            styles.surface,
-            { height, backgroundColor: bg },
-            fullWidth && styles.fullWidth,
-          ]}
-        >
-          <View style={[styles.content, { paddingHorizontal: px }]}>
-            {loading ? (
-              <ActivityIndicator color={labelColor} size="small" />
-            ) : (
-              <>
-                {leftIcon}
-                <Text style={[styles.label, { fontSize, color: labelColor }]}>{label}</Text>
-                {rightIcon}
-              </>
-            )}
-          </View>
-          <View pointerEvents="none" style={[styles.border, { borderColor }]} />
+        <View style={[styles.content, { paddingHorizontal: px }]}>
+          {loading ? (
+            <ActivityIndicator color={color} size="small" />
+          ) : (
+            <>
+              {leftIcon}
+              <Text style={[styles.label, { fontSize, color }]}>{label}</Text>
+              {rightIcon}
+            </>
+          )}
         </View>
       </Pressable>
     </Animated.View>
@@ -142,10 +136,16 @@ export function SignalButton({
 const styles = StyleSheet.create({
   wrapper: {
     borderRadius: BorderRadius.xl,
+    alignSelf: 'flex-start',
+  },
+  fullWidth: {
+    width: '100%',
+    borderRadius: BorderRadius.xl,
   },
   surface: {
-    overflow: 'hidden',
+    borderWidth: 1,
     borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
   },
   content: {
     flex: 1,
@@ -154,16 +154,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  border: {
-    ...StyleSheet.absoluteFillObject,
-    borderWidth: 1,
-    borderRadius: BorderRadius.xl,
-  },
   label: {
     fontFamily: 'GeneralSans-Semibold',
     fontWeight: FontWeight.semibold,
-  },
-  fullWidth: {
-    width: '100%',
   },
 });

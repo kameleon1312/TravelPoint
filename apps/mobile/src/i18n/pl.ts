@@ -26,7 +26,7 @@ export const pl = {
 
   // Spots
   spots: {
-    dropSpot:       'Oznacz miejsce',
+    dropSpot:       'Drop',
     hiddenSpot:     'Ukryty Spot',
     lockedSpot:     'Zablokowane',
     unlockRequires: 'Wymaga',
@@ -58,7 +58,7 @@ export const pl = {
     startRecording:      'Nagraj Journey',
     stopRecording:       'Zatrzymaj nagrywanie',
     stopBtn:             '⏹ Zatrzymaj',
-    recordBtn:           'Nagraj',
+    recordBtn:           'Wyprawa',
     journeyNameLabel:    'Nazwa Journey',
     journeyNameHint:     'np. Poranny urbex w Łodzi...',
     startBtn:            'Rozpocznij',
