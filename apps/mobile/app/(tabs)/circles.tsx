@@ -6,7 +6,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { useMyCircles } from '@/hooks/useCircles';
 import { useAuthStore } from '@/stores/auth';
@@ -76,25 +75,29 @@ export default function CirclesScreen() {
           keyExtractor={(c) => c.id}
           renderItem={({ item, index }) => {
             const roleColor = ROLE_COLORS[item.role] ?? Colors.signal;
+            const memberCount = (item as unknown as { _count?: { members: number } })._count?.members;
+            const initial = item.name[0]?.toUpperCase() ?? '◎';
             return (
               <Animated.View entering={FadeInDown.delay(index * 50).duration(350)}>
-                <Pressable onPress={() => router.push(`/circle/${item.slug ?? item.id}`)}>
-                  <GlassCard style={styles.card}>
+                <Pressable
+                  onPress={() => router.push(`/circle/${item.slug ?? item.id}`)}
+                  style={styles.card}
+                >
+                  <View style={[styles.cardBand, { backgroundColor: roleColor + '18' }]}>
+                    <Text style={[styles.cardBandInitial, { color: roleColor }]}>{initial}</Text>
+                    <Text style={[styles.cardBandIcon, { color: roleColor + '80' }]}>
+                      {ROLE_ICONS[item.role] ?? '◎'}
+                    </Text>
+                  </View>
+                  <View style={styles.cardBody}>
                     <View style={styles.cardTop}>
-                      <View style={styles.cardLeft}>
-                        <View style={[styles.circleAvatar, { borderColor: roleColor + '60' }]}>
-                          <Text style={[styles.circleAvatarText, { color: roleColor }]}>
-                            {ROLE_ICONS[item.role] ?? '◎'}
-                          </Text>
-                        </View>
-                        <View style={styles.cardInfo}>
-                          <Text style={styles.circleName} numberOfLines={1}>{item.name}</Text>
-                          {item.slug && (
-                            <Text style={styles.circleSlug}>@{item.slug}</Text>
-                          )}
-                        </View>
+                      <View style={styles.cardInfo}>
+                        <Text style={styles.circleName} numberOfLines={1}>{item.name}</Text>
+                        {item.slug && (
+                          <Text style={styles.circleSlug}>@{item.slug}</Text>
+                        )}
                       </View>
-                      <View style={[styles.roleBadge, { borderColor: roleColor + '50' }]}>
+                      <View style={[styles.roleBadge, { borderColor: roleColor + '60', backgroundColor: roleColor + '14' }]}>
                         <Text style={[styles.roleText, { color: roleColor }]}>
                           {ROLE_LABELS[item.role] ?? item.role}
                         </Text>
@@ -111,13 +114,11 @@ export default function CirclesScreen() {
                           <Text style={styles.metaTagText}>◑ Invite only</Text>
                         </View>
                       )}
-                      {(item as unknown as { _count?: { members: number } })._count?.members !== undefined && (
-                        <Text style={styles.memberCount}>
-                          {(item as unknown as { _count: { members: number } })._count.members} członków
-                        </Text>
+                      {memberCount !== undefined && (
+                        <Text style={styles.memberCount}>{memberCount} członków</Text>
                       )}
                     </View>
-                  </GlassCard>
+                  </View>
                 </Pressable>
               </Animated.View>
             );
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
     color: Colors.starFaint, letterSpacing: 3, textTransform: 'uppercase',
   },
-  heading: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h2, color: Colors.starlight },
+  heading: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h1, color: Colors.starlight },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: {
@@ -186,19 +187,37 @@ const styles = StyleSheet.create({
 
   list: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.sm },
 
-  card: { gap: Spacing.sm },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
-  circleAvatar: {
-    width: 36, height: 36, borderRadius: 18,
-    borderWidth: 1.5, backgroundColor: Colors.graphiteSoft,
-    alignItems: 'center', justifyContent: 'center',
+  card: {
+    flexDirection: 'row',
+    backgroundColor: Colors.graphite,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  circleAvatarText: { fontFamily: 'SpaceMono-Regular', fontSize: 16 },
+  cardBand: {
+    width: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  cardBandInitial: {
+    fontFamily: 'ClashDisplay-Bold',
+    fontSize: 26,
+  },
+  cardBandIcon: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: 13,
+  },
+  cardBody: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    gap: 6,
+  },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.sm },
   cardInfo: { flex: 1, gap: 2 },
-  circleName: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight },
+  circleName: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.body, color: Colors.starlight },
   circleSlug: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starFaint },
-  roleBadge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.md, paddingVertical: 3 },
+  roleBadge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   roleText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, textTransform: 'uppercase' },
   desc: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, lineHeight: 20 },
   cardMeta: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },

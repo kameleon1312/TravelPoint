@@ -10,7 +10,6 @@ import * as Location from 'expo-location';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { useAuthStore } from '@/stores/auth';
 import { SignalButton } from '@/components/ui/SignalButton';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { useMarkSignalsSeen, useInfiniteSignals, SIGNAL_LABELS, SIGNAL_ICONS } from '@/hooks/useSignals';
 import { formatRelative } from '@travelpoint/utils';
 import { api } from '@/lib/api';
@@ -869,23 +868,29 @@ export default function IdentityScreen() {
           />
         </View>
 
-        <View style={styles.statsRow}>
-          <GlassCard style={styles.statCard}>
+        <View style={styles.statsGrid}>
+          <View style={styles.statCell}>
             <Text style={styles.statValue}>{String(explorer.trustScore)}</Text>
             <Text style={styles.statLabel}>Reputacja</Text>
-          </GlassCard>
-          <GlassCard style={styles.statCard}>
-            <Text style={styles.statValue}>{TIER_BADGE_COLORS[explorer.tier]?.label ?? explorer.tier}</Text>
+          </View>
+          <View style={styles.statCell}>
+            <Text style={[styles.statValue, { color: TIER_BADGE_COLORS[explorer.tier]?.text ?? Colors.starlight }]}>
+              {TIER_BADGE_COLORS[explorer.tier]?.label ?? explorer.tier}
+            </Text>
             <Text style={styles.statLabel}>Plan</Text>
-          </GlassCard>
-          <Pressable style={styles.statCardWrap} onPress={() => setArchPickerVisible(true)}>
-            <GlassCard style={[styles.statCard, styles.statCardTappable]}>
-              <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
-                {ARCHETYPE_LABELS[explorer.archetype] ?? explorer.archetype}
-              </Text>
-              <Text style={[styles.statLabel, { color: Colors.aurora + 'A0' }]}>Archetyp ›</Text>
-            </GlassCard>
+          </View>
+          <Pressable style={styles.statCell} onPress={() => setArchPickerVisible(true)}>
+            <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+              {ARCHETYPE_LABELS[explorer.archetype] ?? explorer.archetype}
+            </Text>
+            <Text style={[styles.statLabel, { color: Colors.aurora + 'A0' }]}>Archetyp ›</Text>
           </Pressable>
+          <View style={styles.statCell}>
+            <Text style={[styles.statValue, { color: rankColor }]}>
+              {RANK_LABELS[explorer.rank] ?? explorer.rank}
+            </Text>
+            <Text style={styles.statLabel}>Ranga</Text>
+          </View>
         </View>
 
         {/* Quick access links */}
@@ -898,13 +903,13 @@ export default function IdentityScreen() {
         </View>
 
         {explorer.bio && (
-          <GlassCard style={styles.section}>
+          <View style={styles.section}>
             <Text style={styles.sectionLabel}>Bio</Text>
             <Text style={styles.bioText}>{explorer.bio}</Text>
-          </GlassCard>
+          </View>
         )}
 
-        <GlassCard style={styles.section}>
+        <View style={styles.section}>
           <View style={styles.signalsSectionHeader}>
             <Text style={styles.sectionLabel}>Obsesje</Text>
             <Pressable onPress={() => setObsModalVisible(true)} hitSlop={8}>
@@ -924,10 +929,10 @@ export default function IdentityScreen() {
               Dodaj swoje obsesje — miejsca, klimaty, styl odkrywania.
             </Text>
           )}
-        </GlassCard>
+        </View>
 
         {allSignals.length > 0 && (
-          <GlassCard style={styles.section}>
+          <View style={styles.section}>
             <View style={styles.signalsSectionHeader}>
               <Text style={styles.sectionLabel}>Sygnały</Text>
               {allSignals.some((s) => !s.seenAt) && (
@@ -956,7 +961,7 @@ export default function IdentityScreen() {
                 </Text>
               </Pressable>
             )}
-          </GlassCard>
+          </View>
         )}
 
         {/* Billing / Tier section */}
@@ -986,7 +991,7 @@ export default function IdentityScreen() {
         </Pressable>
 
         {/* Privacy & Data — GDPR */}
-        <GlassCard style={styles.section}>
+        <View style={styles.section}>
           <Text style={styles.sectionLabel}>Prywatność i dane</Text>
 
           {/* Presence toggle */}
@@ -1065,7 +1070,7 @@ export default function IdentityScreen() {
               )}
             </View>
           </View>
-        </GlassCard>
+        </View>
 
         <SignalButton
           label={isExporting ? 'Eksportowanie...' : '⬇ Pobierz moje dane (RODO)'}
@@ -1147,8 +1152,8 @@ export default function IdentityScreen() {
 const styles = StyleSheet.create({
   root:        { flex: 1, backgroundColor: Colors.abyss },
   loadingRoot: { flex: 1, backgroundColor: Colors.abyss, alignItems: 'center', justifyContent: 'center' },
-  scroll: { padding: Spacing.xl, gap: Spacing.xl },
-  header: { alignItems: 'center', gap: Spacing.md },
+  scroll: { paddingTop: Spacing.md, paddingBottom: Spacing.xl, gap: Spacing.md },
+  header: { alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.sm },
   eyebrow: {
     fontFamily: 'SpaceMono-Regular',
     fontSize: FontSize.micro,
@@ -1157,20 +1162,20 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   avatarWrapper: {
-    width: 96, height: 96,
+    width: 112, height: 112,
     alignItems: 'center', justifyContent: 'center',
   },
   avatarRing: {
-    width: 88, height: 88, borderRadius: 44, borderWidth: 2,
+    width: 104, height: 104, borderRadius: 52, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
-    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 4,
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 10,
   },
   avatar: {
-    width: 76, height: 76, borderRadius: 38,
+    width: 92, height: 92, borderRadius: 46,
     backgroundColor: Colors.cosmicBlue, alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
   },
-  avatarLetter: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h2, color: Colors.aurora },
+  avatarLetter: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h1, color: Colors.aurora },
   avatarEditBadge: {
     position: 'absolute', bottom: 0, right: 0,
     width: 28, height: 28, borderRadius: 14,
@@ -1193,17 +1198,32 @@ const styles = StyleSheet.create({
   displayName: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star },
   rankBadge: { borderWidth: 1, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs },
   rankText: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.caption, letterSpacing: 2, textTransform: 'uppercase' },
-  statsRow: { flexDirection: 'row', gap: Spacing.md },
-  statCardWrap: { flex: 1 },
-  statCard: { flex: 1, alignItems: 'center' },
-  statCardTappable: { borderColor: Colors.aurora + '40' },
-  statValue: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight, textAlign: 'center' },
-  statLabel: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.micro, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center', marginTop: 2 },
+  statsGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: Spacing.xl, gap: Spacing.sm, marginBottom: Spacing.sm,
+  },
+  statCell: {
+    flex: 1, minWidth: '45%',
+    backgroundColor: Colors.graphite,
+    borderRadius: 14,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: 4,
+  },
+  statValue: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h4, color: Colors.starlight },
+  statLabel: { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
   obsEmptyNote: {
     fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm,
     color: Colors.starGhost, fontStyle: 'italic', lineHeight: 20,
   },
-  section: { gap: Spacing.sm },
+  section: {
+    backgroundColor: Colors.graphite,
+    borderRadius: 16,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.xl,
+  },
   sectionLabel: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.caption, color: Colors.starFaint, textTransform: 'uppercase', letterSpacing: 1 },
   bioText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star, lineHeight: 22 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
@@ -1280,8 +1300,9 @@ const styles = StyleSheet.create({
     color: Colors.starGhost, textAlign: 'center', lineHeight: 18,
   },
   quickLinks: {
-    backgroundColor: Colors.graphite, borderWidth: 1, borderColor: Colors.steel,
+    backgroundColor: Colors.graphite,
     borderRadius: 14, overflow: 'hidden',
+    marginHorizontal: Spacing.xl,
   },
   quickLink: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
