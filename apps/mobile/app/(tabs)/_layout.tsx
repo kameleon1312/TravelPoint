@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withSequence,
@@ -89,10 +90,11 @@ function TabItem({
       <Animated.View style={[styles.pill, pillStyle]}>
         <Ionicons
           name={focused ? cfg.icon : cfg.iconOff}
-          size={22}
+          size={20}
           color={focused ? Colors.abyss : Colors.starFaint}
         />
       </Animated.View>
+      <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{cfg.label}</Text>
 
       {badge && badge > 0 ? (
         <View style={[styles.badge, { backgroundColor: badgeColor ?? Colors.ember }]}>
@@ -111,7 +113,9 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
 
   return (
     <View style={[styles.barOuter, { paddingBottom: insets.bottom + 10 }]}>
-      <View style={styles.barInner}>
+      <View style={styles.barShell}>
+        <BlurView style={StyleSheet.absoluteFill} intensity={55} tint="dark" />
+        <View style={[StyleSheet.absoluteFill, styles.barOverlay]} />
         <View style={styles.tabsRow}>
           {state.routes.map((route: NavRoute, index: number) => {
             const name    = route.name as TabName;
@@ -200,9 +204,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
   },
-  barInner: {
-    backgroundColor: Colors.graphite,
+  barShell: {
     borderRadius: 32,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.steel,
     shadowColor: '#000000',
@@ -211,9 +215,12 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 12,
   },
+  barOverlay: {
+    backgroundColor: 'rgba(237,232,223,0.04)',
+  },
   tabsRow: {
     flexDirection: 'row',
-    height: 62,
+    height: 76,
     alignItems: 'center',
     paddingHorizontal: 6,
   },
@@ -223,7 +230,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 62,
+    height: 76,
+    gap: 2,
+  },
+  tabLabel: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: 8,
+    color: Colors.starGhost,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  tabLabelActive: {
+    color: Colors.starFaint,
   },
 
   // SCAPES pill: active = starlight, inactive = transparent. Fixed size — no layout animation.

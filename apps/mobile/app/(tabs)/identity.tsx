@@ -6,7 +6,7 @@ import Animated, {
   useAnimatedScrollHandler, interpolate, type SharedValue,
 } from 'react-native-reanimated';
 import * as ImagePickerTypes from 'expo-image-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
@@ -567,9 +567,9 @@ type ExportPayload = {
 // ── Trait carousel ────────────────────────────────────────────────────────────
 
 const SCREEN_W_ID   = Dimensions.get('window').width;
-const TRAIT_W       = 190;
-const TRAIT_H       = 230;
-const TRAIT_GAP     = 12;
+const TRAIT_W       = Math.round(SCREEN_W_ID * 0.72);
+const TRAIT_H       = 280;
+const TRAIT_GAP     = 14;
 const TRAIT_SNAP    = TRAIT_W + TRAIT_GAP;
 const CAROUSEL_PAD  = (SCREEN_W_ID - TRAIT_W) / 2;
 
@@ -597,9 +597,19 @@ function TraitCard({
     const lo = (index - 1) * TRAIT_SNAP;
     const mid = index * TRAIT_SNAP;
     const hi = (index + 1) * TRAIT_SNAP;
-    const scale   = interpolate(scrollX.value, [lo, mid, hi], [0.82, 1, 0.82], 'clamp');
-    const opacity = interpolate(scrollX.value, [lo, mid, hi], [0.42, 1, 0.42], 'clamp');
-    return { transform: [{ scale }], opacity };
+    const scale   = interpolate(scrollX.value, [lo, mid, hi], [0.86, 1, 0.86], 'clamp');
+    const opacity = interpolate(scrollX.value, [lo, mid, hi], [0.5, 1, 0.5], 'clamp');
+    const rotate  = interpolate(scrollX.value, [lo, mid, hi], [14, 0, -14], 'clamp');
+    const ty      = interpolate(scrollX.value, [lo, mid, hi], [12, 0, 12], 'clamp');
+    return {
+      transform: [
+        { perspective: 900 },
+        { rotateY: `${rotate}deg` },
+        { scale },
+        { translateY: ty },
+      ],
+      opacity,
+    };
   });
 
   return (
@@ -611,6 +621,13 @@ function TraitCard({
           end={{ x: 1, y: 1 }}
           style={traitStyles.gradient}
         >
+          <LinearGradient
+            colors={['rgba(237,232,223,0.11)', 'rgba(237,232,223,0)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0.6 }}
+            style={traitStyles.gloss}
+            pointerEvents="none"
+          />
           <View style={traitStyles.top}>
             <Text style={[traitStyles.icon, { color: trait.color }]}>{trait.icon}</Text>
             {trait.editable && (
@@ -638,7 +655,8 @@ function TraitCard({
 }
 
 const traitStyles = StyleSheet.create({
-  card:     { flex: 1, borderRadius: 20, overflow: 'hidden' },
+  card:     { flex: 1, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(237,232,223,0.08)' },
+  gloss:    { position: 'absolute', top: 0, left: 0, right: 0, height: '55%', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   gradient: { flex: 1, padding: Spacing.lg, justifyContent: 'space-between' },
   top:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   icon:     { fontFamily: 'SpaceMono-Regular', fontSize: 22 },
@@ -659,6 +677,7 @@ const traitStyles = StyleSheet.create({
 });
 
 export default function IdentityScreen() {
+  const insets = useSafeAreaInsets();
   const { explorer, logout, setExplorer, deleteAccount, pendingRankUp, clearPendingRankUp } = useAuthStore();
   const { mutate: markSeen, isPending: markingAllSeen } = useMarkSignalsSeen();
   const signalsQuery = useInfiniteSignals();
@@ -952,7 +971,7 @@ export default function IdentityScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
 

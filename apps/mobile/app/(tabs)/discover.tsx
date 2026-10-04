@@ -3,7 +3,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
@@ -249,6 +249,7 @@ function EmptyState({
 type Segment = 'feed' | 'discover';
 
 export default function DiscoverScreen() {
+  const insets = useSafeAreaInsets();
   const [segment, setSegment]               = useState<Segment>('feed');
   const [coords, setCoords]                 = useState<{ lat: number; lng: number } | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
@@ -348,7 +349,7 @@ export default function DiscoverScreen() {
                 data={feedItems}
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => <FeedCard item={item} />}
-              contentContainerStyle={styles.feedList}
+              contentContainerStyle={[styles.feedList, { paddingBottom: insets.bottom + 100 }]}
               ItemSeparatorComponent={() => <View style={{ height: Spacing.md }} />}
               showsVerticalScrollIndicator={false}
               onEndReached={() => { if (feedHasNext && !feedFetchingNext) void feedFetchNext(); }}
@@ -436,7 +437,7 @@ export default function DiscoverScreen() {
                 renderItem={({ item }) => <SpotCard spot={item} />}
                 numColumns={2}
                 columnWrapperStyle={styles.spotGridRow}
-                contentContainerStyle={styles.spotGridList}
+                contentContainerStyle={[styles.spotGridList, { paddingBottom: insets.bottom + 100 }]}
                 showsVerticalScrollIndicator={false}
               />
             </>
