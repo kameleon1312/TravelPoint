@@ -7,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
   useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
@@ -254,6 +254,8 @@ export default function DiscoverScreen() {
   const [coords, setCoords]                 = useState<{ lat: number; lng: number } | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const spotListRef = useRef<FlatList<SpotForViewer>>(null);
+  const feedListRef = useRef<FlatList<FeedItem>>(null);
 
   const {
     data: feedData,
@@ -286,7 +288,13 @@ export default function DiscoverScreen() {
 
   useEffect(() => {
     if (segment === 'discover' && !coords) void requestLocation();
+    // Reset category and scroll when switching segments
+    setActiveCategory(null);
   }, [segment]);
+
+  useEffect(() => {
+    spotListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [activeCategory]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -346,6 +354,7 @@ export default function DiscoverScreen() {
                 <Text style={styles.sectionTitle}>Dla ciebie</Text>
               </View>
               <FlatList
+                ref={feedListRef}
                 data={feedItems}
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => <FeedCard item={item} />}
@@ -432,6 +441,7 @@ export default function DiscoverScreen() {
                 <Text style={styles.sectionTitle}>W pobliżu</Text>
               </View>
               <FlatList
+                ref={spotListRef}
                 data={filteredSpots}
                 keyExtractor={(s) => s.id}
                 renderItem={({ item }) => <SpotCard spot={item} />}

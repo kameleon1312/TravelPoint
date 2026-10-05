@@ -1242,6 +1242,7 @@ export default function IdentityScreen() {
           haptic="light"
         />
 
+        <View style={styles.logoutDivider} />
         <SignalButton label="Wyloguj" onPress={logout} variant="ghost" size="md" fullWidth />
 
         {/* Danger zone */}
@@ -1477,6 +1478,13 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
   },
   homeBaseActions: { flexDirection: 'row', gap: Spacing.sm },
+
+  logoutDivider: {
+    height: 1,
+    backgroundColor: Colors.steel,
+    marginHorizontal: Spacing.xl,
+    marginTop: Spacing.xs,
+  },
 
   // Danger zone
   dangerZone: { gap: Spacing.md, paddingTop: Spacing.md },

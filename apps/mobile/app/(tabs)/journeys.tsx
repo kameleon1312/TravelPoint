@@ -84,8 +84,15 @@ export default function JourneysScreen() {
           <Text style={styles.emptyIcon}>◎</Text>
           <Text style={styles.emptyTitle}>Jeszcze bez wypraw</Text>
           <Text style={styles.emptySub}>
-            Twoje journeys pojawią się tutaj. Zacznij nową wyprawę z mapy.
+            Twoje journeys pojawią się tutaj. Wyjdź na trasę i zacznij nagrywać na mapie.
           </Text>
+          <SignalButton
+            label="Otwórz Atlas"
+            onPress={() => router.navigate('/(tabs)')}
+            variant="signal"
+            size="md"
+            haptic="light"
+          />
         </View>
       )}
 
