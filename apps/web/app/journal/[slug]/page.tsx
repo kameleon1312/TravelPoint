@@ -2,15 +2,16 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { WorldNav } from '@/components/layout/WorldNav';
-import { JOURNAL_POSTS, RANK_COLORS } from '@/lib/journal';
-import { fetchJournalPost } from '@/lib/journalApi';
+import { RANK_COLORS } from '@/lib/journal';
+import { fetchJournalPost, fetchJournalPosts } from '@/lib/journalApi';
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  return JOURNAL_POSTS.map((p) => ({ slug: p.slug }));
+  const posts = await fetchJournalPosts();
+  return posts.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -54,16 +55,18 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export default async function JournalPostPage({ params }: Props): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const post = await fetchJournalPost(slug);
+  const [post, allPosts] = await Promise.all([
+    fetchJournalPost(slug),
+    fetchJournalPosts(),
+  ]);
   if (!post) notFound();
 
   const rankColor   = RANK_COLORS[post.author.rank] ?? RANK_COLORS['EXPLORER'];
   const accentColor = post.accentColor;
 
-  // Find prev/next — check static list for ordering; DB posts don't have neighbors yet
-  const idx  = JOURNAL_POSTS.findIndex((p) => p.slug === slug);
-  const prev = JOURNAL_POSTS[idx - 1] ?? null;
-  const next = JOURNAL_POSTS[idx + 1] ?? null;
+  const idx  = allPosts.findIndex((p) => p.slug === slug);
+  const prev = allPosts[idx - 1] ?? null;
+  const next = allPosts[idx + 1] ?? null;
 
   return (
     <>
