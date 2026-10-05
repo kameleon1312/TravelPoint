@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   description: 'Pobierz TravelPoint CORE na Androida. Ukryte miejsca, kręgi eksploratorów, nagrywanie tras — pełne doświadczenie w aplikacji mobilnej.',
 };
 
-const APK_URL = process.env['NEXT_PUBLIC_APK_URL'] ?? '';
+// Falls back to a file served from apps/web/public/ — drop travelpoint-core.apk there.
+// Override with NEXT_PUBLIC_APK_URL env var to point to an external CDN.
+const APK_URL = process.env['NEXT_PUBLIC_APK_URL'] ?? '/travelpoint-core.apk';
 
 const INSTALL_STEPS = [
   {
@@ -72,22 +74,14 @@ export default function DownloadPage(): ReactElement {
                 </p>
               </div>
             </div>
-            {APK_URL ? (
-              <a
-                href={APK_URL}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-aurora font-sans text-sm font-semibold text-void transition-all hover:brightness-110 active:scale-[0.98]"
-              >
-                <span>Pobierz APK</span>
-                <span className="font-mono text-[11px] opacity-70">↓</span>
-              </a>
-            ) : (
-              <div className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-graphite border border-steel font-sans text-sm text-starFaint cursor-not-allowed select-none">
-                Pobierz APK
-                <span className="font-mono text-[10px] uppercase tracking-wider text-starGhost border border-steel/60 px-1.5 py-0.5 rounded ml-1">
-                  Wkrótce
-                </span>
-              </div>
-            )}
+            <a
+              href={APK_URL}
+              download
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-aurora font-sans text-sm font-semibold text-void transition-all hover:brightness-110 active:scale-[0.98]"
+            >
+              <span>Pobierz APK</span>
+              <span className="font-mono text-[11px] opacity-70">↓</span>
+            </a>
           </div>
 
           {/* iOS TestFlight — secondary */}
