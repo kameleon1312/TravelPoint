@@ -1033,10 +1033,7 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 8,
     borderWidth: 1,
-    borderTopColor: 'rgba(237,232,223,0.25)',
-    borderLeftColor: 'rgba(237,232,223,0.10)',
-    borderRightColor: 'rgba(92,184,140,0.60)',
-    borderBottomColor: 'rgba(92,184,140,0.60)',
+    borderColor: 'rgba(237,232,223,0.18)',
   },
   dropBtnText: {
     fontFamily: 'GeneralSans-Semibold',
