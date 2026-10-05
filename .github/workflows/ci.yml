@@ -14,7 +14,7 @@ jobs:
   # ── Type-check ───────────────────────────────────────────────────────────────
   type-check:
     name: Type check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -46,7 +46,7 @@ jobs:
   # ── Lint ─────────────────────────────────────────────────────────────────────
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -81,7 +81,7 @@ jobs:
   # ── Security tests ───────────────────────────────────────────────────────────
   test-api:
     name: API security tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -107,7 +107,7 @@ jobs:
   # ── Build web (smoke test) ────────────────────────────────────────────────────
   build-web:
     name: Build Web
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # Minimal env so Next.js build doesn't crash on missing vars
       NEXT_PUBLIC_API_URL: https://travelpointapi-production.up.railway.app
@@ -136,7 +136,7 @@ jobs:
   # ── Migration drift check ─────────────────────────────────────────────────────
   migration-check:
     name: Migration drift check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -162,7 +162,7 @@ jobs:
 
   secret-scan:
     name: Secret scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
