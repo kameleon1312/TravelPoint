@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { z } from 'zod';
-import { Colors, FontSize, Spacing } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { pl } from '@/i18n/pl';
 import { useAuthStore } from '@/stores/auth';
@@ -84,57 +84,58 @@ export default function LoginScreen() {
               </View>
 
               {/* Form panel */}
-              <View style={styles.formPanel}>
-                <Controller
-                  control={control}
-                  name="email"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={[styles.input, errors.email && styles.inputError]}
-                      placeholder={pl.auth.emailPlaceholder}
-                      placeholderTextColor={Colors.starGhost}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoComplete="email"
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  )}
-                />
+              <View style={styles.glassPanel}>
+                <View style={styles.form}>
+                  <Controller
+                    control={control}
+                    name="email"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={[styles.input, errors.email && styles.inputError]}
+                        placeholder={pl.auth.emailPlaceholder}
+                        placeholderTextColor={Colors.starGhost}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                    )}
+                  />
 
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={[styles.input, errors.password && styles.inputError]}
-                      placeholder={pl.auth.passwordPlaceholder}
-                      placeholderTextColor={Colors.starGhost}
-                      secureTextEntry
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  )}
-                />
+                  <Controller
+                    control={control}
+                    name="password"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={[styles.input, errors.password && styles.inputError]}
+                        placeholder={pl.auth.passwordPlaceholder}
+                        placeholderTextColor={Colors.starGhost}
+                        secureTextEntry
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                    )}
+                  />
 
-                {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
+                  {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
 
-                {/* CTA pill — SCAPES white pill style */}
-                <SignalButton
-                  label={pl.auth.loginCta}
-                  onPress={handleSubmit(onSubmit)}
-                  variant="aurora"
-                  size="lg"
-                  loading={isSubmitting}
-                  fullWidth
-                  haptic="medium"
-                />
+                  <SignalButton
+                    label={pl.auth.loginCta}
+                    onPress={handleSubmit(onSubmit)}
+                    variant="aurora"
+                    size="lg"
+                    loading={isSubmitting}
+                    fullWidth
+                    haptic="medium"
+                  />
 
-                <View style={styles.row}>
-                  <Text style={styles.rowText}>{pl.auth.noAccount} </Text>
-                  <Text style={styles.rowLink} onPress={() => router.push('/(auth)/join')}>
-                    {pl.auth.joinCta}
-                  </Text>
+                  <View style={styles.row}>
+                    <Text style={styles.rowText}>{pl.auth.noAccount} </Text>
+                    <Text style={styles.rowLink} onPress={() => router.push('/(auth)/join')}>
+                      {pl.auth.joinCta}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </ScrollView>
@@ -196,15 +197,26 @@ const styles = StyleSheet.create({
     color: 'rgba(237,232,223,0.65)',
     lineHeight: 24,
   },
-  formPanel: {
-    gap: Spacing.md,
-  },
-  input: {
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'rgba(19,26,31,0.85)',
+  glassPanel: {
+    backgroundColor: 'rgba(13,16,19,0.92)',
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(237,232,223,0.12)',
+    borderColor: 'rgba(237,232,223,0.10)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 12,
+    overflow: 'hidden',
+    padding: Spacing.xl,
+  },
+  form: { gap: Spacing.lg },
+  input: {
+    height: 52,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.graphite,
+    borderWidth: 1,
+    borderColor: Colors.steel,
     paddingHorizontal: Spacing.xl,
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.body,
@@ -215,8 +227,9 @@ const styles = StyleSheet.create({
     fontFamily: 'GeneralSans-Regular',
     fontSize: FontSize.caption,
     color: Colors.danger,
+    marginLeft: Spacing.sm,
   },
   row: { flexDirection: 'row', justifyContent: 'center', paddingTop: 4 },
-  rowText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: 'rgba(237,232,223,0.55)' },
+  rowText: { fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm, color: Colors.star },
   rowLink: { fontFamily: 'GeneralSans-Semibold', fontSize: FontSize.bodySm, color: Colors.aurora },
 });
