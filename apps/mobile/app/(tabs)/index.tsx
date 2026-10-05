@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, Platform, Pressable, Alert,
-  Modal, TextInput, KeyboardAvoidingView, ScrollView,
+  Modal, TextInput, KeyboardAvoidingView, ScrollView, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -792,7 +792,9 @@ export default function AtlasScreen() {
 
       {/* Top bar */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
-        <Text style={styles.logo}>TP</Text>
+        <View style={styles.logoWrap}>
+          <Image source={require('../../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+        </View>
         <Pressable
           style={styles.searchPill}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -862,9 +864,9 @@ export default function AtlasScreen() {
               style={styles.dropBtn}
               onPress={() => router.push('/modals/new-spot')}
               accessibilityRole="button"
+              accessibilityLabel={pl.spots.dropSpot}
             >
-              <Ionicons name="add-circle" size={20} color={Colors.void} />
-              <Text style={styles.dropBtnText}>{pl.spots.dropSpot}</Text>
+              <Ionicons name="flag" size={20} color={Colors.aurora} />
             </Pressable>
             <Pressable
               style={styles.recordBtn}
@@ -948,18 +950,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
   },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  logo: {
-    fontFamily: 'ClashDisplay-Bold',
-    fontSize: 13,
-    color: Colors.starlight,
+  logoWrap: {
+    width: 38, height: 38,
     backgroundColor: 'rgba(13,18,22,0.80)',
-    paddingHorizontal: 9,
-    paddingVertical: 6,
     borderRadius: 10,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.glassBorder,
+    alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
   },
+  logoImg: { width: 26, height: 26 },
   searchPill: {
     flex: 1,
     flexDirection: 'row',
@@ -1057,34 +1057,28 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 0, right: 0,
     paddingHorizontal: Spacing.xl,
   },
-  bottomActions: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'stretch' },
-  // Drop spot — aurora gradient pill with strong glow
+  bottomActions: { flexDirection: 'row', gap: Spacing.sm },
   dropBtn: {
-    flex: 1,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: Colors.aurora,
-    borderRadius: 22,
-    paddingVertical: 16,
-    shadowColor: Colors.aurora,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.70,
-    shadowRadius: 18,
-    elevation: 8,
+    width: 54,
+    alignSelf: 'stretch',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(13,18,22,0.82)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(237,232,223,0.18)',
-  },
-  dropBtnText: {
-    fontFamily: 'GeneralSans-Semibold',
-    fontSize: 15,
-    color: Colors.void,
-    letterSpacing: 0.3,
+    borderColor: Colors.aurora + '55',
+    shadowColor: Colors.aurora,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.30,
+    shadowRadius: 10,
+    elevation: 5,
   },
   recordBtn: {
+    flex: 1,
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(12,16,19,0.92)',
     borderRadius: 22, borderWidth: 1, borderColor: Colors.ember + '60',
     paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
-    minWidth: 84, justifyContent: 'center',
+    justifyContent: 'center',
     shadowColor: Colors.ember,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -1130,21 +1124,21 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   chip: {
-    backgroundColor: Colors.graphite + 'E8',
+    backgroundColor: 'rgba(13,18,22,0.72)',
     borderRadius: BorderRadius.pill,
     borderWidth: 1,
-    borderColor: Colors.steel,
+    borderColor: 'rgba(237,232,223,0.18)',
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
   },
   chipActive: {
-    backgroundColor: Colors.aurora + '22',
-    borderColor: Colors.aurora + '70',
+    backgroundColor: Colors.aurora + '20',
+    borderColor: Colors.aurora + '75',
   },
   chipText: {
     fontFamily: 'GeneralSans-Regular',
     fontSize: 12,
-    color: Colors.starFaint,
+    color: Colors.star,
   },
   chipTextActive: {
     color: Colors.aurora,
