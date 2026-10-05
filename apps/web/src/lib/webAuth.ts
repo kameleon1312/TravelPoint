@@ -49,6 +49,47 @@ export async function signInWithPassword(email: string, password: string): Promi
   return data.access_token;
 }
 
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  handle: string,
+  inviteCode?: string,
+): Promise<'confirm_email' | 'logged_in'> {
+  // Persist handle so verify-email can call complete-signup even on a different tab
+  try {
+    sessionStorage.setItem(
+      'tp_pending_signup',
+      JSON.stringify({ handle, ...(inviteCode ? { inviteCode } : {}) }),
+    );
+  } catch { /* */ }
+
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({
+      email,
+      password,
+      data: { handle, ...(inviteCode ? { invite_code: inviteCode } : {}) },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as {
+      error_description?: string;
+      msg?: string;
+      error?: string;
+    };
+    throw new Error(err.error_description ?? err.msg ?? err.error ?? 'Błąd rejestracji');
+  }
+
+  const data = await res.json() as { access_token?: string };
+  if (data.access_token) {
+    setStoredToken(data.access_token);
+    return 'logged_in';
+  }
+  return 'confirm_email';
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken();
   const hasBody = init?.body != null;

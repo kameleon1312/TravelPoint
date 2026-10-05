@@ -31,10 +31,11 @@ const RANK_ICONS: Record<string, string> = {
 };
 
 export default function ExplorersPage(): ReactElement {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Explorer[]>([]);
+  const [query, setQuery]       = useState('');
+  const [results, setResults]   = useState<Explorer[]>([]);
   const [searched, setSearched] = useState(false);
-  const [error, setError] = useState('');
+  const [needsLogin, setNeedsLogin] = useState(false);
+  const [error, setError]       = useState('');
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +44,7 @@ export default function ExplorersPage(): ReactElement {
     const q = query.trim();
     if (q.length < 2) { setError('Wpisz co najmniej 2 znaki.'); return; }
     setError('');
+    setNeedsLogin(false);
     startTransition(async () => {
       try {
         const data = await apiFetch<Explorer[]>(`/api/explorers/search?q=${encodeURIComponent(q)}`);
@@ -50,7 +52,8 @@ export default function ExplorersPage(): ReactElement {
         setSearched(true);
       } catch (err) {
         if (err instanceof Error && err.message === 'UNAUTHORIZED') {
-          setError('Zaloguj się, aby przeszukiwać odkrywców.');
+          setNeedsLogin(true);
+          setSearched(false);
         } else {
           setError('Błąd wyszukiwania. Spróbuj ponownie.');
         }
@@ -100,7 +103,25 @@ export default function ExplorersPage(): ReactElement {
             {error && <p className="mt-3 font-mono text-xs text-ember">{error}</p>}
           </form>
 
-          {/* Results */}
+          {/* Needs login */}
+          {needsLogin && (
+            <div className="text-center py-12 rounded-2xl border border-signal/20 bg-signal/5">
+              <p className="font-mono text-xs uppercase tracking-widest text-signal mb-3">
+                Wymagane logowanie
+              </p>
+              <p className="font-sans text-sm text-starFaint max-w-xs mx-auto leading-relaxed mb-6">
+                Wyszukiwanie eksploratorów jest dostępne dla zalogowanych członków sieci.
+              </p>
+              <Link
+                href={`/login?returnUrl=/explorers`}
+                className="inline-block px-6 py-2.5 rounded-xl bg-aurora font-sans text-sm font-semibold text-void transition-all hover:brightness-110"
+              >
+                Zaloguj się
+              </Link>
+            </div>
+          )}
+
+          {/* No results */}
           {searched && results.length === 0 && !isPending && (
             <div className="text-center py-16">
               <p className="font-mono text-xs uppercase tracking-widest text-starGhost mb-3">Brak wyników</p>
@@ -110,6 +131,7 @@ export default function ExplorersPage(): ReactElement {
             </div>
           )}
 
+          {/* Results */}
           {results.length > 0 && (
             <div className="grid gap-3">
               {results.map((explorer) => {
@@ -121,7 +143,6 @@ export default function ExplorersPage(): ReactElement {
                     href={`/explorer/${explorer.handle}`}
                     className="group flex items-center gap-4 rounded-2xl border border-steel bg-graphite px-5 py-4 hover:border-starGhost transition-colors"
                   >
-                    {/* Avatar */}
                     <div
                       className="w-11 h-11 rounded-full border-2 flex items-center justify-center flex-shrink-0"
                       style={{ borderColor: rankColor + '70' }}
@@ -133,8 +154,6 @@ export default function ExplorersPage(): ReactElement {
                         {explorer.handle[0]?.toUpperCase() ?? '?'}
                       </span>
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className="font-sans font-semibold text-starlight group-hover:text-aurora transition-colors truncate">
                         {explorer.displayName ?? `@${explorer.handle}`}
@@ -144,8 +163,6 @@ export default function ExplorersPage(): ReactElement {
                         {explorer.archetype ? ` · ${explorer.archetype}` : ''}
                       </p>
                     </div>
-
-                    {/* Rank */}
                     <div
                       className="flex-shrink-0 font-mono text-xs uppercase tracking-wider"
                       style={{ color: rankColor }}
@@ -158,15 +175,22 @@ export default function ExplorersPage(): ReactElement {
             </div>
           )}
 
-          {/* Prompt to sign in if no token */}
-          {!searched && !isPending && (
-            <div className="text-center py-16 border border-dashed border-steel rounded-3xl">
-              <p className="font-mono text-xs uppercase tracking-widest text-starGhost mb-4">
-                Sieć prywatna
+          {/* Default placeholder (not searched, not needing login) */}
+          {!searched && !needsLogin && !isPending && (
+            <div className="text-center py-16 border border-dashed border-steel/50 rounded-3xl">
+              <div className="mb-4 font-mono text-2xl text-starGhost" aria-hidden>◉</div>
+              <p className="font-mono text-xs uppercase tracking-widest text-starGhost mb-3">
+                Sieć eksploratorów
               </p>
-              <p className="font-sans text-sm text-starFaint max-w-xs mx-auto leading-relaxed">
-                Wyszukiwanie odkrywców wymaga zalogowania. Skorzystaj z aplikacji mobilnej TravelPoint lub zaloguj się na forum.
+              <p className="font-sans text-sm text-starFaint max-w-xs mx-auto leading-relaxed mb-6">
+                Wpisz handle lub imię odkrywcy. Wyszukiwanie wymaga aktywnego konta.
               </p>
+              <Link
+                href="/login?returnUrl=/explorers"
+                className="inline-block px-5 py-2.5 rounded-xl border border-steel bg-graphite font-sans text-sm text-starFaint hover:text-star hover:border-starGhost transition-colors"
+              >
+                Zaloguj się →
+              </Link>
             </div>
           )}
 

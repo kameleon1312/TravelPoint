@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { label: 'Dziennik', href: '/journal',  live: true  },
   { label: 'Mapa',     href: '/map',      live: true  },
   { label: 'Forum',    href: '/forum',    live: true  },
+  { label: 'Pobierz',  href: '/download', live: true  },
 ];
 
 export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
@@ -57,8 +58,7 @@ export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
     if (onJoinClick) {
       onJoinClick();
     } else {
-      // On non-landing pages, link to the join section
-      window.location.href = '/#join';
+      router.push('/join');
     }
   }
 
@@ -146,14 +146,21 @@ export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
               </button>
             </div>
           ) : (
-            <button
-              onClick={handleJoinClick}
-              className="px-5 py-2.5 rounded-xl font-sans text-sm font-semibold text-starlight bg-signal-gradient glow-signal
-                         transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
-            >
-              <span className="hidden sm:inline">Dołącz do sieci</span>
-              <span className="sm:hidden">Dołącz</span>
-            </button>
+            <div className="hidden md:flex items-center gap-2">
+              <Link
+                href="/login"
+                className="px-4 py-2 rounded-xl font-sans text-sm text-starFaint border border-steel/50 hover:border-starGhost hover:text-star transition-colors duration-150"
+              >
+                Zaloguj się
+              </Link>
+              <button
+                onClick={handleJoinClick}
+                className="px-5 py-2.5 rounded-xl font-sans text-sm font-semibold text-starlight bg-signal-gradient glow-signal
+                           transition-transform duration-200 hover:scale-[1.04] active:scale-[0.97]"
+              >
+                Dołącz
+              </button>
+            </div>
           )}
 
           {/* Mobile hamburger */}
@@ -222,12 +229,20 @@ export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
               </button>
             </>
           ) : (
-            <button
-              onClick={() => { setMenuOpen(false); handleJoinClick(); }}
-              className="flex items-center w-full px-5 py-4 font-sans text-sm font-semibold text-aurora hover:bg-aurora/5 border-t border-steel/30 transition-colors"
-            >
-              Dołącz do sieci
-            </button>
+            <>
+              <Link
+                href="/login"
+                className="flex items-center px-5 py-4 font-sans text-sm text-starFaint hover:text-star hover:bg-graphite/50 border-t border-steel/30 transition-colors"
+              >
+                Zaloguj się
+              </Link>
+              <button
+                onClick={() => { setMenuOpen(false); handleJoinClick(); }}
+                className="flex items-center w-full px-5 py-4 font-sans text-sm font-semibold text-aurora hover:bg-aurora/5 border-t border-steel/30 transition-colors"
+              >
+                Dołącz do sieci
+              </button>
+            </>
           )}
         </motion.div>
       )}
