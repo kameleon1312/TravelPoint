@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, Platform, Pressable, Alert,
   Modal, TextInput, KeyboardAvoidingView, ScrollView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle, useSharedValue, withRepeat, withSequence,
@@ -824,6 +825,13 @@ export default function AtlasScreen() {
         </View>
       )}
 
+      {/* Gradient scrim — gives visual grounding to floating bottom buttons */}
+      <LinearGradient
+        colors={['rgba(7,10,12,0)', 'rgba(7,10,12,0.48)', 'rgba(7,10,12,0.72)']}
+        style={[styles.bottomScrim, { height: insets.bottom + 220 }]}
+        pointerEvents="none"
+      />
+
       {/* Bottom action bar — sits above floating tab bar */}
       <View style={[styles.bottomBar, { bottom: insets.bottom + 100 }]}>
         {!isRecording ? (
@@ -1000,36 +1008,53 @@ const styles = StyleSheet.create({
   },
   recordingStopText: { fontFamily: 'GeneralSans-Semibold', fontSize: 12, color: Colors.void },
 
+  // ── Gradient scrim ───────────────────────────────────────────────────────────
+  bottomScrim: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+  },
+
   // ── Bottom action bar ────────────────────────────────────────────────────────
   bottomBar: {
     position: 'absolute', left: 0, right: 0,
     paddingHorizontal: Spacing.xl,
   },
   bottomActions: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'stretch' },
-  // Drop spot — prominent aurora pill, glowing shadow
+  // Drop spot — aurora gradient pill with strong glow
   dropBtn: {
     flex: 1,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: Colors.aurora,
-    borderRadius: 20,
-    paddingVertical: 15,
+    borderRadius: 22,
+    paddingVertical: 16,
     shadowColor: Colors.aurora,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.70,
+    shadowRadius: 18,
+    elevation: 8,
+    borderWidth: 1,
+    borderTopColor: 'rgba(237,232,223,0.25)',
+    borderLeftColor: 'rgba(237,232,223,0.10)',
+    borderRightColor: 'rgba(92,184,140,0.60)',
+    borderBottomColor: 'rgba(92,184,140,0.60)',
   },
   dropBtnText: {
     fontFamily: 'GeneralSans-Semibold',
     fontSize: 15,
     color: Colors.void,
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
   recordBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(13,16,19,0.88)',
-    borderRadius: 20, borderWidth: 1, borderColor: Colors.ember + '70',
+    backgroundColor: 'rgba(12,16,19,0.92)',
+    borderRadius: 22, borderWidth: 1, borderColor: Colors.ember + '60',
     paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
-    minWidth: 80, justifyContent: 'center',
+    minWidth: 84, justifyContent: 'center',
+    shadowColor: Colors.ember,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
   },
   recordBtnDot: {
     width: 8, height: 8, borderRadius: 4,

@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -112,10 +113,17 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
 
   return (
     <View style={[styles.barOuter, { paddingBottom: insets.bottom + 10 }]}>
-      <View style={styles.barShell}>
-        <View style={[StyleSheet.absoluteFill, styles.barBg]} />
-        <View style={[StyleSheet.absoluteFill, styles.barOverlay]} />
-        <View style={styles.tabsRow}>
+      <View style={styles.barShadow}>
+        <View style={styles.barShell}>
+          <LinearGradient
+            colors={['rgba(30,38,46,0.96)', 'rgba(12,17,22,0.96)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={[StyleSheet.absoluteFill, styles.barTint]} />
+          <View style={styles.barTopLine} />
+          <View style={styles.tabsRow}>
           {state.routes.map((route: NavRoute, index: number) => {
             const name    = route.name as TabName;
             const focused = state.index === index;
@@ -152,6 +160,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
               />
             );
           })}
+          </View>
         </View>
       </View>
     </View>
@@ -176,7 +185,16 @@ export default function TabsLayout() {
     <>
       <SocketBanner />
       <Tabs
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: {
+            position: 'absolute',
+            backgroundColor: 'transparent',
+            borderTopWidth: 0,
+            elevation: 0,
+            shadowOpacity: 0,
+          },
+        }}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tabBar={(props) => <CustomTabBar {...(props as any)} />}
       >
@@ -203,22 +221,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
   },
+  // Shadow wrapper — no overflow:hidden so Android elevation renders correctly
+  barShadow: {
+    borderRadius: 32,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.55,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  // Clip wrapper — no elevation so Android doesn't conflict
   barShell: {
     borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(237,232,223,0.14)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 14,
+    borderColor: 'rgba(237,232,223,0.12)',
   },
-  barBg: {
-    backgroundColor: 'rgba(18,24,29,0.86)',
+  // Warm organic tint over the gradient
+  barTint: {
+    backgroundColor: 'rgba(237,232,223,0.025)',
   },
-  barOverlay: {
-    backgroundColor: 'rgba(237,232,223,0.04)',
+  // Top highlight line — simulates glass edge light refraction
+  barTopLine: {
+    position: 'absolute',
+    top: 0,
+    left: 24,
+    right: 24,
+    height: 1,
+    backgroundColor: 'rgba(237,232,223,0.22)',
   },
   tabsRow: {
     flexDirection: 'row',
