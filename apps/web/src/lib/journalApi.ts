@@ -55,7 +55,7 @@ export async function fetchJournalPost(slug: string): Promise<JournalPost | unde
     const res = await fetch(`${API_URL}/api/journal/posts/${slug}`, {
       next: { revalidate: 300 },
     });
-    if (res.status === 404) return undefined;
+    if (res.status === 404) return JOURNAL_POSTS.find((p) => p.slug === slug);
     if (!res.ok) throw new Error(`API ${res.status}`);
     const post = (await res.json()) as ApiJournalPost;
     return mapApiPost(post, 0);
