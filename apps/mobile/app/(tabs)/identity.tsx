@@ -751,10 +751,10 @@ export default function IdentityScreen() {
       label: 'Obsesje',
       icon: '◉',
       value: (explorer.obsessions?.length ?? 0) > 0
-        ? explorer.obsessions.slice(0, 2).join(' · ')
+        ? explorer.obsessions.join(' · ')
         : 'Brak',
       desc: (explorer.obsessions?.length ?? 0) > 0
-        ? `${explorer.obsessions.length} tagów — stuknij by edytować`
+        ? `${explorer.obsessions.length} obsesji · stuknij by edytować`
         : 'Dodaj to, co Cię napędza w odkrywaniu',
       color: Colors.signal,
       editable: true,
@@ -774,17 +774,17 @@ export default function IdentityScreen() {
 
   async function handleSaveProfile(displayName: string, bio: string) {
     const updated = await api.patch<typeof explorer>('/api/explorers/me', { displayName, bio });
-    setExplorer(updated);
+    setExplorer({ ...explorer!, ...updated });
   }
 
   async function handleSaveArchetype(arch: Archetype) {
     const updated = await api.patch<typeof explorer>('/api/explorers/me', { archetype: arch });
-    setExplorer(updated);
+    setExplorer({ ...explorer!, ...updated });
   }
 
   async function handleSaveObsessions(obsessions: string[]) {
     const updated = await api.patch<typeof explorer>('/api/explorers/me', { obsessions });
-    setExplorer(updated);
+    setExplorer({ ...explorer!, ...updated });
   }
 
   async function handleAvatarPick() {
