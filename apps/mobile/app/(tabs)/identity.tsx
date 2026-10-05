@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Clipboard, Switch, ActivityIndicator, Image, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, Switch, ActivityIndicator, Image, Dimensions } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import Animated, {
@@ -823,7 +824,7 @@ export default function IdentityScreen() {
             try {
               const data = await api.get<ExportPayload>('/api/explorers/me/export');
               const json = JSON.stringify(data, null, 2);
-              Clipboard.setString(json);
+              await Clipboard.setStringAsync(json);
 
               const c = data.content;
               Alert.alert(

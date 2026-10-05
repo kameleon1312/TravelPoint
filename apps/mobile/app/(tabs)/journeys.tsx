@@ -221,7 +221,6 @@ const styles = StyleSheet.create({
     fontSize: 72,
     textAlign: 'center',
     lineHeight: 80,
-    marginVertical: 'auto',
   },
 
   cardBottom: { gap: 3 },
