@@ -8,13 +8,13 @@ import { useLocalSearchParams, router } from 'expo-router';
 import Animated, {
   useAnimatedStyle, useSharedValue,
   withRepeat, withSequence, withTiming,
-  FadeIn, FadeInDown,
+  FadeInDown,
 } from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import * as ImagePickerTypes from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/theme';
+import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { SignalButton } from '@/components/ui/SignalButton';

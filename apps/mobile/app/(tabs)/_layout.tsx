@@ -21,7 +21,7 @@ type TabBarProps = {
   };
   descriptors: Record<string, unknown>;
 };
-import { Colors, Spacing } from '@travelpoint/theme';
+import { Colors } from '@travelpoint/theme';
 import { pl } from '@/i18n/pl';
 import { useUnseenSignalsCount } from '@/hooks/useSignals';
 import { useCircleUnreadCount } from '@/hooks/useCircles';

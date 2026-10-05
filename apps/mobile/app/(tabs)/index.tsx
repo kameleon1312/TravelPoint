@@ -16,6 +16,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, Shadow, BorderRadius } from '@travelpoint/theme';
 import { NATURAL_HARMONY_STYLE } from '@/constants/mapStyle';
+import logoImage from '../../assets/images/logo.png';
 
 const TOP_BAR_HEIGHT = 56;
 import { SignalButton } from '@/components/ui/SignalButton';
@@ -793,7 +794,7 @@ export default function AtlasScreen() {
       {/* Top bar */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
         <View style={styles.logoWrap}>
-          <Image source={require('../../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+          <Image source={logoImage} style={styles.logoImg} resizeMode="contain" />
         </View>
         <Pressable
           style={styles.searchPill}

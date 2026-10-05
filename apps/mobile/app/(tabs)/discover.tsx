@@ -11,7 +11,6 @@ import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { useNearbySpots } from '@/hooks/useSpots';
@@ -27,13 +26,6 @@ const ACCESS_COLORS: Record<string, string> = {
   TRUSTED:     Colors.signal,
   SECRET_DROP: Colors.ember,
   CIRCLE_ONLY: Colors.violet,
-};
-
-const ACCESS_ICONS: Record<string, string> = {
-  PUBLIC:      '◎',
-  TRUSTED:     '◈',
-  SECRET_DROP: '◉',
-  CIRCLE_ONLY: '◑',
 };
 
 // ── Category config ───────────────────────────────────────────────────────────

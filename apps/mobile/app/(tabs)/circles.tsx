@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, FlatList, Pressable,
-  ActivityIndicator, RefreshControl, Dimensions,
+  RefreshControl, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
