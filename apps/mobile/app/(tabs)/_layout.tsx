@@ -2,7 +2,6 @@ import type { ComponentProps } from 'react';
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withSequence,
@@ -114,7 +113,7 @@ function CustomTabBar({ state, navigation }: TabBarProps) {
   return (
     <View style={[styles.barOuter, { paddingBottom: insets.bottom + 10 }]}>
       <View style={styles.barShell}>
-        <BlurView style={StyleSheet.absoluteFill} intensity={55} tint="dark" />
+        <View style={[StyleSheet.absoluteFill, styles.barBg]} />
         <View style={[StyleSheet.absoluteFill, styles.barOverlay]} />
         <View style={styles.tabsRow}>
           {state.routes.map((route: NavRoute, index: number) => {
@@ -208,12 +207,15 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.steel,
+    borderColor: 'rgba(237,232,223,0.14)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    elevation: 12,
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 14,
+  },
+  barBg: {
+    backgroundColor: 'rgba(18,24,29,0.86)',
   },
   barOverlay: {
     backgroundColor: 'rgba(237,232,223,0.04)',
