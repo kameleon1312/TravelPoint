@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -166,23 +166,24 @@ export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-xl hover:bg-graphite transition-colors"
+            className="md:hidden w-10 h-10 flex flex-col items-center justify-center gap-[6px] rounded-xl hover:bg-graphite transition-colors"
             aria-label={menuOpen ? 'Zamknij menu' : 'Otwórz menu'}
           >
-            <span className={`w-5 h-px bg-starFaint transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
-            <span className={`w-5 h-px bg-starFaint transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
-            <span className={`w-5 h-px bg-starFaint transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-1.5' : ''}`} />
+            <span className={`block w-5 h-[2px] bg-starFaint rounded-full transition-all duration-300 origin-center ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`block w-5 h-[2px] bg-starFaint rounded-full transition-all duration-300 ${menuOpen ? 'opacity-0 scale-x-0' : ''}`} />
+            <span className={`block w-5 h-[2px] bg-starFaint rounded-full transition-all duration-300 origin-center ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Mobile menu */}
+      <AnimatePresence>
       {menuOpen && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0, y: -8, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="md:hidden mx-4 mt-2 rounded-2xl glass-strong border border-steel/40 overflow-hidden"
         >
           {NAV_LINKS.map((link) => (
@@ -246,6 +247,7 @@ export function WorldNav({ onJoinClick }: WorldNavProps): React.JSX.Element {
           )}
         </motion.div>
       )}
+      </AnimatePresence>
     </motion.nav>
   );
 }

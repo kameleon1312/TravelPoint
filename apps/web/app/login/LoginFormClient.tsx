@@ -42,7 +42,7 @@ export function LoginFormClient(): ReactElement {
           required
           autoComplete="email"
           placeholder="twoj@email.com"
-          className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 text-sm text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
+          className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 text-base text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
         />
       </div>
       <div>
@@ -55,7 +55,7 @@ export function LoginFormClient(): ReactElement {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 text-sm text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
+          className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 text-base text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
         />
         <div className="mt-2 text-right">
           <Link

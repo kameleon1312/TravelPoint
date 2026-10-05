@@ -25,7 +25,7 @@ export default function JoinPage(): ReactElement {
               Sieć eksploratorów. Tylko dla tych, którzy naprawdę szukają.
             </p>
           </div>
-          <div className="rounded-2xl border border-steel bg-graphite p-7">
+          <div className="rounded-2xl border border-steel bg-graphite p-5 sm:p-7">
             <JoinFormClient />
           </div>
           <p className="mt-6 text-center font-mono text-[10px] text-starGhost uppercase tracking-widest">

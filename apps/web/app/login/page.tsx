@@ -26,7 +26,7 @@ export default function LoginPage(): ReactElement {
               Wróć do sieci eksploratorów.
             </p>
           </div>
-          <div className="rounded-2xl border border-steel bg-graphite p-7">
+          <div className="rounded-2xl border border-steel bg-graphite p-5 sm:p-7">
             <Suspense fallback={null}>
               <LoginFormClient />
             </Suspense>

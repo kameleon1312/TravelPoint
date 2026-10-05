@@ -87,7 +87,7 @@ export function JoinFormClient(): ReactElement {
               maxLength={24}
               autoComplete="username"
               placeholder="explorer"
-              className="w-full rounded-xl border border-steel bg-abyss pl-8 pr-4 py-3 text-sm text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-steel bg-abyss pl-8 pr-4 py-3 text-base text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
             />
           </div>
         </div>
@@ -102,7 +102,7 @@ export function JoinFormClient(): ReactElement {
             required
             autoComplete="email"
             placeholder="twoj@email.com"
-            className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 text-sm text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
+            className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 text-base text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
           />
         </div>
         <div>
@@ -117,7 +117,7 @@ export function JoinFormClient(): ReactElement {
             minLength={8}
             autoComplete="new-password"
             placeholder="min. 8 znaków"
-            className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 text-sm text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
+            className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 text-base text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
           />
         </div>
         <div>
@@ -130,7 +130,7 @@ export function JoinFormClient(): ReactElement {
             onChange={(e) => setInviteCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
             autoComplete="off"
             placeholder="TP-XXXXXXXX"
-            className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 font-mono text-sm text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
+            className="w-full rounded-xl border border-steel bg-abyss px-4 py-3 font-mono text-base text-starlight placeholder:text-starGhost focus:border-aurora focus:outline-none transition-colors"
           />
         </div>
         {error && (
