@@ -12,6 +12,9 @@ coverage/
 .expo/
 apps/mobile/dist/
 
+# APK builds (large binary — host externally, not in git)
+apps/web/public/*.apk
+
 # Environment variables — NEVER commit real secrets
 .env
 .env.local
