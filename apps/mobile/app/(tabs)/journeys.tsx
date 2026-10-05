@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useMyJourneys } from '@/hooks/useJourneys';
 import { formatRelative } from '@travelpoint/utils';
 import { pl } from '@/i18n/pl';
@@ -59,8 +60,10 @@ export default function JourneysScreen() {
       </View>
 
       {isLoading && (
-        <View style={styles.center}>
-          <ActivityIndicator color={Colors.aurora} size="large" />
+        <View style={styles.skeletonGrid}>
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonCard key={i} width={CARD_W} height={CARD_H} />
+          ))}
         </View>
       )}
 
@@ -184,6 +187,10 @@ const styles = StyleSheet.create({
   heading: { fontFamily: 'ClashDisplay-Bold', fontSize: FontSize.h1, color: Colors.starlight },
 
   center:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  skeletonGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: H_PAD, paddingTop: Spacing.xs, gap: CARD_GAP,
+  },
   empty: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: Spacing.xl, gap: Spacing.lg,

@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useMyCircles } from '@/hooks/useCircles';
 import { useAuthStore } from '@/stores/auth';
 import { pl } from '@/i18n/pl';
@@ -57,8 +58,10 @@ export default function CirclesScreen() {
       </View>
 
       {isLoading && !circles ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={Colors.aurora} size="large" />
+        <View style={styles.skeletonGrid}>
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonCard key={i} width={CARD_W} height={CARD_H} />
+          ))}
         </View>
       ) : !circles || circles.length === 0 ? (
         <View style={styles.empty}>
@@ -203,6 +206,10 @@ const styles = StyleSheet.create({
   },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  skeletonGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: H_PAD, paddingTop: Spacing.xs, gap: CARD_GAP,
+  },
   empty: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: Spacing.xl, gap: Spacing.lg,

@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { CoordLabel } from '@/components/ui/CoordLabel';
 import { useNearbySpots } from '@/hooks/useSpots';
 import { useFeed } from '@/hooks/useFeed';
@@ -336,8 +337,10 @@ export default function DiscoverScreen() {
       {segment === 'feed' && (
         <>
           {feedLoading && (
-            <View style={styles.center}>
-              <ActivityIndicator color={Colors.aurora} size="large" />
+            <View style={styles.skeletonFeed}>
+              {[0, 1, 2, 3].map((i) => (
+                <SkeletonCard key={i} width={SCREEN_W - H_PAD * 2} height={80} borderRadius={14} />
+              ))}
             </View>
           )}
           {!feedLoading && (!feedItems || feedItems.length === 0) && (
@@ -415,8 +418,10 @@ export default function DiscoverScreen() {
             />
           )}
           {spotsLoading && (
-            <View style={styles.center}>
-              <ActivityIndicator color={Colors.aurora} size="large" />
+            <View style={styles.skeletonGrid}>
+              {[0, 1, 2, 3].map((i) => (
+                <SkeletonCard key={i} width={CARD_W} height={Math.round(CARD_W * 1.7)} />
+              ))}
             </View>
           )}
           {spotsError && !spotsLoading && (
@@ -694,6 +699,15 @@ const styles = StyleSheet.create({
   },
   feedTagIcon: { fontSize: 11, color: Colors.aurora },
   feedTagLabel: { fontFamily: 'SpaceMono-Regular', fontSize: 9, color: Colors.aurora, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  // ── Skeletons ────────────────────────────────────────────────────────────────
+  skeletonGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: H_PAD, paddingTop: Spacing.xs, gap: CARD_GAP,
+  },
+  skeletonFeed: {
+    paddingHorizontal: H_PAD, paddingTop: Spacing.sm, gap: Spacing.md,
+  },
 
   // ── Empty / center ────────────────────────────────────────────────────────────
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },

@@ -1046,7 +1046,12 @@ export default function IdentityScreen() {
           return (
             <View style={styles.rankProgressWrap}>
               <View style={styles.rankProgressBar}>
-                <View style={[styles.rankProgressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: rankColor }]} />
+                <LinearGradient
+                  colors={[rankColor + 'BB', rankColor, rankColor + 'BB']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.rankProgressFill, { width: `${Math.round(progress * 100)}%` }]}
+                />
               </View>
               <Text style={styles.rankProgressLabel}>
                 {remaining} pkt do {threshold.next}
@@ -1392,10 +1397,10 @@ const styles = StyleSheet.create({
   },
   avatarEditIcon: { fontFamily: 'GeneralSans-Bold', fontSize: 16, color: Colors.abyss, lineHeight: 18 },
   rankProgressBar: {
-    width: '100%', height: 3, borderRadius: 2,
+    width: '100%', height: 8, borderRadius: 4,
     backgroundColor: Colors.steel, overflow: 'hidden',
   },
-  rankProgressFill: { height: '100%', borderRadius: 2 },
+  rankProgressFill: { height: '100%', borderRadius: 4 },
   rankProgressLabel: {
     fontFamily: 'SpaceMono-Regular', fontSize: FontSize.micro,
     color: Colors.starGhost, letterSpacing: 0.5,

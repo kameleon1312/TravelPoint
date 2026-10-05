@@ -659,6 +659,16 @@ export default function AtlasScreen() {
     );
   }
 
+  function centerOnMe() {
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+      .then(({ coords }) => {
+        const r: Region = { latitude: coords.latitude, longitude: coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+        setRegion(r);
+        mapRef.current?.animateToRegion(r, 800);
+      })
+      .catch(() => {});
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.root}>
@@ -832,6 +842,18 @@ export default function AtlasScreen() {
         pointerEvents="none"
       />
 
+      {/* Center on me — appears when location is available */}
+      {locationGranted && !isRecording && (
+        <Pressable
+          style={[styles.centerMeBtn, { bottom: insets.bottom + 164 }]}
+          onPress={centerOnMe}
+          accessibilityRole="button"
+          accessibilityLabel="Wyśrodkuj na mnie"
+        >
+          <Ionicons name="navigate" size={18} color={Colors.aurora} />
+        </Pressable>
+      )}
+
       {/* Bottom action bar — sits above floating tab bar */}
       <View style={[styles.bottomBar, { bottom: insets.bottom + 100 }]}>
         {!isRecording ? (
@@ -930,13 +952,13 @@ const styles = StyleSheet.create({
     fontFamily: 'ClashDisplay-Bold',
     fontSize: 13,
     color: Colors.starlight,
-    backgroundColor: Colors.void + 'E0',
+    backgroundColor: 'rgba(13,18,22,0.80)',
     paddingHorizontal: 9,
     paddingVertical: 6,
     borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.steel,
+    borderColor: Colors.glassBorder,
   },
   searchPill: {
     flex: 1,
@@ -944,10 +966,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     height: 38,
-    backgroundColor: Colors.graphite + 'F0',
+    backgroundColor: 'rgba(13,18,22,0.80)',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.steel,
+    borderColor: Colors.glassBorder,
     paddingHorizontal: 14,
   },
   searchPillText: {
@@ -1012,6 +1034,22 @@ const styles = StyleSheet.create({
   bottomScrim: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
+  },
+
+  // ── Center on me ─────────────────────────────────────────────────────────────
+  centerMeBtn: {
+    position: 'absolute',
+    right: Spacing.xl,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(13,18,22,0.88)',
+    borderWidth: 1, borderColor: Colors.glassBorder,
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 6,
   },
 
   // ── Bottom action bar ────────────────────────────────────────────────────────
