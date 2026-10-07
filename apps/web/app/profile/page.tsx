@@ -62,7 +62,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!getStoredToken()) {
-      router.replace('/forum');
+      router.replace('/login?returnUrl=%2Fprofile');
       return;
     }
     apiFetch<MyProfile>('/api/explorers/me')
@@ -71,7 +71,7 @@ export default function ProfilePage() {
         const msg = err instanceof Error ? err.message : 'Błąd';
         if (msg === 'UNAUTHORIZED') {
           clearStoredToken();
-          router.replace('/forum');
+          router.replace('/login?returnUrl=%2Fprofile');
         } else {
           setError(msg);
         }

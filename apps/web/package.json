@@ -10,13 +10,10 @@
     "type-check": "tsc -p tsconfig.typecheck.json --noEmit"
   },
   "dependencies": {
-    "@googlemaps/js-api-loader": "^2.1.1",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@sentry/nextjs": "^8.0.0",
-    "@travelpoint/api-client": "workspace:*",
     "@travelpoint/theme": "workspace:*",
-    "@travelpoint/types": "workspace:*",
     "@travelpoint/validation": "workspace:*",
     "framer-motion": "^11.2.10",
     "lenis": "^1.1.9",
@@ -29,7 +26,6 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/google.maps": "^3.66.1",
     "@types/node": "^20.14.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

@@ -142,10 +142,6 @@ export const JOURNAL_POSTS: JournalPost[] = [
   },
 ];
 
-export function getPost(slug: string): JournalPost | undefined {
-  return JOURNAL_POSTS.find((p) => p.slug === slug);
-}
-
 export const RANK_COLORS: Record<string, string> = {
   NEWCOMER: '#5A5550',
   EXPLORER: '#C4B9AC',

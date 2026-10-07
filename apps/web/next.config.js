@@ -21,8 +21,6 @@ const nextConfig = {
     '@travelpoint/validation',
     '@travelpoint/api-client',
   ],
-  // mapbox-gl uses browser APIs — exclude from server-side bundling
-  serverExternalPackages: ['mapbox-gl'],
   webpack(config) {
     const pkgRoot = path.resolve(__dirname, '../../packages');
     config.resolve.alias = {

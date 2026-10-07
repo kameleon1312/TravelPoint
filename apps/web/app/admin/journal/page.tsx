@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { ReactElement } from 'react';
+import { getStoredToken } from '@/lib/webAuth';
 
 interface JournalPost {
   id: string;
@@ -33,6 +34,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export default function AdminJournalPage(): ReactElement {
   const [token, setToken] = useState('');
   const [posts, setPosts] = useState<JournalPost[]>([]);
+
+  useEffect(() => {
+    const stored = getStoredToken();
+    if (stored) setToken(stored);
+  }, []);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');

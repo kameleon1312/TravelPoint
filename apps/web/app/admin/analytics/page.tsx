@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactElement } from 'react';
+import { getStoredToken } from '@/lib/webAuth';
 
 interface AnalyticsSummary {
   period: { days: number; since: string };
@@ -36,6 +37,16 @@ export default function AdminAnalyticsPage(): ReactElement {
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const stored = getStoredToken();
+    if (stored) setToken(stored);
+  }, []);
+
+  useEffect(() => {
+    if (token) void load(days);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   async function load(d = days) {
     if (!token) return;

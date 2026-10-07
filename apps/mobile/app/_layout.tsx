@@ -231,6 +231,8 @@ function AuthGate({ otaStatus: _otaStatus, setOtaStatus }: { otaStatus: OtaStatu
         router.push(`/spot/${String(data['id'])}`);
       } else if (type === 'nearby_spot' && data['id']) {
         router.push(`/spot/${String(data['id'])}`);
+      } else if (type === 'nearby_explorer' && data['handle']) {
+        router.push(`/explorer/${String(data['handle'])}`);
       } else if (type === 'spot_comment' && data['spotId']) {
         router.push(`/spot/${String(data['spotId'])}`);
       } else if (type === 'circle_invite' && data['circleSlug']) {

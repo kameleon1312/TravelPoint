@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactElement } from 'react';
+import { getStoredToken } from '@/lib/webAuth';
 
 interface Report {
   id: string;
@@ -39,6 +40,16 @@ export default function AdminPage(): ReactElement {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
+
+  useEffect(() => {
+    const stored = getStoredToken();
+    if (stored) setToken(stored);
+  }, []);
+
+  useEffect(() => {
+    if (token) void loadReports(1, typeFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   async function request(path: string, init?: RequestInit) {
     const response = await fetch(`${API_URL}${path}`, {
