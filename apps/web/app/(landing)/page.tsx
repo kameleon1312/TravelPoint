@@ -112,7 +112,7 @@ export default function LandingPage(): React.JSX.Element {
                   <p className="eyebrow text-aurora mb-4">WORLD · Publiczny</p>
                   <h3 className="font-display text-xl font-bold text-starlight mb-4">Odkrywaj i inspiruj</h3>
                   <ul className="space-y-2">
-                    {['Dziennik Eksploracji — filmowe historie', 'Forum — głos społeczności', 'Mapa Odkryć — publiczne spoty', 'Profile odkrywców'].map((item) => (
+                    {['Dziennik Eksploracji — relacje z terenu', 'Forum — głos społeczności', 'Mapa Odkryć — publiczne spoty', 'Tożsamość odkrywcy'].map((item) => (
                       <li key={item} className="flex items-start gap-2">
                         <span className="text-aurora mt-0.5 flex-shrink-0">◎</span>
                         <span className="font-sans text-sm text-star">{item}</span>
@@ -126,7 +126,7 @@ export default function LandingPage(): React.JSX.Element {
                   <p className="eyebrow text-ember mb-4">CORE · Prywatny</p>
                   <h3 className="font-display text-xl font-bold text-starlight mb-4">Twoja tajna sieć</h3>
                   <ul className="space-y-2">
-                    {['Ukryta Warstwa — zamknięte spoty', 'Live Presence — odkrywcy w pobliżu', 'Circles — zamknięte kręgi', 'Replay Trasy — twoje wyprawy'].map((item) => (
+                    {['Ukryta Warstwa — zamknięte spoty', 'Obecność w terenie — odkrywcy w pobliżu', 'Kręgi — zamknięte społeczności', 'Zapis Wypraw — twoje ekspedycje'].map((item) => (
                       <li key={item} className="flex items-start gap-2">
                         <span className="text-ember mt-0.5 flex-shrink-0">◈</span>
                         <span className="font-sans text-sm text-star">{item}</span>
@@ -157,7 +157,7 @@ export default function LandingPage(): React.JSX.Element {
                   tier: 'FREE',
                   label: 'Explorer',
                   price: '0 zł',
-                  features: ['25 zapisanych miejsc', '3 wyprawy', 'Publiczne spoty', 'Podstawowa tożsamość'],
+                  features: ['25 odkrytych spotów', '3 ekspedycje', 'Publiczne spoty', 'Tożsamość odkrywcy'],
                   featured: false,
                   accentClass: 'border-steel',
                 },
@@ -165,7 +165,7 @@ export default function LandingPage(): React.JSX.Element {
                   tier: 'PRO',
                   label: 'PRO',
                   price: '29 zł/mies',
-                  features: ['∞ zapisanych miejsc', '∞ wypraw', 'Dostęp do Ukrytej Warstwy', 'Zaawansowane warstwy mapy'],
+                  features: ['∞ odkrytych spotów', '∞ ekspedycji', 'Dostęp do Ukrytej Warstwy', 'Zaawansowane warstwy mapy'],
                   featured: true,
                   accentClass: 'border-aurora/50',
                 },
@@ -173,7 +173,7 @@ export default function LandingPage(): React.JSX.Element {
                   tier: 'EXPEDITION',
                   label: 'Expedition',
                   price: '79 zł/mies',
-                  features: ['Wszystko z PRO', '5 własnych Circles', 'Tajne dropy insiderów', 'Priorytetowa widoczność'],
+                  features: ['Wszystko z PRO', '5 własnych kręgów', 'Tajne dropy insiderów', 'Priorytetowa widoczność'],
                   featured: false,
                   accentClass: 'border-ember/30',
                 },

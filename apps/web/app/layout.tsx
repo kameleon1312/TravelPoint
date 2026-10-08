@@ -41,6 +41,9 @@ export const metadata: Metadata = {
     images: ['/logo.png'],
   },
   robots: { index: true, follow: true },
+  other: {
+    'format-detection': 'telephone=no, date=no, address=no, email=no, url=no',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }): React.JSX.Element {

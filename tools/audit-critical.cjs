@@ -5,10 +5,13 @@
 'use strict';
 const { execSync } = require('child_process');
 
-// GHSAs to ignore — all are in Expo CLI (build-time, not runtime server).
+// GHSAs to ignore — all are in build-time / dev tooling, not the runtime server.
 // Remove an entry once the upstream package publishes a patched release.
 const IGNORED_GHSAS = new Set([
   'GHSA-23hp-3jrh-7fpw', // tar <=7.5.18 in @expo/cli — tar@7.5.19 not yet on npm
+  'GHSA-5gmw-xhrv-c9v3', // tinypool prototype-pollution in @vitest/runner (test runner, build-time only)
+  'GHSA-85c8-ppgw-ccpr', // tinypool prototype-pollution in @vitest/runner (test runner, build-time only)
+  'GHSA-pqg4-j6r4-53mv', // shell-quote in react-devtools-core (RN debug bridge, dev-time only)
 ]);
 
 function extractGhsa(url) {
