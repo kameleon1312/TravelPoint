@@ -9,6 +9,11 @@ import {
   verifyStripeSignature,
   type StripeEvent,
 } from '../services/billing';
+import {
+  applyRevenueCatEvent,
+  verifyRevenueCatRequest,
+  type RcWebhookBody,
+} from '../services/revenuecat';
 
 const CheckoutSchema = z.object({
   tier: z.enum(['PRO', 'EXPEDITION']),
@@ -79,6 +84,26 @@ export async function billingRoutes(app: FastifyInstance) {
         await applyStripeEvent(app.prisma, JSON.parse(rawBody) as StripeEvent);
       } catch (err) {
         app.log.error(err, 'Stripe webhook handler failed');
+      }
+      return reply.status(204).send();
+    });
+
+    // RevenueCat webhook — handles iOS (StoreKit) and Android (Google Play Billing) events.
+    // Authorization: Bearer <REVENUECAT_WEBHOOK_SECRET>
+    raw.post('/api/billing/webhook/revenuecat', async (req, reply) => {
+      if (!verifyRevenueCatRequest(req.headers['authorization'] as string | undefined)) {
+        return reply.status(401).send({ code: 'INVALID_SIGNATURE' });
+      }
+      let body: RcWebhookBody;
+      try {
+        body = JSON.parse(req.body as string) as RcWebhookBody;
+      } catch {
+        return reply.status(400).send({ code: 'INVALID_JSON' });
+      }
+      try {
+        await applyRevenueCatEvent(app.prisma, body);
+      } catch (err) {
+        app.log.error(err, 'RevenueCat webhook handler failed');
       }
       return reply.status(204).send();
     });

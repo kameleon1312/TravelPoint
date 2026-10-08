@@ -37,6 +37,7 @@ import { useBiometricStore } from '@/stores/biometrics';
 import { api } from '@/lib/api';
 import { hydrateQueryCache, subscribeQueryPersistence } from '@/lib/queryPersistence';
 import { pl } from '@/i18n/pl';
+import { initPurchases, logOutPurchases } from '@/lib/purchases';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -278,10 +279,13 @@ function AuthGate({ otaStatus: _otaStatus, setOtaStatus }: { otaStatus: OtaStatu
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
+      logOutPurchases();
       router.replace('/(auth)/login');
     }
     if (!isLoading && isAuthenticated) {
       void registerPushToken();
+      const explorerId = useAuthStore.getState().explorer?.id;
+      if (explorerId) initPurchases(explorerId);
     }
   }, [isLoading, isAuthenticated]);
 

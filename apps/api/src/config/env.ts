@@ -35,6 +35,7 @@ const RawEnvSchema = z.object({
   STRIPE_EXPEDITION_ANNUAL_PRICE_ID: z.string().trim().optional(),
   BILLING_SUCCESS_URL: z.string().url().optional(),
   BILLING_CANCEL_URL: z.string().url().optional(),
+  REVENUECAT_WEBHOOK_SECRET: z.string().trim().optional(),
   RAILWAY_ENVIRONMENT: z.string().trim().optional(),
   RAILWAY_PROJECT_ID: z.string().trim().optional(),
 });
@@ -173,6 +174,7 @@ export function loadEnv(source: NodeJS.ProcessEnv) {
       successUrl: optionalValue(raw.BILLING_SUCCESS_URL) ?? `${optionalValue(raw.NEXT_PUBLIC_APP_URL) ?? 'https://travelpoint.app'}/billing/success`,
       cancelUrl: optionalValue(raw.BILLING_CANCEL_URL) ?? `${optionalValue(raw.NEXT_PUBLIC_APP_URL) ?? 'https://travelpoint.app'}/billing/cancel`,
     },
+    revenueCatWebhookSecret: optionalValue(raw.REVENUECAT_WEBHOOK_SECRET),
   } as const;
 }
 

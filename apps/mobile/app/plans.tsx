@@ -9,7 +9,9 @@ import { Colors, FontSize, Spacing, BorderRadius, Shadow } from '@travelpoint/th
 import { GlassCard } from '@/components/ui/GlassCard';
 import { BackButton } from '@/components/ui/BackButton';
 import { useAuthStore } from '@/stores/auth';
-import { useBillingStatus, useCheckout, usePortal } from '@/hooks/useBilling';
+import { useBillingStatus } from '@/hooks/useBilling';
+import { usePurchase, useRestorePurchases, useProductPrice } from '@/hooks/usePurchases';
+import type { RcTier } from '@/lib/purchases';
 
 // ── Pricing ──────────────────────────────────────────────────────────────────
 
@@ -168,14 +170,14 @@ function TierCard({
   currentTier,
   annual,
   onUpgrade,
-  onPortal,
+  onManage,
   isLoading,
 }: {
   tier: TierDef;
   currentTier: string;
   annual: boolean;
-  onUpgrade: (id: 'PRO' | 'EXPEDITION') => void;
-  onPortal: () => void;
+  onUpgrade: (id: RcTier) => void;
+  onManage: () => void;
   isLoading: boolean;
 }) {
   const isCurrent  = tier.id === currentTier;
@@ -184,13 +186,12 @@ function TierCard({
   );
   const isDowngrade = tier.id !== 'FREE' && currentTier !== 'FREE' && !isUpgrade && !isCurrent;
 
+  // Price comes from the store (App Store / Google Play) for accuracy and legal compliance
+  const storePrice = useProductPrice(tier.id !== 'FREE' ? (tier.id as RcTier) : 'PRO', annual);
   const price = tier.id !== 'FREE'
-    ? PRICES[tier.id as 'PRO' | 'EXPEDITION'][annual ? 'annual' : 'monthly']
+    ? (storePrice ?? `${PRICES[tier.id as 'PRO' | 'EXPEDITION'][annual ? 'annual' : 'monthly']} PLN`)
     : null;
-
-  const annualTotal = tier.id !== 'FREE' && annual
-    ? price! * 12
-    : null;
+  // annualTotal not needed — store price string already includes the correct period label
 
   return (
     <Animated.View entering={FadeInDown.duration(300).delay(TIERS.indexOf(tier) * 80)}>
@@ -220,14 +221,11 @@ function TierCard({
           )}
         </View>
 
-        {/* Price */}
+        {/* Price — shown from store or fallback */}
         {price !== null ? (
           <View style={styles.priceRow}>
-            <Text style={[styles.price, { color: tier.color }]}>{price} PLN</Text>
-            <Text style={styles.pricePer}>/mies</Text>
-            {annualTotal && (
-              <Text style={styles.priceAnnual}>({annualTotal} PLN/rok)</Text>
-            )}
+            <Text style={[styles.price, { color: tier.color }]}>{price}</Text>
+            {!storePrice && <Text style={styles.pricePer}>/mies</Text>}
           </View>
         ) : (
           <Text style={[styles.price, { color: tier.color }]}>Gratis</Text>
@@ -251,27 +249,27 @@ function TierCard({
         {isUpgrade && (
           <Pressable
             style={[styles.ctaBtn, { backgroundColor: tier.color }]}
-            onPress={() => onUpgrade(tier.id as 'PRO' | 'EXPEDITION')}
+            onPress={() => onUpgrade(tier.id as RcTier)}
             disabled={isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color={Colors.void} size="small" />
             ) : (
               <Text style={styles.ctaBtnText}>
-                {tier.id === 'PRO' && currentTier === 'FREE' ? 'Zacznij 7 dni za darmo' : `Przejdź na ${tier.label}`}
+                {tier.id === 'PRO' && currentTier === 'FREE' ? 'Zacznij za darmo' : `Przejdź na ${tier.label}`}
               </Text>
             )}
           </Pressable>
         )}
 
-        {isCurrent && tier.id !== 'FREE' && (
-          <Pressable style={styles.portalBtn} onPress={onPortal}>
+        {(isCurrent && tier.id !== 'FREE') && (
+          <Pressable style={styles.portalBtn} onPress={onManage}>
             <Text style={styles.portalBtnText}>Zarządzaj subskrypcją</Text>
           </Pressable>
         )}
 
         {isDowngrade && (
-          <Pressable style={styles.portalBtn} onPress={onPortal}>
+          <Pressable style={styles.portalBtn} onPress={onManage}>
             <Text style={styles.portalBtnText}>Zmień plan</Text>
           </Pressable>
         )}
@@ -285,14 +283,26 @@ function TierCard({
 export default function PlansScreen() {
   const { explorer } = useAuthStore();
   const { data: billing, isLoading: billingLoading } = useBillingStatus();
-  const checkout = useCheckout();
-  const portal   = usePortal();
+  const purchase = usePurchase();
+  const restore  = useRestorePurchases();
   const [annual, setAnnual] = useState(false);
 
   const currentTier = billing?.tier ?? explorer?.tier ?? 'FREE';
 
-  function handleUpgrade(tier: 'PRO' | 'EXPEDITION') {
-    checkout.mutate({ tier, billingPeriod: annual ? 'ANNUAL' : 'MONTHLY' });
+  function handleUpgrade(tier: RcTier) {
+    purchase.mutate({ tier, annual });
+  }
+
+  function handleManage() {
+    // On iOS/Android the user manages their subscription via the OS settings.
+    // We open the correct native settings page directly.
+    import('react-native').then(({ Linking, Platform, Alert }) => {
+      if (Platform.OS === 'ios') {
+        void Linking.openURL('https://apps.apple.com/account/subscriptions');
+      } else {
+        void Linking.openURL('https://play.google.com/store/account/subscriptions');
+      }
+    }).catch(() => {});
   }
 
   return (
@@ -329,17 +339,27 @@ export default function PlansScreen() {
             currentTier={currentTier}
             annual={annual}
             onUpgrade={handleUpgrade}
-            onPortal={() => portal.mutate()}
-            isLoading={checkout.isPending}
+            onManage={handleManage}
+            isLoading={purchase.isPending}
           />
         ))}
+
+        {/* Restore purchases — required by App Store & Google Play guidelines */}
+        <Pressable
+          style={styles.restoreBtn}
+          onPress={() => restore.mutate()}
+          disabled={restore.isPending}
+        >
+          <Text style={styles.restoreBtnText}>
+            {restore.isPending ? 'Przywracanie…' : 'Przywróć zakupy'}
+          </Text>
+        </Pressable>
 
         {/* Fine print */}
         <View style={styles.finePrint}>
           <Text style={styles.fineText}>
-            Subskrypcja odnawialna. Anuluj w dowolnym momencie w ustawieniach konta.
-            Trial 7 dni dotyczy nowych subskrybentów planu PRO.
-            Ceny netto, VAT doliczony według stawki krajowej.
+            Subskrypcja odnawialna automatycznie. Anuluj w dowolnym momencie
+            w ustawieniach App Store lub Google Play. Ceny zawierają VAT.
           </Text>
         </View>
       </ScrollView>
@@ -431,7 +451,15 @@ const styles = StyleSheet.create({
     color: Colors.starFaint,
   },
 
-  finePrint: { paddingTop: Spacing.md },
+  restoreBtn: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  restoreBtnText: {
+    fontFamily: 'GeneralSans-Regular', fontSize: FontSize.bodySm,
+    color: Colors.starFaint, textDecorationLine: 'underline',
+  },
+  finePrint: { paddingTop: Spacing.xs },
   fineText: {
     fontFamily: 'GeneralSans-Regular', fontSize: 11,
     color: Colors.starGhost, textAlign: 'center', lineHeight: 17,

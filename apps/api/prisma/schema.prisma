@@ -555,6 +555,7 @@ enum Tier {
 
 enum BillingProvider {
   STRIPE
+  REVENUECAT
 }
 
 enum SubscriptionStatus {
