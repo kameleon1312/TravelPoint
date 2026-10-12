@@ -11,6 +11,9 @@ const nextConfig = {
     // default 'strict' mode which splits CSS into per-segment chunks that can
     // arrive after the browser's preload timeout.
     cssChunking: false,
+    // The dev /render-api proxy defaults to a 30 s timeout, shorter than a Render free-tier
+    // cold start (~50 s), which surfaced as "socket hang up" / 500 after idle periods.
+    proxyTimeout: 120_000,
   },
   // Tell Next.js the monorepo root so it doesn't mistake a stale package-lock.json
   // in the user's home directory for the workspace root.
