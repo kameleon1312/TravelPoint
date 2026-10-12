@@ -44,11 +44,11 @@ signals/push (`entitledRecipients` in `routes/spots.ts`), and subresources
 
 | Rank | Trust Score | Unlocks |
 |---|---|---|
-| NEWCOMER | 0 | Public spots only |
+| NEWCOMER | 0 | Starting rank |
 | EXPLORER | 50 | Basic profile features |
 | TRUSTED | 150 | Prestige (spot access is plan-based since 2026-10-12) |
 | INSIDER | 400 | Can generate invite codes |
-| LEGEND | 1000 | All access, featured in WORLD |
+| LEGEND | 1000 | Featured in WORLD |
 
 ## Invite System
 
