@@ -1,6 +1,6 @@
 import { haversineKm } from '@travelpoint/geo';
 import { describe, expect, it } from 'vitest';
-import { fuzzSpotCoordinates, isWithinPresenceRange, snapPresence } from './geoPrivacy';
+import { fuzzSpotCoordinates, isWithinPresenceRange, snapPresence, trimRouteForViewer } from './geoPrivacy';
 
 const spot = { id: 'spot-a', lat: 50.0614, lng: 19.9383 };
 
@@ -41,6 +41,34 @@ describe('snapPresence', () => {
       const snapped = snapPresence('exp-2', lat, lng);
       expect(haversineKm(lat, lng, snapped.lat, snapped.lng) * 1000).toBeLessThan(760);
     }
+  });
+});
+
+describe('trimRouteForViewer', () => {
+  // ~111 m per 0.001° of latitude: 31 points ≈ 3.3 km northbound from "home".
+  const line = Array.from({ length: 31 }, (_, i) => [19.9, 50.0 + i * 0.001] as [number, number]);
+  const route = (coordinates: Array<[number, number]>) => ({
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates }, properties: { startedAt: 'x' } }],
+  });
+
+  it('removes the first and last ~500 m of the trail', () => {
+    const trimmed = trimRouteForViewer(route(line)) as ReturnType<typeof route>;
+    const coords = trimmed.features[0]!.geometry.coordinates;
+    const [startLng, startLat] = coords[0]!;
+    const [endLng, endLat] = coords[coords.length - 1]!;
+    expect(haversineKm(50.0, 19.9, startLat, startLng) * 1000).toBeGreaterThanOrEqual(500);
+    expect(haversineKm(50.03, 19.9, endLat, endLng) * 1000).toBeGreaterThanOrEqual(500);
+    expect(trimmed.features[0]!.properties).toBeNull();
+  });
+
+  it('hides routes too short to survive trimming', () => {
+    expect(trimRouteForViewer(route(line.slice(0, 8)))).toBeNull();
+  });
+
+  it('returns null for malformed input', () => {
+    expect(trimRouteForViewer(null)).toBeNull();
+    expect(trimRouteForViewer({ type: 'Feature' })).toBeNull();
   });
 });
 

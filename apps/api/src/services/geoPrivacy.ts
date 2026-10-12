@@ -49,6 +49,42 @@ export function snapPresence(explorerId: string, lat: number, lng: number): { la
   };
 }
 
+export const ROUTE_PRIVACY_ZONE_METERS = 500;
+
+type LngLat = [number, number];
+
+function dropLeadingMeters(points: LngLat[], meters: number): LngLat[] {
+  let travelled = 0;
+  for (let i = 1; i < points.length; i++) {
+    const [lng1, lat1] = points[i - 1]!;
+    const [lng2, lat2] = points[i]!;
+    travelled += haversineKm(lat1, lng1, lat2, lng2) * 1000;
+    if (travelled >= meters) return points.slice(i);
+  }
+  return [];
+}
+
+// Journeys usually start and end at home, so viewers other than the author get the route
+// without its first and last ~500 m (Strava-style privacy zones). Lines too short to keep
+// anything after trimming are removed entirely.
+export function trimRouteForViewer(routeGeoJson: unknown, meters = ROUTE_PRIVACY_ZONE_METERS): unknown {
+  const collection = routeGeoJson as { type?: unknown; features?: unknown } | null;
+  if (!collection || collection.type !== 'FeatureCollection' || !Array.isArray(collection.features)) return null;
+
+  const features = collection.features.flatMap((feature: unknown) => {
+    const geometry = (feature as { geometry?: { type?: unknown; coordinates?: unknown } } | null)?.geometry;
+    if (geometry?.type !== 'LineString' || !Array.isArray(geometry.coordinates)) return [];
+    const points = (geometry.coordinates as unknown[]).filter(
+      (p): p is LngLat => Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'number',
+    );
+    const trimmed = dropLeadingMeters(dropLeadingMeters(points, meters).reverse(), meters).reverse();
+    if (trimmed.length < 2) return [];
+    return [{ type: 'Feature', geometry: { type: 'LineString', coordinates: trimmed }, properties: null }];
+  });
+
+  return features.length > 0 ? { type: 'FeatureCollection', features } : null;
+}
+
 export function isWithinPresenceRange(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number },

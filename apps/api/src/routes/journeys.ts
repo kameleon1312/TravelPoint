@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { CreateJourneySchema, UpdateJourneySchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
+import { TierLimits } from '@travelpoint/types';
+import { trimRouteForViewer } from '../services/geoPrivacy';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
 import { sendPushToExplorer } from '../services/push';
 import { pushStrings } from '../lib/pushStrings';
@@ -35,8 +37,21 @@ export async function journeyRoutes(app: FastifyInstance) {
     });
     if (!journey) return reply.status(404).send({ code: 'NOT_FOUND' });
 
-    if (journey.isPrivate && journey.explorerId !== req.explorerId) {
+    const isOwner = journey.explorerId === req.explorerId;
+    if (journey.isPrivate && !isOwner) {
       return reply.status(403).send({ code: 'FORBIDDEN' });
+    }
+    if (!isOwner) {
+      const blocked = await app.prisma.block.findFirst({
+        where: {
+          OR: [
+            { blockerId: req.explorerId, blockedId: journey.explorerId },
+            { blockerId: journey.explorerId, blockedId: req.explorerId },
+          ],
+        },
+        select: { blockerId: true },
+      });
+      if (blocked) return reply.status(404).send({ code: 'NOT_FOUND' });
     }
 
     const liked = await app.prisma.journeyLike.findUnique({
@@ -45,6 +60,7 @@ export async function journeyRoutes(app: FastifyInstance) {
 
     return reply.send({
       ...journey,
+      routeGeoJson: isOwner ? journey.routeGeoJson : trimRouteForViewer(journey.routeGeoJson),
       likeCount: journey._count.likes,
       liked: !!liked,
     });
@@ -64,6 +80,14 @@ export async function journeyRoutes(app: FastifyInstance) {
     const parsed = CreateJourneySchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
+    const explorer = await app.prisma.explorer.findUnique({ where: { id: req.explorerId }, select: { tier: true } });
+    const journeyLimit = TierLimits[explorer?.tier ?? 'FREE'].journeys;
+    if (Number.isFinite(journeyLimit)) {
+      const owned = await app.prisma.journey.count({ where: { explorerId: req.explorerId } });
+      if (owned >= journeyLimit) {
+        return reply.status(403).send({ code: 'TIER_LIMIT', requiredTier: 'PRO', limit: journeyLimit });
+      }
     }
     const journey = await app.prisma.journey.create({
       data: { ...parsed.data, explorerId: req.explorerId },
