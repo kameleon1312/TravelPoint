@@ -4,7 +4,7 @@ import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { verifySupabaseJwt } from '../middleware/requireAuth';
 import { logger } from '../lib/logger';
-import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
+import { isWithinPresenceRange, snapPresence } from '../services/geoPrivacy';
 import { sendPushToMany } from '../services/push';
 import { hasCircleMembership } from '../services/circleAccess';
 import { presenceStore } from '../services/presenceStore';
@@ -106,15 +106,18 @@ export default fp(async (app: FastifyInstance) => {
       }
 
       await socket.join('presence');
-      presenceStore.set(explorerId, { lat: data.lat, lng: data.lng });
-      const seed = generateSessionSeed();
-      const fuzzed = fuzzCoordinates(data.lat, data.lng, 500, seed);
-      const nearbySockets = await io.in('presence').fetchSockets();
+      const position = { lat: data.lat, lng: data.lng };
+      presenceStore.set(explorerId, position);
+      const fuzzed = snapPresence(explorerId, position.lat, position.lng);
+      const presenceSockets = await io.in('presence').fetchSockets();
       const blockedIds = new Set(await getBlockedExplorerIds(app.prisma, explorerId));
       const day = new Date().toISOString().slice(0, 10);
-      for (const nearbySocket of nearbySockets) {
+      for (const nearbySocket of presenceSockets) {
         const nearbyId = nearbySocket.data['explorerId'] as string | undefined;
         if (!nearbyId || nearbyId === explorerId || blockedIds.has(nearbyId)) continue;
+        // The 'presence' room is global — only explorers actually nearby may learn this position.
+        const theirPosition = presenceStore.get(nearbyId);
+        if (!theirPosition || !isWithinPresenceRange(position, theirPosition)) continue;
         io.to(nearbySocket.id).emit('explorer:nearby', {
           explorerId,
           lat: fuzzed.lat,

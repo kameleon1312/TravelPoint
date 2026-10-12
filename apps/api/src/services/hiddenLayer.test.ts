@@ -28,7 +28,6 @@ describe('resolveSpotForViewer', () => {
     const result = await resolveSpotForViewer(
       { ...baseSpot, accessLevel: 'CIRCLE_ONLY', circleId: 'circle-a' },
       viewer,
-      1,
       vi.fn(),
     );
 
@@ -40,7 +39,6 @@ describe('resolveSpotForViewer', () => {
     const result = await resolveSpotForViewer(
       { ...baseSpot, accessLevel: 'CIRCLE_ONLY', circleId: 'circle-a' },
       { ...viewer, circleIds: ['circle-a'] },
-      1,
       audit,
     );
 
@@ -56,7 +54,6 @@ describe('resolveSpotForViewer', () => {
         dropExpiresAt: new Date(Date.now() - 1_000),
       },
       { ...viewer, id: 'owner' },
-      1,
       vi.fn(),
     );
 
@@ -67,7 +64,6 @@ describe('resolveSpotForViewer', () => {
     const result = await resolveSpotForViewer(
       { ...baseSpot, accessLevel: 'TRUSTED' },
       viewer,
-      1,
       vi.fn(),
     );
 
@@ -77,5 +73,12 @@ describe('resolveSpotForViewer', () => {
       requiredAccess: 'TRUSTED',
     });
     expect(result?.lat).not.toBe(baseSpot.lat);
+  });
+
+  it('returns the same locked pin on repeated requests so it cannot be averaged out', async () => {
+    const resolve = () => resolveSpotForViewer({ ...baseSpot, accessLevel: 'TRUSTED' }, viewer, vi.fn());
+    const [a, b] = await Promise.all([resolve(), resolve()]);
+    expect(a?.lat).toBe(b?.lat);
+    expect(a?.lng).toBe(b?.lng);
   });
 });

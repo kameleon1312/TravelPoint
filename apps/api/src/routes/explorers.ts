@@ -13,6 +13,7 @@ import {
   PushTokenSchema,
 } from '@travelpoint/validation';
 import { createPhotoUpload, finalizePhoto, validatePhoto } from '../services/storage';
+import { fuzzSpotCoordinates } from '../services/geoPrivacy';
 
 function decryptHomeBase(value: string | null): { lat: number; lng: number } | null {
   if (!value) return null;
@@ -459,14 +460,7 @@ export async function explorerRoutes(app: FastifyInstance) {
       take: limit,
     });
 
-    // Fuzz coords with a stable daily seed (consistent within a day, shifts daily)
-    const today = Math.floor(Date.now() / 86_400_000);
-    const { fuzzCoordinates } = await import('@travelpoint/geo');
-    const fuzzed = spots.map((s) => {
-      const seed = today ^ s.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-      const { lat, lng } = fuzzCoordinates(s.lat, s.lng, 500, seed);
-      return { ...s, lat, lng };
-    });
+    const fuzzed = spots.map((s) => ({ ...s, ...fuzzSpotCoordinates(s, 500) }));
 
     return reply.send(fuzzed);
   });

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { requireAuth } from '../middleware/requireAuth';
-import { fuzzCoordinates } from '@travelpoint/geo';
-import type { FeedItem } from '@travelpoint/types';
+import { rankAtLeast, type FeedItem } from '@travelpoint/types';
+import { fuzzSpotCoordinates } from '../services/geoPrivacy';
 
 export async function feedRoutes(app: FastifyInstance) {
   // GET /api/feed — aggregated activity for explorer's circles + own activity
@@ -12,10 +12,16 @@ export async function feedRoutes(app: FastifyInstance) {
     const beforeDate = before ? new Date(before) : new Date();
     const explorerId = req.explorerId;
 
-    const memberships = await app.prisma.circleMember.findMany({
-      where: { explorerId },
-      select: { circleId: true },
-    });
+    const [memberships, viewer] = await Promise.all([
+      app.prisma.circleMember.findMany({
+        where: { explorerId },
+        select: { circleId: true },
+      }),
+      app.prisma.explorer.findUnique({ where: { id: explorerId }, select: { rank: true } }),
+    ]);
+    // Mirrors services/hiddenLayer: TRUSTED spots are visible only from TRUSTED rank up.
+    const visibleAccessLevels: Array<'PUBLIC' | 'TRUSTED'> =
+      viewer && rankAtLeast(viewer.rank, 'TRUSTED') ? ['PUBLIC', 'TRUSTED'] : ['PUBLIC'];
     const circleIds = memberships.map((m) => m.circleId);
 
     // Explorer IDs that share a circle with current explorer
@@ -46,7 +52,7 @@ export async function feedRoutes(app: FastifyInstance) {
         where: {
           ownerId: { in: visibleIds },
           deletedAt: null,
-          accessLevel: { in: ['PUBLIC', 'TRUSTED'] },
+          accessLevel: { in: visibleAccessLevels },
           createdAt: { gte: since, lt: beforeDate },
         },
         include: { owner: { select: { handle: true, avatarUrl: true, rank: true } } },
@@ -80,13 +86,9 @@ export async function feedRoutes(app: FastifyInstance) {
       }),
     ]);
 
-    // Stable daily seed per spot — prevents triangulation, pins don't jump on reload
-    const today = Math.floor(Date.now() / 86_400_000);
-
     const items: FeedItem[] = [
       ...spots.map((s) => {
-        const seed = today ^ s.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-        const { lat, lng } = fuzzCoordinates(s.lat, s.lng, 500, seed);
+        const { lat, lng } = fuzzSpotCoordinates(s, 500);
         return {
           id:            `spot:${s.id}`,
           type:          'SPOT_CREATED' as const,

@@ -1,8 +1,8 @@
 // Why: exact coordinates of a hidden spot are the product's core value AND a
 // safety concern. Access is decided server-side only. The client never receives
 // raw lat/lng it isn't entitled to.
-import { fuzzCoordinates } from '@travelpoint/geo';
 import { rankAtLeast } from '@travelpoint/types';
+import { fuzzSpotCoordinates } from './geoPrivacy';
 import type { Rank } from '@travelpoint/types';
 
 interface SpotRow {
@@ -49,7 +49,6 @@ export function isDropActive(spot: Pick<SpotRow, 'dropExpiresAt'>, now = new Dat
 export async function resolveSpotForViewer(
   spot: SpotRow,
   viewer: ViewerContext,
-  sessionSeed: number,
   auditFn: (explorerId: string, spotId: string) => Promise<void>,
 ): Promise<ResolvedSpot | null> {
   // Expired drops are removed from discovery entirely, including for the
@@ -82,7 +81,7 @@ export async function resolveSpotForViewer(
     return { ...spot, locked: false };
   }
 
-  const fuzzed = fuzzCoordinates(spot.lat, spot.lng, 1500, sessionSeed);
+  const fuzzed = fuzzSpotCoordinates(spot, 1500);
   return {
     id: spot.id,
     title: spot.title,

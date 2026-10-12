@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 import { CreateSpotSchema, SpotQuerySchema, UpdateSpotSchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { resolveSpotForViewer } from '../services/hiddenLayer';
-import { fuzzCoordinates, generateSessionSeed } from '@travelpoint/geo';
+import { fuzzSpotCoordinates } from '../services/geoPrivacy';
 import { latLngToCell } from 'h3-js';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
 import {
@@ -55,18 +55,6 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
     Math.cos(lat2 * (Math.PI / 180)) *
     Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-// Deterministic daily seed per spot — prevents triangulation across requests
-// but keeps positions stable within a day so map pins don't jump on reload
-function dailySpotSeed(spotId: string): number {
-  const today = new Date().toISOString().slice(0, 10);
-  const input = `${spotId}:${today}`;
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    hash = Math.imul(31, hash) + input.charCodeAt(i) | 0;
-  }
-  return Math.abs(hash);
 }
 
 async function findNearbySpotCandidates(
@@ -176,7 +164,6 @@ export async function spotsRoutes(app: FastifyInstance) {
         circleIds: explorer.memberships.map((membership) => membership.circleId),
         tier: explorer.tier,
       },
-      generateSessionSeed(),
       async (viewerId, spotId) => {
         await app.prisma.auditLog.create({
           data: { explorerId: viewerId, spotId, action: 'SPOT_ACCESS' },
@@ -196,7 +183,6 @@ export async function spotsRoutes(app: FastifyInstance) {
       where: { id: { in: candidateIds }, deletedAt: null },
       include: { memberships: { select: { circleId: true } } },
     });
-    const seed = generateSessionSeed();
     const checks = await Promise.all(explorers.map(async (explorer) => {
       const resolved = await resolveSpotForViewer(
         spot,
@@ -206,7 +192,6 @@ export async function spotsRoutes(app: FastifyInstance) {
           circleIds: explorer.memberships.map((m) => m.circleId),
           tier: explorer.tier,
         },
-        seed,
         async () => {},
       );
       return resolved && !resolved.locked ? explorer.id : null;
@@ -237,7 +222,6 @@ export async function spotsRoutes(app: FastifyInstance) {
     });
     if (!explorer) return reply.status(404).send({ code: 'NOT_FOUND' });
 
-    const sessionSeed = generateSessionSeed();
     const circleIds   = explorer.memberships.map((m: { circleId: string }) => m.circleId);
 
     const resolved = await Promise.all(
@@ -245,7 +229,6 @@ export async function spotsRoutes(app: FastifyInstance) {
         resolveSpotForViewer(
           spot,
           { id: explorer.id, rank: explorer.rank, circleIds, tier: explorer.tier },
-          sessionSeed,
           async () => {},
         ),
       ),
@@ -256,7 +239,7 @@ export async function spotsRoutes(app: FastifyInstance) {
 
   // ── GET /api/spots/public ─────────────────────────────────────────────────
   // Public endpoint — no auth, returns fuzzed PUBLIC spots for the world map.
-  // Coords fuzzed ≥500m with daily-per-spot seed (stable within day, shifts daily).
+  // Coords fuzzed ≥500m with a stable per-spot offset (see services/geoPrivacy).
   app.get('/api/spots/public', {
     config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
   }, async (req, reply) => {
@@ -283,8 +266,7 @@ export async function spotsRoutes(app: FastifyInstance) {
     });
 
     const fuzzed = spots.map((spot: typeof spots[0]) => {
-      const seed = dailySpotSeed(spot.id);
-      const coords = fuzzCoordinates(spot.lat, spot.lng, 500, seed);
+      const coords = fuzzSpotCoordinates(spot, 500);
       return {
         id:        spot.id,
         title:     spot.title,
@@ -316,7 +298,6 @@ export async function spotsRoutes(app: FastifyInstance) {
 
     const nearby = await findNearbySpotCandidates(app, { lat, lng, radiusKm, category, limit });
 
-    const sessionSeed = generateSessionSeed();
     const circleIds   = explorer.memberships.map((m: { circleId: string }) => m.circleId);
 
     const resolved = await Promise.all(
@@ -324,7 +305,6 @@ export async function spotsRoutes(app: FastifyInstance) {
         resolveSpotForViewer(
           spot,
           { id: explorer.id, rank: explorer.rank, circleIds, tier: explorer.tier },
-          sessionSeed,
           async (eId, sId) => {
             await app.prisma.auditLog.create({ data: { explorerId: eId, spotId: sId, action: 'SPOT_ACCESS' } });
           },
