@@ -81,6 +81,19 @@ export const RANK_LABELS: Record<Rank, string> = {
   LEGEND:   'Legenda',
 };
 
+export const TIER_ORDER: Record<Tier, number> = { FREE: 0, PRO: 1, EXPEDITION: 2 };
+
+export function tierAtLeast(tier: Tier, minimum: Tier): boolean {
+  return TIER_ORDER[tier] >= TIER_ORDER[minimum];
+}
+
+// Paid plan required to see a spot unlocked. Rank is prestige and invite power, not access.
+export const ACCESS_LEVEL_TIER = {
+  PUBLIC: 'FREE',
+  TRUSTED: 'PRO',
+  SECRET_DROP: 'EXPEDITION',
+} as const satisfies Record<'PUBLIC' | 'TRUSTED' | 'SECRET_DROP', Tier>;
+
 export function rankAtLeast(rank: Rank, minimum: Rank): boolean {
   return RANK_ORDER[rank] >= RANK_ORDER[minimum];
 }

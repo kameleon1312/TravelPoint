@@ -1,9 +1,9 @@
 // Why: exact coordinates of a hidden spot are the product's core value AND a
 // safety concern. Access is decided server-side only. The client never receives
 // raw lat/lng it isn't entitled to.
-import { rankAtLeast } from '@travelpoint/types';
+import { ACCESS_LEVEL_TIER, tierAtLeast } from '@travelpoint/types';
 import { fuzzSpotCoordinates } from './geoPrivacy';
-import type { Rank } from '@travelpoint/types';
+import type { Rank, Tier } from '@travelpoint/types';
 
 interface SpotRow {
   id: string;
@@ -26,7 +26,13 @@ interface ViewerContext {
   id: string;
   rank: Rank;
   circleIds: string[];
-  tier: string;
+  tier: Tier;
+}
+
+// Single source for "may this plan see this access level unlocked" (CIRCLE_ONLY is membership-based).
+export function tierUnlocks(tier: Tier, accessLevel: SpotRow['accessLevel']): boolean {
+  if (accessLevel === 'CIRCLE_ONLY') return false;
+  return tierAtLeast(tier, ACCESS_LEVEL_TIER[accessLevel]);
 }
 
 export type ResolvedSpot =
@@ -69,12 +75,10 @@ export async function resolveSpotForViewer(
 
   const entitled =
     spot.ownerId === viewer.id ||            // owner always sees their own spot
-    spot.accessLevel === 'PUBLIC' ||
-    (spot.accessLevel === 'TRUSTED' && rankAtLeast(viewer.rank, 'TRUSTED')) ||
     (spot.accessLevel === 'CIRCLE_ONLY' &&
       spot.circleId !== null &&
       viewer.circleIds.includes(spot.circleId)) ||
-    spot.accessLevel === 'SECRET_DROP';
+    tierUnlocks(viewer.tier, spot.accessLevel);
 
   if (entitled) {
     await auditFn(viewer.id, spot.id);

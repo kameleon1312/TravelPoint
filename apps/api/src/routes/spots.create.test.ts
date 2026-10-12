@@ -15,7 +15,11 @@ const { spotsRoutes } = await import('./spots');
 
 const BASE_BODY = { title: 'Old bunker', category: 'ABANDONED', lat: 52.1, lng: 21.1 };
 
-function buildPrisma(overrides: { memberOf: string[]; explorers?: Array<{ id: string; circleIds: string[] }> }) {
+function buildPrisma(overrides: {
+  memberOf: string[];
+  explorers?: Array<{ id: string; circleIds: string[] }>;
+  ownerTier?: 'FREE' | 'PRO' | 'EXPEDITION';
+}) {
   const spotCreate = vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
     id: 'new-spot', story: null, dropExpiresAt: null, circleId: null,
     createdAt: new Date(), updatedAt: new Date(), deletedAt: null,
@@ -24,6 +28,7 @@ function buildPrisma(overrides: { memberOf: string[]; explorers?: Array<{ id: st
   const prisma = {
     explorer: {
       findFirst: vi.fn(async () => ({ id: 'owner', suspendedAt: null })),
+      findUnique: vi.fn(async () => ({ tier: overrides.ownerTier ?? 'FREE' })),
       findMany: vi.fn(async ({ where }: { where: { id: { in: string[] } } }) =>
         (overrides.explorers ?? [])
           .filter((e) => where.id.in.includes(e.id))
@@ -75,6 +80,16 @@ describe('POST /api/spots access rules', () => {
     expect((await post(prisma, { ...BASE_BODY, accessLevel: 'CIRCLE_ONLY' })).statusCode).toBe(400);
     expect((await post(prisma, { ...BASE_BODY, accessLevel: 'SECRET_DROP' })).statusCode).toBe(400);
     expect(spotCreate).not.toHaveBeenCalled();
+  });
+
+  it('requires the EXPEDITION plan to create a secret drop', async () => {
+    const dropExpiresAt = new Date(Date.now() + 24 * 3_600_000).toISOString();
+    const free = buildPrisma({ memberOf: [], ownerTier: 'PRO' });
+    expect((await post(free.prisma, { ...BASE_BODY, accessLevel: 'SECRET_DROP', dropExpiresAt })).statusCode).toBe(403);
+    expect(free.spotCreate).not.toHaveBeenCalled();
+
+    const expedition = buildPrisma({ memberOf: [], ownerTier: 'EXPEDITION' });
+    expect((await post(expedition.prisma, { ...BASE_BODY, accessLevel: 'SECRET_DROP', dropExpiresAt })).statusCode).toBe(201);
   });
 
   it('signals a circle-only spot only to members of that circle', async () => {

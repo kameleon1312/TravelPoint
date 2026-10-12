@@ -1,27 +1,22 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { requireAuth } from '../middleware/requireAuth';
+import { tierUnlocks } from '../services/hiddenLayer';
 import type {
   SpotSearchResult,
   ExplorerSearchResult,
   JourneySearchResult,
   Rank,
   Archetype,
+  Tier,
 } from '@travelpoint/types';
 
 const RATE_LIMIT = { max: 30, timeWindow: '1 minute' };
 
-// ── Access level thresholds ───────────────────────────────────────────────────
-const RANK_ORDER: Record<string, number> = {
-  NEWCOMER: 0, EXPLORER: 1, TRUSTED: 2, INSIDER: 3, LEGEND: 4,
-};
-
-function explorerCanSeeAccess(rank: string, accessLevel: string): boolean {
-  if (accessLevel === 'PUBLIC') return true;
-  const r = RANK_ORDER[rank] ?? -1;
-  if (accessLevel === 'TRUSTED') return r >= (RANK_ORDER['TRUSTED'] ?? 0);
-  if (accessLevel === 'SECRET_DROP') return r >= (RANK_ORDER['INSIDER'] ?? 0);
-  return false; // CIRCLE_ONLY excluded from global search
+// Same entitlement as services/hiddenLayer; CIRCLE_ONLY is excluded from global search.
+function explorerCanSeeAccess(tier: Tier, accessLevel: string): boolean {
+  if (accessLevel !== 'PUBLIC' && accessLevel !== 'TRUSTED' && accessLevel !== 'SECRET_DROP') return false;
+  return tierUnlocks(tier, accessLevel);
 }
 
 // ── Spot search ───────────────────────────────────────────────────────────────
@@ -29,7 +24,7 @@ async function searchSpots(
   app: FastifyInstance,
   q: string,
   limit: number,
-  explorerRank: string,
+  explorerTier: Tier,
 ): Promise<SpotSearchResult[]> {
   type RawRow = {
     id: string;
@@ -42,7 +37,7 @@ async function searchSpots(
 
   // Locked spots expose only title/category, so their story must not be matchable —
   // otherwise search becomes an oracle for probing restricted content word by word.
-  const storyLevels = ['PUBLIC', 'TRUSTED', 'SECRET_DROP'].filter((level) => explorerCanSeeAccess(explorerRank, level));
+  const storyLevels = ['PUBLIC', 'TRUSTED', 'SECRET_DROP'].filter((level) => explorerCanSeeAccess(explorerTier, level));
   const storyMatch = Prisma.sql`(story ILIKE ${`%${q}%`} AND "accessLevel"::text IN (${Prisma.join(storyLevels)}))`;
   // Expired drops are removed from discovery entirely (see services/hiddenLayer).
   const discoverable = Prisma.sql`"deletedAt" IS NULL
@@ -84,7 +79,7 @@ async function searchSpots(
       title: row.title,
       category: row.category as SpotSearchResult['category'],
       accessLevel: row.accessLevel as SpotSearchResult['accessLevel'],
-      locked: !explorerCanSeeAccess(explorerRank, row.accessLevel),
+      locked: !explorerCanSeeAccess(explorerTier, row.accessLevel),
     }));
 }
 
@@ -219,13 +214,13 @@ export async function searchRoutes(app: FastifyInstance) {
 
       const explorer = await app.prisma.explorer.findUnique({
         where: { id: req.explorerId },
-        select: { rank: true },
+        select: { tier: true },
       });
-      const rank = explorer?.rank ?? 'NEWCOMER';
+      const tier = explorer?.tier ?? 'FREE';
 
       const [spots, explorers, journeys] = await Promise.all([
         type === 'all' || type === 'spots'
-          ? searchSpots(app, q, limit, rank)
+          ? searchSpots(app, q, limit, tier)
           : ([] as SpotSearchResult[]),
         type === 'all' || type === 'explorers'
           ? searchExplorers(app, q, limit, req.explorerId)

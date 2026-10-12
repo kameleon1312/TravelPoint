@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { requireAuth } from '../middleware/requireAuth';
-import { rankAtLeast, type FeedItem } from '@travelpoint/types';
+import type { FeedItem } from '@travelpoint/types';
 import { fuzzSpotCoordinates } from '../services/geoPrivacy';
+import { tierUnlocks } from '../services/hiddenLayer';
 
 export async function feedRoutes(app: FastifyInstance) {
   // GET /api/feed — aggregated activity for explorer's circles + own activity
@@ -17,11 +18,11 @@ export async function feedRoutes(app: FastifyInstance) {
         where: { explorerId },
         select: { circleId: true },
       }),
-      app.prisma.explorer.findUnique({ where: { id: explorerId }, select: { rank: true } }),
+      app.prisma.explorer.findUnique({ where: { id: explorerId }, select: { tier: true } }),
     ]);
-    // Mirrors services/hiddenLayer: TRUSTED spots are visible only from TRUSTED rank up.
+    // Same entitlement as services/hiddenLayer: TRUSTED spots need a PRO+ plan.
     const visibleAccessLevels: Array<'PUBLIC' | 'TRUSTED'> =
-      viewer && rankAtLeast(viewer.rank, 'TRUSTED') ? ['PUBLIC', 'TRUSTED'] : ['PUBLIC'];
+      viewer && tierUnlocks(viewer.tier, 'TRUSTED') ? ['PUBLIC', 'TRUSTED'] : ['PUBLIC'];
     const circleIds = memberships.map((m) => m.circleId);
 
     // Explorer IDs that share a circle with current explorer

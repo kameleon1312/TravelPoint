@@ -18,9 +18,9 @@ const baseSpot = {
 
 const viewer = {
   id: 'viewer',
-  rank: 'NEWCOMER' as const,
+  rank: 'NEWCOMER' as 'NEWCOMER' | 'LEGEND',
   circleIds: [] as string[],
-  tier: 'FREE',
+  tier: 'FREE' as 'FREE' | 'PRO' | 'EXPEDITION',
 };
 
 describe('resolveSpotForViewer', () => {
@@ -73,6 +73,21 @@ describe('resolveSpotForViewer', () => {
       requiredAccess: 'TRUSTED',
     });
     expect(result?.lat).not.toBe(baseSpot.lat);
+  });
+
+  it('unlocks TRUSTED spots by plan (PRO+), not by rank', async () => {
+    const trusted = { ...baseSpot, accessLevel: 'TRUSTED' as const };
+    expect(await resolveSpotForViewer(trusted, { ...viewer, rank: 'LEGEND' }, vi.fn())).toMatchObject({ locked: true });
+    expect(await resolveSpotForViewer(trusted, { ...viewer, tier: 'PRO' }, vi.fn())).toMatchObject({ locked: false });
+    expect(await resolveSpotForViewer(trusted, { ...viewer, tier: 'EXPEDITION' }, vi.fn())).toMatchObject({ locked: false });
+  });
+
+  it('keeps active secret drops locked below EXPEDITION', async () => {
+    const drop = { ...baseSpot, accessLevel: 'SECRET_DROP' as const, dropExpiresAt: new Date(Date.now() + 3_600_000) };
+    expect(await resolveSpotForViewer(drop, { ...viewer, tier: 'PRO' }, vi.fn()))
+      .toMatchObject({ locked: true, requiredAccess: 'SECRET_DROP' });
+    expect(await resolveSpotForViewer(drop, { ...viewer, tier: 'EXPEDITION' }, vi.fn())).toMatchObject({ locked: false });
+    expect(await resolveSpotForViewer(drop, { ...viewer, id: 'owner' }, vi.fn())).toMatchObject({ locked: false });
   });
 
   it('returns the same locked pin on repeated requests so it cannot be averaged out', async () => {

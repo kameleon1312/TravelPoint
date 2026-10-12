@@ -5,6 +5,7 @@ import { CreateSpotSchema, SpotQuerySchema, UpdateSpotSchema } from '@travelpoin
 import { requireAuth } from '../middleware/requireAuth';
 import { resolveSpotForViewer } from '../services/hiddenLayer';
 import { fuzzSpotCoordinates } from '../services/geoPrivacy';
+import { tierAtLeast, type Tier } from '@travelpoint/types';
 import { latLngToCell } from 'h3-js';
 import { addTrustPoints, TrustPoints } from '../services/trustScore';
 import {
@@ -170,6 +171,11 @@ export async function spotsRoutes(app: FastifyInstance) {
         });
       },
     );
+  }
+
+  async function hasTier(explorerId: string, minimum: Tier): Promise<boolean> {
+    const explorer = await app.prisma.explorer.findUnique({ where: { id: explorerId }, select: { tier: true } });
+    return explorer !== null && tierAtLeast(explorer.tier, minimum);
   }
 
   // Signals carry spot title/category, so only explorers entitled to the unlocked spot
@@ -353,6 +359,9 @@ export async function spotsRoutes(app: FastifyInstance) {
     if (accessLevel === 'SECRET_DROP' && (!nextExpiry || nextExpiry <= new Date())) {
       return reply.status(400).send({ code: 'DROP_EXPIRY_REQUIRED', message: 'SECRET_DROP requires a future dropExpiresAt' });
     }
+    if (accessLevel === 'SECRET_DROP' && spot.accessLevel !== 'SECRET_DROP' && !await hasTier(req.explorerId, 'EXPEDITION')) {
+      return reply.status(403).send({ code: 'TIER_REQUIRED', requiredTier: 'EXPEDITION' });
+    }
     const data: Record<string, unknown> = {};
     if (title !== undefined) data['title'] = title.trim();
     if (story !== undefined) data['story'] = story.trim() || null;
@@ -386,8 +395,13 @@ export async function spotsRoutes(app: FastifyInstance) {
       });
       if (!membership) return reply.status(403).send({ code: 'NOT_CIRCLE_MEMBER' });
     }
-    if (rest.accessLevel === 'SECRET_DROP' && (!rest.dropExpiresAt || new Date(rest.dropExpiresAt) <= new Date())) {
-      return reply.status(400).send({ code: 'DROP_EXPIRY_REQUIRED', message: 'SECRET_DROP requires a future dropExpiresAt' });
+    if (rest.accessLevel === 'SECRET_DROP') {
+      if (!rest.dropExpiresAt || new Date(rest.dropExpiresAt) <= new Date()) {
+        return reply.status(400).send({ code: 'DROP_EXPIRY_REQUIRED', message: 'SECRET_DROP requires a future dropExpiresAt' });
+      }
+      if (!await hasTier(req.explorerId, 'EXPEDITION')) {
+        return reply.status(403).send({ code: 'TIER_REQUIRED', requiredTier: 'EXPEDITION' });
+      }
     }
 
     const h3Index = latLngToCell(lat, lng, 8);
