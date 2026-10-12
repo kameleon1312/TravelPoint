@@ -185,6 +185,35 @@ export async function spotsRoutes(app: FastifyInstance) {
     );
   }
 
+  // Signals carry spot title/category, so only explorers entitled to the unlocked spot
+  // may receive them — a CIRCLE_ONLY spot must not exist for anyone outside its circle.
+  async function entitledRecipients(
+    spot: Parameters<typeof resolveSpotForViewer>[0],
+    candidateIds: string[],
+  ): Promise<string[]> {
+    if (candidateIds.length === 0) return [];
+    const explorers = await app.prisma.explorer.findMany({
+      where: { id: { in: candidateIds }, deletedAt: null },
+      include: { memberships: { select: { circleId: true } } },
+    });
+    const seed = generateSessionSeed();
+    const checks = await Promise.all(explorers.map(async (explorer) => {
+      const resolved = await resolveSpotForViewer(
+        spot,
+        {
+          id: explorer.id,
+          rank: explorer.rank,
+          circleIds: explorer.memberships.map((m) => m.circleId),
+          tier: explorer.tier,
+        },
+        seed,
+        async () => {},
+      );
+      return resolved && !resolved.locked ? explorer.id : null;
+    }));
+    return checks.filter((id): id is string => id !== null);
+  }
+
   async function requireExactSpotAccess(
     spot: Parameters<typeof resolveSpotForViewer>[0],
     explorerId: string,
@@ -336,6 +365,14 @@ export async function spotsRoutes(app: FastifyInstance) {
     }
 
     const { title, story, accessLevel, dropExpiresAt } = parsed.data;
+    // Validate only transitions, so legacy rows stay editable.
+    const nextExpiry = dropExpiresAt !== undefined ? (dropExpiresAt ? new Date(dropExpiresAt) : null) : spot.dropExpiresAt;
+    if (accessLevel === 'CIRCLE_ONLY' && !spot.circleId) {
+      return reply.status(400).send({ code: 'CIRCLE_REQUIRED', message: 'Spot is not linked to a circle' });
+    }
+    if (accessLevel === 'SECRET_DROP' && (!nextExpiry || nextExpiry <= new Date())) {
+      return reply.status(400).send({ code: 'DROP_EXPIRY_REQUIRED', message: 'SECRET_DROP requires a future dropExpiresAt' });
+    }
     const data: Record<string, unknown> = {};
     if (title !== undefined) data['title'] = title.trim();
     if (story !== undefined) data['story'] = story.trim() || null;
@@ -358,6 +395,20 @@ export async function spotsRoutes(app: FastifyInstance) {
       return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
     }
     const { lat, lng, ...rest } = parsed.data;
+
+    if (rest.accessLevel === 'CIRCLE_ONLY' && !rest.circleId) {
+      return reply.status(400).send({ code: 'CIRCLE_REQUIRED', message: 'CIRCLE_ONLY spots require circleId' });
+    }
+    if (rest.circleId) {
+      const membership = await app.prisma.circleMember.findUnique({
+        where: { circleId_explorerId: { circleId: rest.circleId, explorerId: req.explorerId } },
+        select: { circleId: true },
+      });
+      if (!membership) return reply.status(403).send({ code: 'NOT_CIRCLE_MEMBER' });
+    }
+    if (rest.accessLevel === 'SECRET_DROP' && (!rest.dropExpiresAt || new Date(rest.dropExpiresAt) <= new Date())) {
+      return reply.status(400).send({ code: 'DROP_EXPIRY_REQUIRED', message: 'SECRET_DROP requires a future dropExpiresAt' });
+    }
 
     const h3Index = latLngToCell(lat, lng, 8);
 
@@ -391,15 +442,16 @@ export async function spotsRoutes(app: FastifyInstance) {
       }
     }
 
-    // Push NEARBY_SPOT signal to circle members of the spot owner
+    // Push NEARBY_SPOT signal to circle members of the spot owner who may see the spot
     void (async () => {
       try {
+        if (spot.accessLevel === 'SECRET_DROP') return; // already handled above
         const ownerCircles = await app.prisma.circleMember.findMany({
           where: { explorerId: req.explorerId },
           select: { circleId: true },
         });
         if (ownerCircles.length === 0) return;
-        const recipients = await app.prisma.circleMember.findMany({
+        const circlemates = await app.prisma.circleMember.findMany({
           where: {
             circleId:   { in: ownerCircles.map((m) => m.circleId) },
             explorerId: { not: req.explorerId },
@@ -407,32 +459,33 @@ export async function spotsRoutes(app: FastifyInstance) {
           distinct: ['explorerId'],
           select: { explorerId: true },
         });
-        for (const r of recipients) {
-          if (spot.accessLevel === 'SECRET_DROP') continue; // already handled above
+        const recipients = await entitledRecipients(spot, circlemates.map((m) => m.explorerId));
+        for (const recipientId of recipients) {
           void pushSignal(
             app,
-            r.explorerId,
+            recipientId,
             'NEARBY_SPOT',
             { spotId: spot.id, title: spot.title, category: spot.category },
-            `nearby-spot:${spot.id}:${r.explorerId}`,
+            `nearby-spot:${spot.id}:${recipientId}`,
           );
           void sendPushToExplorer(
             app.prisma,
-            r.explorerId,
+            recipientId,
             pushStrings.nearbySpot.title,
             pushStrings.nearbySpot.body(spot.title),
             { type: 'nearby_spot', id: spot.id },
           );
         }
-      } catch {
-        // Never block spot creation for notification errors
+      } catch (err) {
+        app.log.warn({ err, spotId: spot.id }, 'nearby-spot circle signal failed');
       }
     })();
 
-    // Notify online explorers within 5 km who have locationConsent (presence-enabled)
+    // Notify online explorers within 5 km. Strangers learn only about PUBLIC spots —
+    // anything else would disclose restricted spots and the creator's live whereabouts.
     void (async () => {
       try {
-        if (presenceStore.size === 0) return;
+        if (spot.accessLevel !== 'PUBLIC' || presenceStore.size === 0) return;
         const nearby = [...presenceStore.entries()].filter(
           ([id, { lat, lng }]) =>
             id !== req.explorerId &&
