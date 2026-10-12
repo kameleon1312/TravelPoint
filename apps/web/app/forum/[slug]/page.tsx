@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { WorldNav } from '@/components/layout/WorldNav';
+import { serializeJsonLd } from '@/lib/jsonLd';
 import { ForumPostClient } from './ForumPostClient';
 
 interface ForumReply {
@@ -73,7 +74,7 @@ export default async function ForumPostPage({ params }: Props): Promise<React.JS
       <WorldNav />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <ForumPostClient post={post} />
     </>

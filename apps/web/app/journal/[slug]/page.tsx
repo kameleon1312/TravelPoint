@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { WorldNav } from '@/components/layout/WorldNav';
+import { serializeJsonLd } from '@/lib/jsonLd';
 import { RANK_COLORS } from '@/lib/journal';
 import { fetchJournalPost, fetchJournalPosts } from '@/lib/journalApi';
 
@@ -76,7 +77,7 @@ export default async function JournalPostPage({ params }: Props): Promise<React.
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             '@context': 'https://schema.org',
             '@type': 'Article',
             headline: post.title,

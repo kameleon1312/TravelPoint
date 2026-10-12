@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { WorldNav } from '@/components/layout/WorldNav';
+import { serializeJsonLd } from '@/lib/jsonLd';
 
 interface Props {
   params: Promise<{ handle: string }>;
@@ -124,7 +125,7 @@ export default async function ExplorerProfilePage({ params }: Props): Promise<Re
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             '@context': 'https://schema.org',
             '@type': 'Person',
             name: profile.displayName ?? `@${profile.handle}`,
