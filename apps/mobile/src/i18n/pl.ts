@@ -197,8 +197,18 @@ export const pl = {
   spotLock: {
     title:          'Zablokowane',
     hintCircleOnly: 'Dołącz do odpowiedniego circle żeby odblokować ten spot.',
-    hintDefault:    'Zwiększ swój rank lub odblokuj wyższy plan dostępu.',
+    hintDefault:    'Odblokuj wyższy plan dostępu, żeby zobaczyć ten spot.',
     unlockWithPlan: (plan: string) => `Odblokuj z planem ${plan}`,
+  },
+
+  // Server-side plan limits (403 TIER_LIMIT / TIER_REQUIRED)
+  upgrade: {
+    title:          'Potrzebny wyższy plan',
+    journeyLimit:   (limit: number) => `Plan Explorer pozwala na ${limit} ekspedycje. Przejdź na Explorer PRO, żeby zapisywać kolejne.`,
+    secretDrop:     'Tajne dropy są dostępne w planie Expedition.',
+    generic:        'Ta funkcja wymaga wyższego planu.',
+    seePlans:       'Zobacz plany',
+    later:          'Może później',
   },
 
   // Subscription tier display names

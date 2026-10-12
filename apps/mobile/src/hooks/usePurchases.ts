@@ -39,7 +39,7 @@ export function useStoreProduct(tier: RcTier, annual: boolean): PurchasesStorePr
   return offering?.availablePackages.find((p) => p.product.identifier === productId)?.product ?? null;
 }
 
-// Store-listed, localized price, e.g. "49,00 zł"
+// Store-listed, localized price, e.g. "29,00 zł"
 export function useProductPrice(tier: RcTier, annual: boolean): string | null {
   return useStoreProduct(tier, annual)?.priceString ?? null;
 }

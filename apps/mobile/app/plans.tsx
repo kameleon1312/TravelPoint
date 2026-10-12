@@ -16,8 +16,10 @@ import type { RcTier } from '@/lib/purchases';
 // ── Pricing ──────────────────────────────────────────────────────────────────
 
 const PRICES = {
-  PRO:        { monthly: 49, annual: 39 },
-  EXPEDITION: { monthly: 149, annual: 119 },
+  // Fallback until store prices load; must match the web price list (29 / 79 zł).
+  // Annual = monthly equivalent with the 20% discount shown in the toggle.
+  PRO:        { monthly: 29, annual: 23 },
+  EXPEDITION: { monthly: 79, annual: 63 },
 } as const;
 
 // ── Tier definitions ─────────────────────────────────────────────────────────

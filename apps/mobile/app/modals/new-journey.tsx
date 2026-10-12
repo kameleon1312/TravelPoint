@@ -10,6 +10,9 @@ import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
 import { SignalButton } from '@/components/ui/SignalButton';
 import { CreateJourneySchema, type CreateJourneyInput } from '@travelpoint/validation';
 import { useCreateJourney } from '@/hooks/useJourneys';
+import { promptUpgradeOnTierError } from '@/lib/upgradePrompt';
+import { pl } from '@/i18n/pl';
+import { TierLimits } from '@travelpoint/types';
 import { useState } from 'react';
 
 export default function NewJourneyModal() {
@@ -31,7 +34,8 @@ export default function NewJourneyModal() {
       const journey = await createJourney(data);
       router.back();
       router.push(`/journey/${(journey as { id: string }).id}`);
-    } catch {
+    } catch (err) {
+      if (promptUpgradeOnTierError(err, pl.upgrade.journeyLimit(TierLimits.FREE.journeys))) return;
       setServerError('Błąd zapisu. Sprawdź połączenie.');
     }
   }

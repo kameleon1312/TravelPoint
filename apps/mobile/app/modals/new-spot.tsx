@@ -18,6 +18,7 @@ import { useCreateSpot } from '@/hooks/useSpots';
 import { useMyCircles } from '@/hooks/useCircles';
 import { useBillingStatus } from '@/hooks/useBilling';
 import { pl } from '@/i18n/pl';
+import { promptUpgradeOnTierError } from '@/lib/upgradePrompt';
 
 const CATEGORIES = ['ABANDONED', 'CAFE', 'BEACH', 'ROUTE', 'UNDERGROUND', 'VIEWPOINT', 'CAMP'] as const;
 const ACCESS_LEVELS = ['PUBLIC', 'TRUSTED', 'CIRCLE_ONLY', 'SECRET_DROP'] as const;
@@ -88,7 +89,8 @@ export default function NewSpotModal() {
     try {
       await createSpot(data);
       router.back();
-    } catch {
+    } catch (err) {
+      if (promptUpgradeOnTierError(err, pl.upgrade.secretDrop)) return;
       setServerError(pl.newSpot.saveError);
     }
   }

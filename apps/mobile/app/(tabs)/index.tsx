@@ -28,7 +28,8 @@ import { useRecordingStore } from '@/stores/recording';
 import { useCreateJourney, useUpdateJourney } from '@/hooks/useJourneys';
 import { socketManager } from '@/lib/socket';
 import { api } from '@/lib/api';
-import type { SpotForViewer } from '@travelpoint/types';
+import { TierLimits, type SpotForViewer } from '@travelpoint/types';
+import { promptUpgradeOnTierError } from '@/lib/upgradePrompt';
 
 const ACCESS_PIN_COLORS: Record<string, string> = {
   PUBLIC:      Colors.aurora,
@@ -609,8 +610,10 @@ export default function AtlasScreen() {
     try {
       const journey = await createJourney({ title, isPrivate: true });
       journeyId = (journey as { id: string }).id;
-    } catch {
-      Alert.alert(pl.common.error, 'Nie udało się utworzyć journey.');
+    } catch (err) {
+      if (!promptUpgradeOnTierError(err, pl.upgrade.journeyLimit(TierLimits.FREE.journeys))) {
+        Alert.alert(pl.common.error, 'Nie udało się utworzyć journey.');
+      }
       return;
     }
 
