@@ -71,8 +71,8 @@ const TERRA_MARE_STYLE: google.maps.MapTypeStyle[] = [
 // Reuses an existing script tag if the component remounts or HMR fires.
 function loadGoogleMapsScript(apiKey: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    // Already fully loaded
-    if (typeof window !== 'undefined' && window.google?.maps?.Map) {
+    // Bootstrap already loaded (with loading=async, Map exists only after importLibrary)
+    if (typeof window !== 'undefined' && typeof window.google?.maps?.importLibrary === 'function') {
       resolve();
       return;
     }
@@ -85,12 +85,18 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
     }
     const script = document.createElement('script');
     script.id  = '__tp_gmap__';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly`;
+    // loading=async only exposes importLibrary on load; classes come from loadMapsLibraries().
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly&loading=async`;
     script.async = true;
     script.onload  = () => resolve();
     script.onerror = () => reject(new Error('Google Maps script failed to load'));
     document.head.appendChild(script);
   });
+}
+
+async function loadMapsLibraries(apiKey: string): Promise<void> {
+  await loadGoogleMapsScript(apiKey);
+  await Promise.all([google.maps.importLibrary('maps'), google.maps.importLibrary('marker')]);
 }
 
 interface Props { token?: string }
@@ -145,7 +151,7 @@ export function DiscoveryMap({ token }: Props): React.JSX.Element {
 
     const initMap = async () => {
       try {
-        await loadGoogleMapsScript(token);
+        await loadMapsLibraries(token);
         if (!mounted || !containerRef.current) return;
 
         const map = new google.maps.Map(containerRef.current, {
