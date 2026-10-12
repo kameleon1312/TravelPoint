@@ -28,7 +28,9 @@ import { env } from './config/env';
 import { getRedis } from './lib/redis';
 import { checkPushReceipts } from './services/pushReceipts';
 
-const app = Fastify({ logger: false });
+// Without trustProxy every request behind the load balancer shares the proxy's IP,
+// turning per-IP rate limits (e.g. 5 signups / 15 min) into one global bucket.
+const app = Fastify({ logger: false, trustProxy: env.trustProxyHops || false });
 
 async function bootstrap() {
   await registerSecurity(app);

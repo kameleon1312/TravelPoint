@@ -29,6 +29,12 @@ describe('loadEnv', () => {
     });
   });
 
+  it('trusts exactly one proxy hop in production unless configured', () => {
+    expect(loadEnv(productionEnv).trustProxyHops).toBe(1);
+    expect(loadEnv({ ...productionEnv, TRUST_PROXY_HOPS: '2' }).trustProxyHops).toBe(2);
+    expect(loadEnv({ NODE_ENV: 'development' }).trustProxyHops).toBe(0);
+  });
+
   it.each([
     'DATABASE_URL',
     'JWT_ACCESS_SECRET',

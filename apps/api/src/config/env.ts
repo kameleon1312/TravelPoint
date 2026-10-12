@@ -36,6 +36,7 @@ const RawEnvSchema = z.object({
   BILLING_SUCCESS_URL: z.string().url().optional(),
   BILLING_CANCEL_URL: z.string().url().optional(),
   REVENUECAT_WEBHOOK_SECRET: z.string().trim().optional(),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).optional(),
   RAILWAY_ENVIRONMENT: z.string().trim().optional(),
   RAILWAY_PROJECT_ID: z.string().trim().optional(),
 });
@@ -175,6 +176,9 @@ export function loadEnv(source: NodeJS.ProcessEnv) {
       cancelUrl: optionalValue(raw.BILLING_CANCEL_URL) ?? `${optionalValue(raw.NEXT_PUBLIC_APP_URL) ?? 'https://travelpoint.app'}/billing/cancel`,
     },
     revenueCatWebhookSecret: optionalValue(raw.REVENUECAT_WEBHOOK_SECRET),
+    // Number of reverse-proxy hops whose X-Forwarded-For entry is trusted. Hosted behind
+    // one load balancer (Render) by default; never `true`, which lets clients spoof req.ip.
+    trustProxyHops: raw.TRUST_PROXY_HOPS ?? (isProduction ? 1 : 0),
   } as const;
 }
 
