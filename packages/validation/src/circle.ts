@@ -11,3 +11,10 @@ export const CreateCircleSchema = z.object({
   isInviteOnly: z.boolean().default(true),
 });
 export type CreateCircleInput = z.infer<typeof CreateCircleSchema>;
+
+export const UpdateCircleSchema = z.object({
+  name: z.string().trim().min(2).max(60).optional(),
+  description: z.string().max(300).optional(),
+  isInviteOnly: z.boolean().optional(),
+});
+export type UpdateCircleInput = z.infer<typeof UpdateCircleSchema>;

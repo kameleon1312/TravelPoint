@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { CreateCircleSchema } from '@travelpoint/validation';
+import { CreateCircleSchema, UpdateCircleSchema } from '@travelpoint/validation';
 import { requireAuth } from '../middleware/requireAuth';
 import { inviteErrorMessage, validateInvite } from '../services/inviteCodes';
 import crypto from 'crypto';
@@ -290,9 +290,11 @@ export async function circleRoutes(app: FastifyInstance) {
       return reply.status(403).send({ code: 'FORBIDDEN' });
     }
 
-    const { name, description, isInviteOnly } = req.body as {
-      name?: string; description?: string; isInviteOnly?: boolean;
-    };
+    const parsed = UpdateCircleSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() });
+    }
+    const { name, description, isInviteOnly } = parsed.data;
     const updated = await app.prisma.circle.update({
       where: { id: circle.id },
       data: {
