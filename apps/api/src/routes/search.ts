@@ -40,16 +40,24 @@ async function searchSpots(
 
   let rows: RawRow[] = [];
 
+  // Locked spots expose only title/category, so their story must not be matchable —
+  // otherwise search becomes an oracle for probing restricted content word by word.
+  const storyLevels = ['PUBLIC', 'TRUSTED', 'SECRET_DROP'].filter((level) => explorerCanSeeAccess(explorerRank, level));
+  const storyMatch = Prisma.sql`(story ILIKE ${`%${q}%`} AND "accessLevel"::text IN (${Prisma.join(storyLevels)}))`;
+  // Expired drops are removed from discovery entirely (see services/hiddenLayer).
+  const discoverable = Prisma.sql`"deletedAt" IS NULL
+        AND "accessLevel"::text != 'CIRCLE_ONLY'
+        AND NOT ("accessLevel"::text = 'SECRET_DROP' AND ("dropExpiresAt" IS NULL OR "dropExpiresAt" <= NOW()))`;
+
   try {
     rows = await app.prisma.$queryRaw<RawRow[]>(Prisma.sql`
       SELECT id, title, category::text, "accessLevel"::text
       FROM "Spot"
-      WHERE "deletedAt" IS NULL
-        AND "accessLevel"::text != 'CIRCLE_ONLY'
+      WHERE ${discoverable}
         AND (
           title % ${q}
           OR title ILIKE ${`%${q}%`}
-          OR story ILIKE ${`%${q}%`}
+          OR ${storyMatch}
         )
       ORDER BY similarity(title, ${q}) DESC, "createdAt" DESC
       LIMIT ${limit * 2}
@@ -59,11 +67,10 @@ async function searchSpots(
     rows = await app.prisma.$queryRaw<RawRow[]>(Prisma.sql`
       SELECT id, title, category::text, "accessLevel"::text
       FROM "Spot"
-      WHERE "deletedAt" IS NULL
-        AND "accessLevel"::text != 'CIRCLE_ONLY'
+      WHERE ${discoverable}
         AND (
           title ILIKE ${`%${q}%`}
-          OR story ILIKE ${`%${q}%`}
+          OR ${storyMatch}
         )
       ORDER BY "createdAt" DESC
       LIMIT ${limit * 2}
