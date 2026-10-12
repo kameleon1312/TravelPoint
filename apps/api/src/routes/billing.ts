@@ -83,7 +83,9 @@ export async function billingRoutes(app: FastifyInstance) {
       try {
         await applyStripeEvent(app.prisma, JSON.parse(rawBody) as StripeEvent);
       } catch (err) {
+        // Non-2xx makes Stripe retry; swallowing here would silently lose a paid tier change.
         app.log.error(err, 'Stripe webhook handler failed');
+        return reply.status(500).send({ code: 'WEBHOOK_PROCESSING_FAILED' });
       }
       return reply.status(204).send();
     });
@@ -103,7 +105,9 @@ export async function billingRoutes(app: FastifyInstance) {
       try {
         await applyRevenueCatEvent(app.prisma, body);
       } catch (err) {
+        // Non-2xx makes RevenueCat retry with backoff.
         app.log.error(err, 'RevenueCat webhook handler failed');
+        return reply.status(500).send({ code: 'WEBHOOK_PROCESSING_FAILED' });
       }
       return reply.status(204).send();
     });

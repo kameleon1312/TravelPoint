@@ -8,6 +8,7 @@ export interface BillingStatus {
   tierExpiresAt: string | null;
   customer: boolean;
   subscription: {
+    provider: 'STRIPE' | 'REVENUECAT';
     status: string;
     tier: string;
     currentPeriodEnd: string | null;

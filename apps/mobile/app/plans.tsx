@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  ActivityIndicator,
+  ActivityIndicator, Alert, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
@@ -10,7 +10,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { BackButton } from '@/components/ui/BackButton';
 import { useAuthStore } from '@/stores/auth';
 import { useBillingStatus } from '@/hooks/useBilling';
-import { usePurchase, useRestorePurchases, useProductPrice } from '@/hooks/usePurchases';
+import { usePurchase, useRestorePurchases, useProductPrice, useFreeTrialDays } from '@/hooks/usePurchases';
 import type { RcTier } from '@/lib/purchases';
 
 // ── Pricing ──────────────────────────────────────────────────────────────────
@@ -186,12 +186,16 @@ function TierCard({
   );
   const isDowngrade = tier.id !== 'FREE' && currentTier !== 'FREE' && !isUpgrade && !isCurrent;
 
-  // Price comes from the store (App Store / Google Play) for accuracy and legal compliance
-  const storePrice = useProductPrice(tier.id !== 'FREE' ? (tier.id as RcTier) : 'PRO', annual);
+  // Store price (App Store / Google Play) is the source of truth; constants are a pre-load fallback.
+  const paidTier: RcTier = tier.id === 'EXPEDITION' ? 'EXPEDITION' : 'PRO';
+  const storePrice = useProductPrice(paidTier, annual);
+  const trialDays  = useFreeTrialDays(paidTier);
   const price = tier.id !== 'FREE'
-    ? (storePrice ?? `${PRICES[tier.id as 'PRO' | 'EXPEDITION'][annual ? 'annual' : 'monthly']} PLN`)
+    ? (storePrice ?? `${PRICES[paidTier][annual ? 'annual' : 'monthly']} PLN`)
     : null;
-  // annualTotal not needed — store price string already includes the correct period label
+  // Store annual price is the yearly total; fallback annual constant is a monthly equivalent.
+  const pricePeriod = storePrice && annual ? '/rok' : '/mies';
+  const showTrial = tier.id === 'PRO' && currentTier === 'FREE' && trialDays !== null;
 
   return (
     <Animated.View entering={FadeInDown.duration(300).delay(TIERS.indexOf(tier) * 80)}>
@@ -214,9 +218,9 @@ function TierCard({
               <Text style={[styles.currentBadgeText, { color: tier.color }]}>Aktywny</Text>
             </View>
           )}
-          {tier.id === 'PRO' && !isCurrent && currentTier === 'FREE' && (
+          {showTrial && (
             <View style={styles.trialBadgeSmall}>
-              <Text style={styles.trialBadgeSmallText}>7 dni gratis</Text>
+              <Text style={styles.trialBadgeSmallText}>{trialDays} dni gratis</Text>
             </View>
           )}
         </View>
@@ -225,7 +229,7 @@ function TierCard({
         {price !== null ? (
           <View style={styles.priceRow}>
             <Text style={[styles.price, { color: tier.color }]}>{price}</Text>
-            {!storePrice && <Text style={styles.pricePer}>/mies</Text>}
+            <Text style={styles.pricePer}>{pricePeriod}</Text>
           </View>
         ) : (
           <Text style={[styles.price, { color: tier.color }]}>Gratis</Text>
@@ -256,7 +260,7 @@ function TierCard({
               <ActivityIndicator color={Colors.void} size="small" />
             ) : (
               <Text style={styles.ctaBtnText}>
-                {tier.id === 'PRO' && currentTier === 'FREE' ? 'Zacznij za darmo' : `Przejdź na ${tier.label}`}
+                {showTrial ? `Zacznij ${trialDays} dni za darmo` : `Przejdź na ${tier.label}`}
               </Text>
             )}
           </Pressable>
@@ -294,15 +298,20 @@ export default function PlansScreen() {
   }
 
   function handleManage() {
-    // On iOS/Android the user manages their subscription via the OS settings.
-    // We open the correct native settings page directly.
-    import('react-native').then(({ Linking, Platform, Alert }) => {
-      if (Platform.OS === 'ios') {
-        void Linking.openURL('https://apps.apple.com/account/subscriptions');
-      } else {
-        void Linking.openURL('https://play.google.com/store/account/subscriptions');
-      }
-    }).catch(() => {});
+    // Web (Stripe) subscriptions can't be managed from the store settings. No external
+    // link on purpose: App Store guideline 3.1.1 forbids steering to outside purchase flows.
+    if (billing?.subscription?.provider === 'STRIPE') {
+      Alert.alert(
+        'Subskrypcja z wersji web',
+        'Ten plan został wykupiony w przeglądarce. Zarządzasz nim po zalogowaniu na stronie TravelPoint.',
+      );
+      return;
+    }
+    void Linking.openURL(
+      Platform.OS === 'ios'
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions',
+    );
   }
 
   return (

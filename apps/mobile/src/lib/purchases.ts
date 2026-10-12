@@ -12,12 +12,6 @@ const RC_KEYS = {
   android: process.env['EXPO_PUBLIC_REVENUECAT_ANDROID_KEY'] ?? '',
 };
 
-// Entitlement identifiers — must match the RevenueCat dashboard exactly
-export const RC_ENTITLEMENTS = {
-  PRO:        'pro',
-  EXPEDITION: 'expedition',
-} as const;
-
 export type RcTier = 'PRO' | 'EXPEDITION';
 
 // Product identifiers must match App Store Connect + Google Play Console exactly.
@@ -58,10 +52,6 @@ export async function purchasePackage(pkg: PurchasesPackage) {
 
 export async function restorePurchases() {
   return Purchases.restorePurchases();
-}
-
-export async function getCustomerInfo() {
-  return Purchases.getCustomerInfo();
 }
 
 // Resolves a PurchasesPackage from the current offering for a given tier + period.

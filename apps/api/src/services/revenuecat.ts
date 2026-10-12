@@ -1,120 +1,158 @@
+import crypto from 'crypto';
 import type { PrismaClient } from '@prisma/client';
 import { env } from '../config/env';
 import { setExplorerTier } from './trustScore';
 
-// RevenueCat event types that grant tier access
-const GRANT_EVENTS = new Set([
-  'INITIAL_PURCHASE',
-  'RENEWAL',
-  'UNCANCELLATION',
-  'TRANSFER',
-  'PRODUCT_CHANGE',
-]);
+type PaidTier = 'PRO' | 'EXPEDITION';
 
-// RevenueCat event types that revoke tier access
-const REVOKE_EVENTS = new Set([
-  'CANCELLATION',
-  'EXPIRATION',
-  'BILLING_ISSUE',
-]);
-
-// Maps RevenueCat entitlement identifiers to our internal tier values.
-// These must match exactly what's configured in the RevenueCat dashboard.
-const ENTITLEMENT_TO_TIER: Record<string, 'PRO' | 'EXPEDITION'> = {
+// Must match entitlement identifiers configured in the RevenueCat dashboard.
+const ENTITLEMENT_TO_TIER: Record<string, PaidTier> = {
   pro:        'PRO',
   expedition: 'EXPEDITION',
 };
 
 export interface RcWebhookBody {
-  event: {
-    type: string;
-    app_user_id: string;
-    aliases?: string[];
-    product_id?: string;
-    entitlement_ids?: string[];
+  event?: {
+    type?: string;
+    app_user_id?: string;
+    entitlement_ids?: string[] | null;
     expiration_at_ms?: number | null;
     environment?: 'SANDBOX' | 'PRODUCTION';
-    original_app_user_id?: string;
-    store?: string;
   };
   api_version?: string;
 }
 
-export function isRevenueCatConfigured(): boolean {
-  return Boolean(env.revenueCatWebhookSecret);
-}
+export type RcDecision =
+  | { kind: 'grant'; explorerId: string; tier: PaidTier; expiresAt: Date | null }
+  | { kind: 'auto_renew_off'; explorerId: string }
+  | { kind: 'billing_issue'; explorerId: string }
+  | { kind: 'revoke'; explorerId: string }
+  | { kind: 'ignore'; reason: string };
 
-// RevenueCat sends the webhook secret as the Authorization header (Bearer <secret>)
 export function verifyRevenueCatRequest(authHeader: string | undefined): boolean {
   const secret = env.revenueCatWebhookSecret;
   if (!secret || !authHeader) return false;
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-  return token === secret;
+  const a = Buffer.from(token);
+  const b = Buffer.from(secret);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-export async function applyRevenueCatEvent(
-  prisma: PrismaClient,
-  body: RcWebhookBody,
-): Promise<void> {
-  const { event } = body;
-  if (!event?.type || !event.app_user_id) return;
+function highestTier(entitlementIds: readonly string[] | null | undefined): PaidTier | null {
+  const tiers = (entitlementIds ?? []).map((id) => ENTITLEMENT_TO_TIER[id]).filter(Boolean);
+  if (tiers.includes('EXPEDITION')) return 'EXPEDITION';
+  if (tiers.includes('PRO')) return 'PRO';
+  return null;
+}
 
-  // In production, skip sandbox test events to avoid poisoning tier state
-  if (
-    process.env['NODE_ENV'] === 'production' &&
-    event.environment === 'SANDBOX'
-  ) return;
+// Pure mapping from a RevenueCat event to the action we take. Kept free of I/O so the
+// subscription lifecycle rules are unit-testable.
+export function decideRevenueCatAction(body: RcWebhookBody, isProduction: boolean): RcDecision {
+  const event = body.event;
+  if (!event?.type) return { kind: 'ignore', reason: 'missing_event' };
+  if (isProduction && event.environment === 'SANDBOX') return { kind: 'ignore', reason: 'sandbox_in_production' };
 
-  // app_user_id is our explorerId (set during Purchases.configure)
   const explorerId = event.app_user_id;
+  // Purchases are configured with explorerId only after sign-in; anonymous RC ids never map to an explorer.
+  if (!explorerId || explorerId.startsWith('$RCAnonymousID')) return { kind: 'ignore', reason: 'no_explorer_id' };
+
+  switch (event.type) {
+    case 'INITIAL_PURCHASE':
+    case 'RENEWAL':
+    case 'UNCANCELLATION':
+    case 'NON_RENEWING_PURCHASE': {
+      const tier = highestTier(event.entitlement_ids);
+      if (!tier) return { kind: 'ignore', reason: 'no_known_entitlement' };
+      const expiresAt = typeof event.expiration_at_ms === 'number' ? new Date(event.expiration_at_ms) : null;
+      return { kind: 'grant', explorerId, tier, expiresAt };
+    }
+    // Auto-renew turned off: access continues until EXPIRATION.
+    case 'CANCELLATION':
+      return { kind: 'auto_renew_off', explorerId };
+    // Store grace period: keep access, EXPIRATION follows if payment never recovers.
+    case 'BILLING_ISSUE':
+      return { kind: 'billing_issue', explorerId };
+    case 'EXPIRATION':
+      return { kind: 'revoke', explorerId };
+    // TRANSFER carries transferred_from/transferred_to instead of a single owner, and
+    // PRODUCT_CHANGE is followed by a RENEWAL for the new product — both handled elsewhere.
+    default:
+      return { kind: 'ignore', reason: `unhandled_${event.type.toLowerCase()}` };
+  }
+}
+
+const RC_SUBSCRIPTION_ID = (explorerId: string) => `rc:${explorerId}`;
+
+export async function applyRevenueCatEvent(prisma: PrismaClient, body: RcWebhookBody): Promise<RcDecision> {
+  const decision = decideRevenueCatAction(body, env.isProduction);
+  if (decision.kind === 'ignore') return decision;
+
   const explorer = await prisma.explorer.findUnique({
-    where: { id: explorerId },
+    where: { id: decision.explorerId },
     select: { id: true },
   });
-  if (!explorer) return;
+  if (!explorer) return { kind: 'ignore', reason: 'explorer_not_found' };
 
-  if (GRANT_EVENTS.has(event.type)) {
-    // Derive tier from entitlement_ids array — highest tier wins
-    const tier = (event.entitlement_ids ?? [])
-      .map((e) => ENTITLEMENT_TO_TIER[e])
-      .find(Boolean);
-    if (!tier) return;
+  const subscriptionId = RC_SUBSCRIPTION_ID(decision.explorerId);
 
-    const expiresAt = typeof event.expiration_at_ms === 'number'
-      ? new Date(event.expiration_at_ms)
-      : null;
-
-    await setExplorerTier(prisma, explorerId, tier, `rc_${event.type.toLowerCase()}`, expiresAt);
-
+  if (decision.kind === 'grant') {
+    const write = {
+      status: 'ACTIVE' as const,
+      tier: decision.tier,
+      currentPeriodEnd: decision.expiresAt,
+      cancelAtPeriodEnd: false,
+    };
     await prisma.subscription.upsert({
-      where: {
-        providerSubscriptionId: `rc:${explorerId}`,
-      },
+      where: { providerSubscriptionId: subscriptionId },
       create: {
-        explorerId,
-        provider:               'REVENUECAT',
-        providerCustomerId:     explorerId,
-        providerSubscriptionId: `rc:${explorerId}`,
-        status:                 'ACTIVE',
-        tier,
-        currentPeriodEnd:       expiresAt,
-        cancelAtPeriodEnd:      false,
+        ...write,
+        explorerId: decision.explorerId,
+        provider: 'REVENUECAT',
+        providerCustomerId: decision.explorerId,
+        providerSubscriptionId: subscriptionId,
       },
-      update: {
-        status:           'ACTIVE',
-        tier,
-        currentPeriodEnd: expiresAt,
-        cancelAtPeriodEnd: false,
-        updatedAt:        new Date(),
-      },
+      update: write,
     });
-
-  } else if (REVOKE_EVENTS.has(event.type)) {
-    await setExplorerTier(prisma, explorerId, 'FREE', `rc_${event.type.toLowerCase()}`, null);
-
-    await prisma.subscription.updateMany({
-      where:  { explorerId, provider: 'REVENUECAT' },
-      data:   { status: 'CANCELED', cancelAtPeriodEnd: true, updatedAt: new Date() },
-    });
+    await setExplorerTier(prisma, decision.explorerId, decision.tier, 'revenuecat_grant', decision.expiresAt);
+    return decision;
   }
+
+  if (decision.kind === 'auto_renew_off') {
+    await prisma.subscription.updateMany({
+      where: { providerSubscriptionId: subscriptionId },
+      data: { cancelAtPeriodEnd: true },
+    });
+    return decision;
+  }
+
+  if (decision.kind === 'billing_issue') {
+    await prisma.subscription.updateMany({
+      where: { providerSubscriptionId: subscriptionId },
+      data: { status: 'PAST_DUE' },
+    });
+    return decision;
+  }
+
+  await prisma.subscription.updateMany({
+    where: { providerSubscriptionId: subscriptionId },
+    data: { status: 'CANCELED' },
+  });
+
+  // An explorer may also hold a web (Stripe) subscription — don't downgrade over it.
+  const stripeActive = await prisma.subscription.findFirst({
+    where: {
+      explorerId: decision.explorerId,
+      provider: 'STRIPE',
+      status: { in: ['ACTIVE', 'TRIALING'] },
+      OR: [{ currentPeriodEnd: null }, { currentPeriodEnd: { gt: new Date() } }],
+    },
+    orderBy: { updatedAt: 'desc' },
+    select: { tier: true, currentPeriodEnd: true },
+  });
+  if (stripeActive && stripeActive.tier !== 'FREE') {
+    await setExplorerTier(prisma, decision.explorerId, stripeActive.tier, 'revenuecat_expired_stripe_active', stripeActive.currentPeriodEnd);
+  } else {
+    await setExplorerTier(prisma, decision.explorerId, 'FREE', 'revenuecat_expiration', null);
+  }
+  return decision;
 }

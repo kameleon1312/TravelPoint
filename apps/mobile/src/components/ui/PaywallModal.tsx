@@ -10,6 +10,7 @@ import Animated, {
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, Spacing, BorderRadius } from '@travelpoint/theme';
+import { useFreeTrialDays } from '@/hooks/usePurchases';
 
 type RequiredTier = 'PRO' | 'EXPEDITION';
 
@@ -53,6 +54,7 @@ export function PaywallModal({ visible, onClose, requiredTier, featureLabel }: P
   const scale = useSharedValue(0.88);
   const glow  = useSharedValue(1);
   const color = TIER_COLORS[requiredTier];
+  const trialDays = useFreeTrialDays(requiredTier);
 
   useEffect(() => {
     if (visible) {
@@ -114,9 +116,9 @@ export function PaywallModal({ visible, onClose, requiredTier, featureLabel }: P
                 ))}
               </View>
 
-              {requiredTier === 'PRO' && (
+              {trialDays !== null && (
                 <View style={styles.trialBadge}>
-                  <Text style={styles.trialText}>7 dni gratis · bez karty</Text>
+                  <Text style={styles.trialText}>{trialDays} dni gratis</Text>
                 </View>
               )}
 
