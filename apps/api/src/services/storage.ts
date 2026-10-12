@@ -56,6 +56,16 @@ export async function createPhotoUpload(explorerId: string, mimeType: string, si
   return { objectKey, uploadUrl, expiresIn: 300 };
 }
 
+// Re-encodes the image so EXIF/XMP/IPTC (incl. GPS position and device info) never reach
+// the public bucket. sharp drops metadata unless withMetadata() is requested; rotate()
+// bakes in the EXIF orientation before it is discarded.
+export async function stripImageMetadata(source: Buffer, mimeType: string): Promise<Buffer> {
+  const image = sharp(source).rotate();
+  if (mimeType === 'image/png') return image.png().toBuffer();
+  if (mimeType === 'image/webp') return image.webp({ quality: 90 }).toBuffer();
+  return image.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+}
+
 export async function finalizePhoto(
   objectKey: string,
   expectedMimeType: string,
@@ -79,8 +89,17 @@ export async function finalizePhoto(
   const metadata = await sharp(source).metadata();
   if (!metadata.width || !metadata.height) throw new Error('INVALID_IMAGE');
 
+  // Overwrite the client-uploaded original: it is served from a public URL.
+  const sanitized = await stripImageMetadata(source, actualMime);
+  await s3.send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: objectKey,
+    Body: sanitized,
+    ContentType: actualMime,
+  }));
+
   const thumbnailKey = objectKey.replace(/\.[^.]+$/, '.thumb.webp');
-  const thumbnail = await sharp(source)
+  const thumbnail = await sharp(sanitized)
     .rotate()
     .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
     .webp({ quality: 78 })
@@ -97,7 +116,7 @@ export async function finalizePhoto(
     thumbnailUrl: `${publicUrl}/${thumbnailKey}`,
     thumbnailKey,
     mimeType: actualMime,
-    sizeBytes: actualSize,
+    sizeBytes: sanitized.length,
   };
 }
 
