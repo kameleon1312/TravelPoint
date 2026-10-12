@@ -60,3 +60,25 @@ services:
       # ── RevenueCat (mobile billing) ──────────────────────────────────────────
       - key: REVENUECAT_WEBHOOK_SECRET
         sync: false
+      # ── Stripe (web billing) ─────────────────────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRO_PRICE_ID
+        sync: false
+      - key: STRIPE_EXPEDITION_PRICE_ID
+        sync: false
+      - key: STRIPE_PRO_ANNUAL_PRICE_ID
+        sync: false
+      - key: STRIPE_EXPEDITION_ANNUAL_PRICE_ID
+        sync: false
+      # ── Ops ──────────────────────────────────────────────────────────────────
+      # Shared with the GitHub "Retention job" workflow (TRAVELPOINT_JOB_SECRET).
+      - key: JOB_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      # Reverse-proxy hops to trust for client IPs (rate limiting). Default 1.
+      - key: TRUST_PROXY_HOPS
+        sync: false

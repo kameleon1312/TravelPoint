@@ -30,7 +30,11 @@ import { checkPushReceipts } from './services/pushReceipts';
 
 // Without trustProxy every request behind the load balancer shares the proxy's IP,
 // turning per-IP rate limits (e.g. 5 signups / 15 min) into one global bucket.
-const app = Fastify({ logger: false, trustProxy: env.trustProxyHops || false });
+// Trust exactly N hops (0 = none). Fastify 5.12 dropped the numeric form, so use a function.
+const app = Fastify({
+  logger: false,
+  trustProxy: (_address: string, hop: number) => hop < env.trustProxyHops,
+});
 
 async function bootstrap() {
   await registerSecurity(app);
