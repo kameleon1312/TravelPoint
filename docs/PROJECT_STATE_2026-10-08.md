@@ -1,5 +1,8 @@
 # TravelPoint — Project State 2026-10-08
 
+> **SUPERSEDED by [PROJECT_STATE_2026-10-12.md](PROJECT_STATE_2026-10-12.md).** This version
+> contains unverified claims (e.g. "no active bugs") disproved by the 2026-10-12 audit. Kept for history.
+
 > Deep audit based on direct code reading of every route, screen, package and config file.
 > This document supersedes PROJECT_STATE_2026-10-07.md.
 

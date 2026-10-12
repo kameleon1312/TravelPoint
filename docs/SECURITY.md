@@ -38,14 +38,25 @@ A location data breach can cause **physical harm**. This is the highest-risk dat
 |---|---|
 | Location default OFF | `locationConsent = false` at account creation |
 | Live Presence opt-in | Requires explicit activation, expires on session end |
-| Public coord fuzzing | ≥500m jitter, random seed per session |
+| Public coord fuzzing | ≥500m offset, ONE stable secret-keyed sample per spot (never re-randomised) |
+| Live presence | Snapped to ~1 km grid with secret per-explorer origin; sent only to explorers ≤5 km |
+| Photo metadata | EXIF/GPS stripped server-side (`finalizePhoto` re-encodes the original) |
 | Hidden spot coords | Returned only to entitled clients (server-side check) |
 | Home base | AES-256-GCM encrypted at rest, never exposed publicly |
 | GPS trail retention | Raw GPS deleted/aggregated after 90 days unless saved |
 
 ### Fuzzing algorithm
-`packages/geo/src/fuzz.ts` — Mulberry32 PRNG with per-session seed.
-Fuzz radius: 500m for public presence, 1500m for locked spots.
+`apps/api/src/services/geoPrivacy.ts` (on top of `packages/geo/src/fuzz.ts`).
+
+A random offset is centred on the true point, so **re-randomising per request, per
+session or per day lets an attacker average responses back to the exact location**
+(~15 m after a few thousand requests at 1500 m). Rules:
+
+- Every obfuscated coordinate is a single stable sample: HMAC(secret, spotId + radius) seeds the offset.
+- Different radii use independent offsets (otherwise `(3·p500 − p1500)/2` recovers the point).
+- Radius: 500 m for public/feed pins, 1500 m for locked pins.
+- Presence: grid snap (~1 km) with a secret per-explorer origin; stationary explorers map to one point.
+- Never call `fuzzCoordinates` with `generateSessionSeed()` for anything returned to clients.
 
 ## Hidden Layer Security
 

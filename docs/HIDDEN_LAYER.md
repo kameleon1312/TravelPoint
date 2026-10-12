@@ -18,12 +18,18 @@ The Hidden Layer is TravelPoint's core differentiator. It makes the map feel ali
 The resolver lives in `apps/api/src/services/hiddenLayer.ts`:
 
 ```typescript
-resolveSpotForViewer(spot, viewer, sessionSeed, auditFn)
+resolveSpotForViewer(spot, viewer, auditFn)
 // → entitled: returns full lat/lng + locked: false
-// → not entitled: returns fuzzed lat/lng + locked: true + requiredAccess
+// → not entitled: returns a stable fuzzed lat/lng (1500 m) + locked: true + requiredAccess
+// → CIRCLE_ONLY outsider / expired SECRET_DROP: null (spot does not exist)
 ```
 
 Every entitled access triggers an audit log entry.
+
+Every other surface that exposes spot data must apply the same entitlement:
+search (no story matching on locked spots), feed (TRUSTED only for TRUSTED+),
+signals/push (`entitledRecipients` in `routes/spots.ts`), and subresources
+(photos, comments, reactions, verifications via `requireExactSpotAccess`).
 
 ## Trust Score System
 

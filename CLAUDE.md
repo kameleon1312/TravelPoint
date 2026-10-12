@@ -4,7 +4,8 @@ You are working on TravelPoint — a cult network for travelers obsessed with di
 Two structures: WORLD (public web) + CORE (private mobile app). NOT a trip-planner.
 
 ## ALWAYS read first
-- **docs/PROJECT_STATE_2026-10-08.md** — aktualny stan projektu, feature matrix, aktywne bugi, roadmapa (czytaj PIERWSZY)
+- **docs/PROJECT_STATE_2026-10-12.md** — aktualny stan projektu, feature matrix, aktywne bugi, roadmapa (czytaj PIERWSZY)
+- docs/AUDIT_REPORT.md (rejestr problemów TP-xxx), docs/SECURITY_AUDIT.md
 - docs/ARCHITECTURE.md, docs/SECURITY.md, docs/DESIGN_SYSTEM.md, docs/HIDDEN_LAYER.md
 
 ## Project structure
