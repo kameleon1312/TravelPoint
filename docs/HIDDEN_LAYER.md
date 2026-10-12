@@ -7,9 +7,9 @@ The Hidden Layer is TravelPoint's core differentiator. It makes the map feel ali
 | `AccessLevel` | Who sees exact coords | Others see |
 |---|---|---|
 | `PUBLIC` | Everyone | Full coordinates |
-| `TRUSTED` | Explorers with `rank >= TRUSTED` | Fuzzed pin + "unlock at higher rank" |
+| `TRUSTED` | Explorers on the PRO or EXPEDITION plan | Stable fuzzed pin (1500 m) + "unlock with PRO" |
 | `CIRCLE_ONLY` | Only circle members | Not even visible (or just a glow on map) |
-| `SECRET_DROP` | One-time discovery, expires (`dropExpiresAt`) | Pulsing ember pin, disappears after time |
+| `SECRET_DROP` | EXPEDITION plan, while `dropExpiresAt > now` | Locked pulsing ember pin; gone after expiry |
 
 ## Server-Side Enforcement
 
@@ -46,7 +46,7 @@ signals/push (`entitledRecipients` in `routes/spots.ts`), and subresources
 |---|---|---|
 | NEWCOMER | 0 | Public spots only |
 | EXPLORER | 50 | Basic profile features |
-| TRUSTED | 150 | TRUSTED spots on map |
+| TRUSTED | 150 | Prestige (spot access is plan-based since 2026-10-12) |
 | INSIDER | 400 | Can generate invite codes |
 | LEGEND | 1000 | All access, featured in WORLD |
 

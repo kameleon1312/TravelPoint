@@ -9,19 +9,19 @@ no production system was probed.
 | Resource | Read | Write | Enforced in |
 |---|---|---|---|
 | Spot PUBLIC | any signed-in explorer (exact); anonymous via `/api/spots/public` (500 m fuzz) | owner | `hiddenLayer.ts`, `routes/spots.ts` |
-| Spot TRUSTED | rank ≥ TRUSTED exact; others locked pin (1500 m, title/category only) | owner | `hiddenLayer.ts` |
+| Spot TRUSTED | PRO+ plan exact; others locked pin (1500 m, title/category only) | owner | `hiddenLayer.ts` |
 | Spot CIRCLE_ONLY | members of `circleId` only; outsiders get 404 / nothing | owner, must be member of `circleId` | `hiddenLayer.ts`, `POST /api/spots` |
-| Spot SECRET_DROP | everyone while `dropExpiresAt > now`; afterwards nobody (incl. owner) | owner, future expiry required | `hiddenLayer.ts` |
+| Spot SECRET_DROP | EXPEDITION plan while `dropExpiresAt > now` (others: locked pin); afterwards nobody | owner on EXPEDITION, future expiry required | `hiddenLayer.ts` |
 | Spot photos / comments / reactions / verifications / save | same as unlocked spot | uploader / author / owner | `requireExactSpotAccess` |
 | Circle details | members see members; non-members see circle metadata only | FOUNDER (settings, delete, promote), FOUNDER/GUIDE (kick, invites) | `routes/circles.ts` |
 | Circle messages | current members (recipient list computed per message) | members | `transmissions.ts`, `plugins/socket.ts` |
 | DMs | sender/recipient; blocked in either direction → 403 | any explorer → any explorer | `transmissions.ts` |
-| Journey | owner; non-private → any signed-in explorer **incl. full GPS trail** (TP-022) | owner | `routes/journeys.ts` |
+| Journey | owner (full trail); non-private → other explorers without first/last ~500 m, hidden across blocks | owner; FREE max 3 | `routes/journeys.ts` |
 | Home base | owner only, AES-encrypted at rest | owner | `routes/explorers.ts` |
 | Presence | explorers ≤ 5 km with presence on, grid-snapped | self (requires both consents) | `plugins/socket.ts` |
 | Paid tier | server-owned; changed by Stripe / RevenueCat webhooks or moderators | — | `services/billing.ts`, `services/revenuecat.ts` |
 
-Paid tiers currently gate only circle creation (EXPEDITION) and >25 saves (FREE). See TP-020.
+Paid tiers gate TRUSTED spots (PRO+), secret drops (EXPEDITION), circle creation (EXPEDITION), saves (FREE 25) and journeys (FREE 3).
 
 ## 2. Findings by category
 
