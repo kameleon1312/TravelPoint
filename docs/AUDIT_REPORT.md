@@ -43,7 +43,7 @@ pricing consistency, missing store configuration, and the absence of any mobile/
 | High advisories in API **runtime** deps | 6 packages (fastify, sharp, socket.io-parser, engine.io, ws, fast-uri) | **0** |
 | High advisories total (mostly Expo/eslint/vitest tooling) | 82 | 63 |
 | Secret scan | PASS | PASS |
-| Retention workflow (GitHub Actions, last 5 days) | 5/5 success | — |
+| Retention workflow (GitHub Actions) | succeeded, but against the old Railway host (TRAVELPOINT_API_URL); failed from 2026-10-16 once Railway was removed | fixed 2026-10-19: secret points to Render, manual run OK |
 
 ## 3. Completion estimate
 
@@ -93,7 +93,7 @@ Access control lives in `apps/api/src/services/hiddenLayer.ts` (spots) and per-r
 | Stripe checkout / webhook | IMPLEMENTED, UNVERIFIED | no Stripe keys configured; no tests |
 | Sign-up / login / password reset | IMPLEMENTED, UNVERIFIED | Supabase-backed; no tests |
 | Feed, transmissions, signals, forum, journal | IMPLEMENTED, UNVERIFIED | code review only |
-| RODO export / account deletion | IMPLEMENTED, UNVERIFIED | code review; retention job runs daily in prod |
+| RODO export / account deletion | PARTIALLY VERIFIED | retention job runs daily against Render since 2026-10-19 (manual run: status ok) |
 | Mobile screens & navigation | IMPLEMENTED, UNVERIFIED | type-check + lint only |
 | Web pages | IMPLEMENTED, UNVERIFIED | production build only, no visual QA |
 
@@ -147,3 +147,4 @@ product owner) / BLOCKED (needs access or configuration outside the repo).
 | TP-035 | P3 | API | Spot comment body validated ad hoc (not shared Zod); comments list doesn't hide blocked explorers | Shared schema + block filter | OPEN |
 | TP-038 | P3 | Privacy | Presigned upload URL stays valid 5 min, so a client can re-upload its own original after finalisation (self-only exposure) | Finalise into a new key / shorter TTL | OPEN |
 | TP-039 | P1 | Store / copy | Plan feature lists disagree between web billing, landing, app plans and paywall, and some promises have no implementation ("Explorer rank booster ×1.5", "Priorytetowy ranking wyszukiwania", "Circle founder bez limitu" vs "do 5" — the 5-circle cap is not enforced either). Inaccurate in-app purchase descriptions risk App Store rejection (guideline 2.3) | One feature list in a shared package; remove or implement unbacked promises | DECISION |
+| TP-040 | P1 | RODO / Ops | Retention job (90-day GPS route expiry, 30-day account purge) never ran against Render: GitHub secret TRAVELPOINT_API_URL still pointed at the removed Railway app ("Application not found"); the audit wrongly read earlier green runs as production evidence | Secret updated to Render, CI web build URL fixed; manual run verified | FIXED |
